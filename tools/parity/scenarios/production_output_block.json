@@ -1,0 +1,43 @@
+{
+  "name": "production_output_block",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "CLAY_PIT",
+      "x": 0,
+      "y": 0,
+      "as": "clay"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "BRICK_KILN",
+      "x": 45,
+      "y": 0,
+      "as": "kiln"
+    },
+    {
+      "op": "set_node_state",
+      "node": "kiln",
+      "state": "READY"
+    },
+    {
+      "op": "set_inventory",
+      "node": "kiln",
+      "inventory": {
+        "clay": 300,
+        "water": 1,
+        "mud_bricks": 448
+      }
+    },
+    {
+      "op": "connect",
+      "from": "clay",
+      "to": "kiln",
+      "edge_type": "PORTER"
+    },
+    {
+      "op": "step",
+      "dt": 1.0
+    }
+  ]
+}

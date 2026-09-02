@@ -34,10 +34,11 @@ def _load_legacy_types():
     if legacy_path not in sys.path:
         sys.path.insert(0, legacy_path)
 
+    from core.enums import NodeState
     from editor.app_controller import AppController
     from persistence.savegame_io import load_game_from_path
 
-    return AppController, load_game_from_path
+    return AppController, load_game_from_path, NodeState
 
 
 def _number(value: float | int) -> float | int:
@@ -57,10 +58,11 @@ def _state_name(value: Any) -> str:
 
 class LegacySession:
     def __init__(self) -> None:
-        AppController, load_game_from_path = _load_legacy_types()
+        AppController, load_game_from_path, NodeState = _load_legacy_types()
         with _working_directory(LEGACY_ROOT):
             self.controller = AppController()
         self._load_game_from_path = load_game_from_path
+        self._node_state_type = NodeState
         self.aliases: dict[str, int] = {}
         self.steps = 0
         self.simulated_seconds = 0.0
@@ -120,6 +122,14 @@ class LegacySession:
                 node.inventory.update(inventory)
             else:
                 node.inventory = inventory
+            return
+
+        if operation == "set_node_state":
+            node_id = self.resolve_node(action["node"])
+            node = self.controller.project.graph.get_node(node_id)
+            if node is None:
+                raise ValueError(f"Unknown node ID: {node_id}")
+            node.state = self._node_state_type(str(action["state"]))
             return
 
         if operation == "set_workers":

@@ -17,11 +17,6 @@ from typing import Any
 from legacy_runner import REPOSITORY_ROOT, run_scenario
 
 
-DEFAULT_SCENARIOS = (
-    "empty_sources_20_ticks.json",
-    "egypt_10_ticks.json",
-    "eg2_10_ticks.json",
-)
 DEFAULT_ABSOLUTE_TOLERANCE = 1e-9
 
 
@@ -158,7 +153,7 @@ def main() -> int:
     scenario_root = Path(__file__).resolve().parent / "scenarios"
     scenarios = [Path(value).resolve() for value in args.scenarios]
     if not scenarios:
-        scenarios = [scenario_root / name for name in DEFAULT_SCENARIOS]
+        scenarios = sorted(scenario_root.glob("*.json"))
 
     failed = False
     for scenario in scenarios:

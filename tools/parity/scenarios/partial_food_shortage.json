@@ -1,0 +1,44 @@
+{
+  "name": "partial_food_shortage",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "WORKERS_HUTS",
+      "x": 0,
+      "y": 0,
+      "as": "huts"
+    },
+    {
+      "op": "set_node_state",
+      "node": "huts",
+      "state": "READY"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "KITCHEN",
+      "x": 80,
+      "y": 0,
+      "as": "kitchen"
+    },
+    {
+      "op": "set_node_state",
+      "node": "kitchen",
+      "state": "READY"
+    },
+    {
+      "op": "set_inventory",
+      "node": "kitchen",
+      "inventory": {
+        "food": 0.25
+      }
+    },
+    {
+      "op": "set_workers",
+      "amount": 10
+    },
+    {
+      "op": "step",
+      "dt": 1.0
+    }
+  ]
+}

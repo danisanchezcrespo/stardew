@@ -18,6 +18,7 @@ are resolved relative to the repository root. Supported actions are:
 - `create_node`: create a node and optionally bind its ID with `as`.
 - `connect`: connect two IDs or aliases with an explicit edge type.
 - `set_inventory`: replace or merge a node inventory.
+- `set_node_state`: force a valid runtime state when preparing a focused fixture.
 - `set_workers`: set the current population before the next tick.
 - `step`: execute a fixed `dt` one or more times.
 - `delete_node`: delete a node through the legacy controller behavior.
@@ -29,7 +30,7 @@ SHA-256 digest covers the normalized simulation payload.
 
 ## Cross-engine comparison
 
-Once Godot is available, execute all golden scenarios in both engines:
+Once Godot is available, execute all JSON scenarios in `scenarios/` in both engines:
 
 ```powershell
 python tools/parity/compare_runners.py
@@ -38,3 +39,6 @@ python tools/parity/compare_runners.py
 Set `GODOT_BIN` or pass `--godot PATH` when the executable is not discoverable.
 The comparator reports the first differing JSON path and uses an absolute
 numeric tolerance of `1e-9` by default.
+
+See `docs/PARITY_MATRIX.md` for the behavior covered by each scenario and the
+remaining focused cases.

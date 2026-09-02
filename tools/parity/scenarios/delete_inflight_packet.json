@@ -1,0 +1,33 @@
+{
+  "name": "delete_inflight_packet",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "DELTA_FOREST",
+      "x": 0,
+      "y": 0,
+      "as": "forest"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "BRICK_KILN",
+      "x": 45,
+      "y": 0,
+      "as": "kiln"
+    },
+    {
+      "op": "connect",
+      "from": "forest",
+      "to": "kiln",
+      "edge_type": "PORTER"
+    },
+    {
+      "op": "step",
+      "dt": 0.1
+    },
+    {
+      "op": "delete_edge",
+      "index": 0
+    }
+  ]
+}

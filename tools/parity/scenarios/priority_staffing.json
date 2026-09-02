@@ -1,0 +1,61 @@
+{
+  "name": "priority_staffing",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "KITCHEN",
+      "x": 0,
+      "y": 0,
+      "as": "kitchen"
+    },
+    {
+      "op": "set_node_state",
+      "node": "kitchen",
+      "state": "READY"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "BRICK_KILN",
+      "x": 80,
+      "y": 0,
+      "as": "first_kiln"
+    },
+    {
+      "op": "set_node_state",
+      "node": "first_kiln",
+      "state": "READY"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "BRICK_KILN",
+      "x": 160,
+      "y": 0,
+      "as": "second_kiln"
+    },
+    {
+      "op": "set_node_state",
+      "node": "second_kiln",
+      "state": "READY"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "WORKERS_HUTS",
+      "x": 240,
+      "y": 0,
+      "as": "huts"
+    },
+    {
+      "op": "set_node_state",
+      "node": "huts",
+      "state": "READY"
+    },
+    {
+      "op": "set_workers",
+      "amount": 5
+    },
+    {
+      "op": "step",
+      "dt": 0.0
+    }
+  ]
+}

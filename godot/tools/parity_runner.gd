@@ -96,6 +96,15 @@ func _apply_action(action: Variant) -> String:
 				node.inventory.merge(converted, true)
 			else:
 				node.inventory = converted
+		"set_node_state":
+			var node_id := _resolve_node(action.get("node"))
+			var node: Variant = engine.graph.get_node(node_id)
+			if node == null:
+				return "Unknown state target node."
+			var state_name := str(action.get("state", ""))
+			if state_name not in ["UNDER_CONSTRUCTION", "READY", "RUNNING"]:
+				return "Unknown node state '%s'." % state_name
+			node.state = state_name
 		"set_workers":
 			engine.state.workers_current = float(action.amount)
 		"step":
