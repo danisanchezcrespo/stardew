@@ -15,6 +15,9 @@ func _initialize() -> void:
 	_test_active_state_round_trip(registry, failures)
 	_test_file_round_trip(registry, failures)
 	_test_version_rejection(registry, failures)
+	_test_legacy_version_without_world(registry, failures)
+	_test_world_round_trip(failures)
+	_test_corrupt_world_is_rejected(failures)
 
 	if failures.is_empty():
 		print("PASS: savegame codec")
@@ -90,6 +93,89 @@ func _test_version_rejection(registry: Variant, failures: Array[String]) -> void
 	var result: Error = engine.load_from_dictionary({"version": 999, "nodes": [], "edges": [], "state": {}})
 	_expect(result == ERR_FILE_UNRECOGNIZED, "Unknown savegame version should be rejected.", failures)
 	_expect(engine.state.nodes.size() == 1, "Rejected version should not clear current simulation.", failures)
+
+
+func _test_legacy_version_without_world(registry: Variant, failures: Array[String]) -> void:
+	var engine := EngineType.new(registry)
+	engine.configure_world(Vector2i(2, 2))
+	var result: Error = engine.load_from_dictionary({"version": 1, "nodes": [], "edges": [], "state": {}})
+	_expect(result == OK, "Version 1 simulation-only savegames should remain loadable.", failures)
+	_expect(engine.world_grid == null, "Legacy savegame should load without inventing a physical world.", failures)
+
+
+func _test_world_round_trip(failures: Array[String]) -> void:
+	var registry: Variant = _spatial_registry(failures)
+	var source := EngineType.new(registry)
+	var world: Variant = source.configure_world(Vector2i(6, 4), "sand")
+	world.set_terrain(Vector2i(0, 0), "water")
+	var chest: Variant = registry.get_entity("CHEST")
+	var result: Variant = world.place("chest-7", "CHEST", chest.spatial_footprint, Vector2i(2, 1), 2, chest.allowed_terrain)
+	_expect(result.valid, "World fixture entity should place before saving.", failures)
+	var data: Dictionary = source.build_savegame_data()
+	_expect(data.version == 2 and data.has("world"), "New savegames should include versioned world data.", failures)
+
+	var loaded := EngineType.new(registry)
+	var load_result: Error = loaded.load_from_dictionary(data)
+	_expect(load_result == OK, "Physical world should load: %s" % str(loaded.savegames.errors), failures)
+	_expect(loaded.world_grid != null and loaded.world_grid.size == Vector2i(6, 4), "World dimensions should survive round-trip.", failures)
+	if loaded.world_grid != null:
+		_expect(loaded.world_grid.terrain_at(Vector2i(0, 0)) == "water", "Terrain override should survive round-trip.", failures)
+		_expect(loaded.world_grid.occupant_at(Vector2i(2, 1)) == "chest-7", "Occupancy should rebuild from entities.", failures)
+		var restored: Variant = loaded.world_grid.entities_by_id.get("chest-7")
+		_expect(restored != null and restored.rotation == 2, "Stable ID and rotation should survive round-trip.", failures)
+
+	var path := "res://.godot/physical-world-savegame-test.json"
+	var save_result: Error = source.save_to_path(path)
+	var loaded_from_file := EngineType.new(registry)
+	var file_result: Error = loaded_from_file.load_from_path(path)
+	_expect(save_result == OK and file_result == OK, "Physical world JSON file should round-trip: %s" % str(loaded_from_file.savegames.errors), failures)
+	_expect(loaded_from_file.world_grid != null and loaded_from_file.world_grid.occupant_at(Vector2i(2, 1)) == "chest-7", "JSON parsing should preserve integer placement coordinates.", failures)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func _test_corrupt_world_is_rejected(failures: Array[String]) -> void:
+	var registry: Variant = _spatial_registry(failures)
+	var engine := EngineType.new(registry)
+	var original_world: Variant = engine.configure_world(Vector2i(3, 3), "sand")
+	var data := {
+		"version": 2,
+		"nodes": [],
+		"edges": [],
+		"state": {},
+		"world": {
+			"size": [3, 3],
+			"default_terrain": "sand",
+			"terrain": [],
+			"entities": [
+				{"instance_id": "a", "definition_id": "CHEST", "origin": [0, 0], "rotation": 0},
+				{"instance_id": "b", "definition_id": "CHEST", "origin": [1, 0], "rotation": 0},
+			],
+		},
+	}
+	var result: Error = engine.load_from_dictionary(data)
+	_expect(result == ERR_INVALID_DATA, "Overlapping restored entities should reject the savegame.", failures)
+	_expect(engine.world_grid == original_world, "Rejected world must not replace current world state.", failures)
+	_expect(not engine.savegames.errors.is_empty(), "Corrupt world should provide a diagnostic.", failures)
+
+
+func _spatial_registry(failures: Array[String]) -> Variant:
+	var registry := RegistryType.new()
+	var result: Error = registry.load_from_dictionary(
+		{
+			"entities": [{
+				"id": "CHEST",
+				"spatial": {
+					"footprint": [[0, 0], [1, 0]],
+					"rotations": [0, 2],
+					"allowed_terrain": ["sand"],
+					"ports": {"use": [0, 1]},
+				},
+			}],
+			"edges": [],
+		}
+	)
+	_expect(result == OK, "Spatial savegame registry should load: %s" % str(registry.errors), failures)
+	return registry
 
 
 func _expect(condition: bool, message: String, failures: Array[String]) -> void:

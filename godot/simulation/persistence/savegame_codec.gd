@@ -4,8 +4,10 @@ extends RefCounted
 const NodeInstanceType = preload("res://simulation/state/node_instance.gd")
 const EdgeInstanceType = preload("res://simulation/state/edge_instance.gd")
 const PacketType = preload("res://simulation/state/transport_packet.gd")
+const WorldGridType = preload("res://world/placement/world_grid.gd")
 
-const SAVEGAME_VERSION := 1
+const SAVEGAME_VERSION := 2
+const LEGACY_SAVEGAME_VERSION := 1
 
 var errors: Array[String] = []
 
@@ -17,12 +19,15 @@ func build_savegame_data(engine: Variant) -> Dictionary:
 	var edges: Array = []
 	for edge: Variant in engine.state.edges:
 		edges.append(_serialize_edge(edge))
-	return {
+	var data := {
 		"version": SAVEGAME_VERSION,
 		"nodes": nodes,
 		"edges": edges,
 		"state": _serialize_state(engine.state),
 	}
+	if engine.world_grid != null:
+		data["world"] = _serialize_world(engine.world_grid)
+	return data
 
 
 func save_to_path(engine: Variant, path: String) -> Error:
@@ -60,7 +65,7 @@ func load_from_path(engine: Variant, path: String) -> Error:
 func load_from_dictionary(engine: Variant, data: Dictionary) -> Error:
 	errors.clear()
 	var version := int(data.get("version", 0))
-	if version != SAVEGAME_VERSION:
+	if version != SAVEGAME_VERSION and version != LEGACY_SAVEGAME_VERSION:
 		errors.append("Unsupported savegame version: %d" % version)
 		return ERR_FILE_UNRECOGNIZED
 	if typeof(data.get("nodes", [])) != TYPE_ARRAY:
@@ -72,6 +77,12 @@ func load_from_dictionary(engine: Variant, data: Dictionary) -> Error:
 	if typeof(data.get("state", {})) != TYPE_DICTIONARY:
 		errors.append("Savegame 'state' field must be an object.")
 		return ERR_INVALID_DATA
+
+	var loaded_world: Variant = null
+	if data.has("world"):
+		loaded_world = _deserialize_world(engine, data["world"])
+		if loaded_world == null:
+			return ERR_INVALID_DATA
 
 	engine.state.nodes.clear()
 	engine.state.edges.clear()
@@ -96,9 +107,110 @@ func load_from_dictionary(engine: Variant, data: Dictionary) -> Error:
 		engine.state.edges.append(edge)
 
 	_deserialize_state(engine.state, data.get("state", {}))
+	engine.world_grid = loaded_world
 	engine.step_count = 0
 	engine.simulated_seconds = 0.0
 	return OK
+
+
+func _serialize_world(world: Variant) -> Dictionary:
+	var terrain: Array = []
+	var terrain_cells: Array = world.terrain_by_cell.keys()
+	terrain_cells.sort_custom(_sort_vector_cells)
+	for cell: Vector2i in terrain_cells:
+		terrain.append({"cell": [cell.x, cell.y], "terrain": world.terrain_at(cell)})
+
+	var entities: Array = []
+	var entity_ids: Array = world.entities_by_id.keys()
+	entity_ids.sort()
+	for instance_id: String in entity_ids:
+		var placed: Variant = world.entities_by_id[instance_id]
+		entities.append({
+			"instance_id": placed.instance_id,
+			"definition_id": placed.definition_id,
+			"origin": [placed.origin.x, placed.origin.y],
+			"rotation": placed.rotation,
+		})
+	return {
+		"size": [world.size.x, world.size.y],
+		"default_terrain": world.default_terrain,
+		"terrain": terrain,
+		"entities": entities,
+	}
+
+
+func _deserialize_world(engine: Variant, value: Variant) -> Variant:
+	if typeof(value) != TYPE_DICTIONARY:
+		errors.append("Savegame 'world' field must be an object.")
+		return null
+	var data: Dictionary = value
+	var size_value: Variant = data.get("size")
+	if not _is_integer_pair(size_value) or int(size_value[0]) <= 0 or int(size_value[1]) <= 0:
+		errors.append("World size must contain two positive integers.")
+		return null
+	var default_terrain := str(data.get("default_terrain", "ground"))
+	if default_terrain.is_empty():
+		errors.append("World default terrain must not be empty.")
+		return null
+	if typeof(data.get("terrain", [])) != TYPE_ARRAY or typeof(data.get("entities", [])) != TYPE_ARRAY:
+		errors.append("World terrain and entities must be arrays.")
+		return null
+
+	var world := WorldGridType.new(Vector2i(int(size_value[0]), int(size_value[1])), default_terrain)
+	for terrain_value: Variant in data.get("terrain", []):
+		if typeof(terrain_value) != TYPE_DICTIONARY or not _is_integer_pair(terrain_value.get("cell")):
+			errors.append("Every terrain override must contain an integer cell pair.")
+			return null
+		var cell_value: Array = terrain_value["cell"]
+		var terrain_id := str(terrain_value.get("terrain", ""))
+		if not world.set_terrain(Vector2i(int(cell_value[0]), int(cell_value[1])), terrain_id):
+			errors.append("Invalid terrain override at %s." % str(cell_value))
+			return null
+
+	for entity_value: Variant in data.get("entities", []):
+		if typeof(entity_value) != TYPE_DICTIONARY:
+			errors.append("Every placed world entity must be an object.")
+			return null
+		var instance_id := str(entity_value.get("instance_id", ""))
+		var definition_id := str(entity_value.get("definition_id", ""))
+		var origin_value: Variant = entity_value.get("origin")
+		if not _is_integer_pair(origin_value):
+			errors.append("Placed entity '%s' must contain an integer origin pair." % instance_id)
+			return null
+		var definition: Variant = engine.registry.get_entity(definition_id)
+		if definition == null or not definition.is_placeable():
+			errors.append("Placed entity '%s' uses missing or non-placeable definition '%s'." % [instance_id, definition_id])
+			return null
+		var origin := Vector2i(int(origin_value[0]), int(origin_value[1]))
+		var result: Variant = world.place(
+			instance_id,
+			definition_id,
+			definition.spatial_footprint,
+			origin,
+			int(entity_value.get("rotation", 0)),
+			definition.allowed_terrain
+		)
+		if not result.valid:
+			errors.append("Cannot restore placed entity '%s': %s at %s." % [instance_id, result.reason, str(result.blocking_cell)])
+			return null
+	return world
+
+
+func _is_integer_pair(value: Variant) -> bool:
+	if typeof(value) != TYPE_ARRAY or value.size() != 2:
+		return false
+	for number: Variant in value:
+		if typeof(number) != TYPE_INT and typeof(number) != TYPE_FLOAT:
+			return false
+		if float(number) != float(int(number)):
+			return false
+	return true
+
+
+static func _sort_vector_cells(left: Vector2i, right: Vector2i) -> bool:
+	if left.y == right.y:
+		return left.x < right.x
+	return left.y < right.y
 
 
 func _serialize_node(node: Variant) -> Dictionary:

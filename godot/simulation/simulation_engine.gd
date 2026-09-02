@@ -10,6 +10,7 @@ const ProductionSystemType = preload("res://simulation/systems/production_system
 const TransportSystemType = preload("res://simulation/systems/transport_system.gd")
 const ProgressionSystemType = preload("res://simulation/systems/progression_system.gd")
 const SavegameCodecType = preload("res://simulation/persistence/savegame_codec.gd")
+const WorldGridType = preload("res://world/placement/world_grid.gd")
 
 var registry: Variant
 var state: Variant
@@ -21,6 +22,7 @@ var production: Variant
 var transport: Variant
 var progression: Variant
 var savegames: Variant
+var world_grid: Variant = null
 var step_count: int = 0
 var simulated_seconds: float = 0.0
 
@@ -61,6 +63,11 @@ func create_node(entity_type: String, world_x: float, world_y: float) -> Variant
 
 func connect_nodes(from_id: int, to_id: int, edge_type_id: String) -> Variant:
 	return transport.connect_nodes(state, from_id, to_id, edge_type_id)
+
+
+func configure_world(grid_size: Vector2i, default_terrain: String = "ground") -> Variant:
+	world_grid = WorldGridType.new(grid_size, default_terrain)
+	return world_grid
 
 
 func delete_edge(edge_index: int) -> void:
