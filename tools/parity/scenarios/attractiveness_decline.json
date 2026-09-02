@@ -1,0 +1,37 @@
+{
+  "name": "attractiveness_decline",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "WORKERS_HUTS",
+      "x": 0,
+      "y": 0,
+      "as": "huts"
+    },
+    {
+      "op": "set_node_state",
+      "node": "huts",
+      "state": "READY"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "TEMPLE_COMPLEX",
+      "x": 80,
+      "y": 0,
+      "as": "temple"
+    },
+    {
+      "op": "set_node_state",
+      "node": "temple",
+      "state": "READY"
+    },
+    {
+      "op": "set_workers",
+      "amount": 10
+    },
+    {
+      "op": "step",
+      "dt": 1.0
+    }
+  ]
+}

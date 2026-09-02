@@ -35,7 +35,10 @@ def _load_legacy_types():
         sys.path.insert(0, legacy_path)
 
     from core.enums import NodeState
+    from editor.editor_state import EditorState
     from editor.app_controller import AppController
+    from model.entity_defs import EntityRegistry
+    from model.project import ProjectModel
     from persistence.savegame_io import (
         build_savegame_data,
         load_game_from_path,
@@ -48,6 +51,9 @@ def _load_legacy_types():
         load_savegame_data,
         build_savegame_data,
         NodeState,
+        EntityRegistry,
+        ProjectModel,
+        EditorState,
     )
 
 
@@ -67,16 +73,30 @@ def _state_name(value: Any) -> str:
 
 
 class LegacySession:
-    def __init__(self) -> None:
+    def __init__(self, definitions_path: Path | None = None) -> None:
         (
             AppController,
             load_game_from_path,
             load_savegame_data,
             build_savegame_data,
             NodeState,
+            EntityRegistry,
+            ProjectModel,
+            EditorState,
         ) = _load_legacy_types()
         with _working_directory(LEGACY_ROOT):
             self.controller = AppController()
+        if definitions_path is not None:
+            self.controller.registry_path = str(definitions_path)
+            self.controller.registry = EntityRegistry(str(definitions_path))
+            self.controller.project = ProjectModel(registry=self.controller.registry)
+            self.controller.state = EditorState()
+            self.controller.state.selected_edge_type = (
+                self.controller.registry.get_default_edge_type_id()
+            )
+            self.controller.state.transport_inventory = (
+                self.controller._build_initial_transport_inventory()
+            )
         self._load_game_from_path = load_game_from_path
         self._load_savegame_data = load_savegame_data
         self._build_savegame_data = build_savegame_data
@@ -297,7 +317,9 @@ def _repository_path(value: str) -> Path:
 
 def run_scenario(scenario_path: Path) -> dict[str, Any]:
     scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
-    session = LegacySession()
+    definitions = scenario.get("definitions")
+    definitions_path = _repository_path(definitions) if definitions else None
+    session = LegacySession(definitions_path)
     for index, action in enumerate(scenario.get("actions", [])):
         try:
             session.apply(action)

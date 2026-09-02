@@ -1,0 +1,16 @@
+{
+  "name": "multi_output_source",
+  "definitions": "tools/parity/fixtures/synthetic_entities.json",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "MULTI_SOURCE",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "op": "step",
+      "dt": 1.0
+    }
+  ]
+}

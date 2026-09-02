@@ -23,9 +23,10 @@ func _initialize() -> void:
 		return
 
 	var registry := RegistryType.new()
-	var load_result: Error = registry.load_from_path(
-		"res://scenarios/ancient_egypt/entities.json"
-	)
+	var definitions_path := "res://scenarios/ancient_egypt/entities.json"
+	if scenario_data.has("definitions"):
+		definitions_path = _repository_path(str(scenario_data.definitions))
+	var load_result: Error = registry.load_from_path(definitions_path)
 	if load_result != OK:
 		_fail("Unable to load definitions: %s" % str(registry.errors))
 		return

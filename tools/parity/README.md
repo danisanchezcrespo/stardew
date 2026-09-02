@@ -7,6 +7,10 @@ The runner accepts a JSON scenario, performs its actions against
 `legacy_simcity`, and writes a normalized simulation snapshot to stdout.
 It never imports or depends on the legacy UI.
 
+Scenarios may set a repository-relative `definitions` path. When omitted, both
+runners use the canonical Ancient Egypt definitions. Alternate files are used
+only for focused engine cases that the production scenario cannot express.
+
 ```powershell
 python tools/parity/legacy_runner.py tools/parity/scenarios/egypt_10_ticks.json
 ```

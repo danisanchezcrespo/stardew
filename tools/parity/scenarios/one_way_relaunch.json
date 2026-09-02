@@ -1,0 +1,31 @@
+{
+  "name": "one_way_relaunch",
+  "definitions": "tools/parity/fixtures/synthetic_entities.json",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "ORE_SOURCE",
+      "x": 0,
+      "y": 0,
+      "as": "source"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "ORE_TARGET",
+      "x": 10,
+      "y": 0,
+      "as": "target"
+    },
+    {
+      "op": "connect",
+      "from": "source",
+      "to": "target",
+      "edge_type": "BELT"
+    },
+    {
+      "op": "step",
+      "dt": 1.0,
+      "count": 2
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "entities": [
+    {
+      "id": "MULTI_SOURCE",
+      "initial_amounts": {
+        "full_output": 10,
+        "open_output": 10
+      },
+      "max_amounts": {
+        "full_output": 10,
+        "open_output": 20
+      },
+      "recipe_outputs": {
+        "full_output": 2,
+        "open_output": 3
+      },
+      "source_rate_per_sec": 1
+    },
+    {
+      "id": "INSTANT_MACHINE",
+      "max_amounts": {
+        "ore": 10,
+        "product": 10
+      },
+      "recipe_inputs": {
+        "ore": 1
+      },
+      "recipe_outputs": {
+        "product": 2
+      },
+      "process_time_sec": 0
+    },
+    {
+      "id": "ORE_SOURCE",
+      "initial_amounts": {
+        "ore": 5
+      },
+      "max_amounts": {
+        "ore": 10
+      },
+      "recipe_outputs": {
+        "ore": 1
+      },
+      "source_rate_per_sec": 0
+    },
+    {
+      "id": "ORE_TARGET",
+      "max_amounts": {
+        "ore": 5,
+        "product": 10
+      },
+      "recipe_inputs": {
+        "ore": 1
+      },
+      "recipe_outputs": {
+        "product": 1
+      },
+      "process_time_sec": 10
+    }
+  ],
+  "edges": [
+    {
+      "id": "BELT",
+      "speed": 10,
+      "capacity_per_trip": 3,
+      "mode": "one_way"
+    }
+  ]
+}
