@@ -16,3 +16,7 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+
+# Python cache files from the legacy reference implementation
+__pycache__/
+*.py[cod]

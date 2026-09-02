@@ -1,0 +1,939 @@
+{
+    "entities": [
+        {
+            "id": "NILE_RIVER",
+            "label": "Nile River",
+            "color": "#3C78D8",
+            "construction_cost": {},
+            "initial_amounts": {
+                "water": 1200
+            },
+            "max_amounts": {
+                "water": 6000
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "water": 32
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "PAPYRUS_MARSH",
+            "label": "Papyrus Marsh",
+            "color": "#6AA84F",
+            "construction_cost": {},
+            "initial_amounts": {
+                "papyrus": 350
+            },
+            "max_amounts": {
+                "papyrus": 2200
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "papyrus": 4
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "DELTA_FOREST",
+            "label": "Delta Forest",
+            "color": "#38761D",
+            "construction_cost": {},
+            "initial_amounts": {
+                "wood": 450
+            },
+            "max_amounts": {
+                "wood": 2200
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "wood": 6
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "CLAY_PIT",
+            "label": "Clay Pit",
+            "color": "#8E5A3C",
+            "construction_cost": {},
+            "initial_amounts": {
+                "clay": 350
+            },
+            "max_amounts": {
+                "clay": 1800
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "clay": 5
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "LIMESTONE_QUARRY",
+            "label": "Limestone Quarry",
+            "color": "#999999",
+            "construction_cost": {},
+            "initial_amounts": {
+                "limestone": 450
+            },
+            "max_amounts": {
+                "limestone": 2400
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "limestone": 6
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "GRANITE_QUARRY",
+            "label": "Granite Quarry",
+            "color": "#777777",
+            "construction_cost": {},
+            "initial_amounts": {
+                "granite": 220
+            },
+            "max_amounts": {
+                "granite": 1300
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "granite": 2
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "COPPER_MINE",
+            "label": "Copper Mine",
+            "color": "#B87333",
+            "construction_cost": {},
+            "initial_amounts": {
+                "copper_ore": 220
+            },
+            "max_amounts": {
+                "copper_ore": 900
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "copper_ore": 2
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "GOLD_MINE",
+            "label": "Gold Mine",
+            "color": "#D4AF37",
+            "construction_cost": {},
+            "initial_amounts": {
+                "gold_ore": 100
+            },
+            "max_amounts": {
+                "gold_ore": 520
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "gold_ore": 1
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "BRICK_KILN",
+            "label": "Brick Kiln",
+            "color": "#A64D2D",
+            "construction_cost": {
+                "wood": 25
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "clay": 300,
+                "water": 220,
+                "mud_bricks": 450
+            },
+            "recipe_inputs": {
+                "clay": 2,
+                "water": 1
+            },
+            "recipe_outputs": {
+                "mud_bricks": 4
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 7,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 90,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "WORKERS_HUTS",
+            "label": "Workers Huts",
+            "color": "#C27BA0",
+            "construction_cost": {
+                "wood": 30,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {},
+            "recipe_inputs": {},
+            "recipe_outputs": {},
+            "source_rate_per_sec": 0,
+            "process_time_sec": 0,
+            "shared_resource_modifiers": {
+                "workers_max": 20
+            },
+            "workers_required": 0,
+            "worker_priority": 0
+        },
+        {
+            "id": "GRAIN_FARM",
+            "label": "Grain Farm",
+            "color": "#F1C232",
+            "construction_cost": {
+                "wood": 20,
+                "mud_bricks": 8
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "water": 220,
+                "grain": 60
+            },
+            "recipe_inputs": {
+                "water": 2
+            },
+            "recipe_outputs": {
+                "grain": 5
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 7,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 85,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "FLAX_FARM",
+            "label": "Flax Farm",
+            "color": "#93C47D",
+            "construction_cost": {
+                "wood": 20,
+                "mud_bricks": 8
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "water": 220,
+                "flax": 320
+            },
+            "recipe_inputs": {
+                "water": 2
+            },
+            "recipe_outputs": {
+                "flax": 4
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 8,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 55,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "BAKERY",
+            "label": "Bakery",
+            "color": "#C69C6D",
+            "construction_cost": {
+                "mud_bricks": 24
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "grain": 320,
+                "water": 160,
+                "bread": 320
+            },
+            "recipe_inputs": {
+                "grain": 3,
+                "water": 1
+            },
+            "recipe_outputs": {
+                "bread": 4
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 7,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 82,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "BREWERY",
+            "label": "Brewery",
+            "color": "#B45F06",
+            "construction_cost": {
+                "mud_bricks": 24
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "grain": 320,
+                "water": 160,
+                "beer": 320
+            },
+            "recipe_inputs": {
+                "grain": 2,
+                "water": 1
+            },
+            "recipe_outputs": {
+                "beer": 3
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 8,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 72,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "KITCHEN",
+            "label": "Kitchen",
+            "color": "#E69138",
+            "construction_cost": {
+                "mud_bricks": 24
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bread": 260,
+                "beer": 260,
+                "food": 520
+            },
+            "recipe_inputs": {
+                "bread": 2,
+                "beer": 1
+            },
+            "recipe_outputs": {
+                "food": 5
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 3,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 95,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "SAWMILL",
+            "label": "Sawmill",
+            "color": "#8B5A2B",
+            "construction_cost": {
+                "wood": 35,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "wood": 320,
+                "planks": 320
+            },
+            "recipe_inputs": {
+                "wood": 2
+            },
+            "recipe_outputs": {
+                "planks": 3
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 6,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 65,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "ROPE_WORKSHOP",
+            "label": "Rope Workshop",
+            "color": "#B45F06",
+            "construction_cost": {
+                "wood": 20,
+                "mud_bricks": 8
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "papyrus": 220,
+                "rope": 220
+            },
+            "recipe_inputs": {
+                "papyrus": 2
+            },
+            "recipe_outputs": {
+                "rope": 2
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 6,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 60,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "POTTERY_WORKSHOP",
+            "label": "Pottery Workshop",
+            "color": "#A64D2D",
+            "construction_cost": {
+                "mud_bricks": 20
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "clay": 260,
+                "water": 160,
+                "pottery": 220
+            },
+            "recipe_inputs": {
+                "clay": 2,
+                "water": 1
+            },
+            "recipe_outputs": {
+                "pottery": 3
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 7,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 50,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "COPPER_SMELTER",
+            "label": "Copper Smelter",
+            "color": "#B87333",
+            "construction_cost": {
+                "mud_bricks": 28,
+                "planks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "copper_ore": 220,
+                "copper_ingot": 220
+            },
+            "recipe_inputs": {
+                "copper_ore": 2
+            },
+            "recipe_outputs": {
+                "copper_ingot": 2
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 9,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 68
+        },
+        {
+            "id": "TOOL_WORKSHOP",
+            "label": "Tool Workshop",
+            "color": "#999999",
+            "construction_cost": {
+                "planks": 24,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "copper_ingot": 180,
+                "planks": 180,
+                "tools": 220
+            },
+            "recipe_inputs": {
+                "copper_ingot": 1,
+                "planks": 1
+            },
+            "recipe_outputs": {
+                "tools": 2
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 9,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 74
+        },
+        {
+            "id": "STONE_CUTTER",
+            "label": "Stone Cutter",
+            "color": "#777777",
+            "construction_cost": {
+                "wood": 25,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "limestone": 450,
+                "tools": 140,
+                "stone_blocks": 550
+            },
+            "recipe_inputs": {
+                "limestone": 4,
+                "tools": 1
+            },
+            "recipe_outputs": {
+                "stone_blocks": 3
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 11,
+            "shared_resource_modifiers": {},
+            "workers_required": 4,
+            "worker_priority": 75
+        },
+        {
+            "id": "LINEN_WORKSHOP",
+            "label": "Linen Workshop",
+            "color": "#DDD9C3",
+            "construction_cost": {
+                "planks": 20,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "flax": 260,
+                "linen": 220
+            },
+            "recipe_inputs": {
+                "flax": 3
+            },
+            "recipe_outputs": {
+                "linen": 3
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 9,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 58
+        },
+        {
+            "id": "SLED_WORKSHOP",
+            "label": "Sled Workshop",
+            "color": "#8C6239",
+            "construction_cost": {
+                "planks": 28,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "planks": 220,
+                "rope": 140,
+                "sled": 120
+            },
+            "recipe_inputs": {
+                "planks": 2,
+                "rope": 1
+            },
+            "recipe_outputs": {
+                "sled": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 11,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 52
+        },
+        {
+            "id": "OX_CART_WORKSHOP",
+            "label": "Ox Cart Workshop",
+            "color": "#C27BA0",
+            "construction_cost": {
+                "planks": 28,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "planks": 220,
+                "rope": 140,
+                "ox_cart": 70
+            },
+            "recipe_inputs": {
+                "planks": 3,
+                "rope": 1
+            },
+            "recipe_outputs": {
+                "ox_cart": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 13,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 34
+        },
+        {
+            "id": "RIVER_SHIPYARD",
+            "label": "River Shipyard",
+            "color": "#6E4E2E",
+            "construction_cost": {
+                "planks": 45,
+                "mud_bricks": 18
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "planks": 320,
+                "rope": 180,
+                "river_boat": 40
+            },
+            "recipe_inputs": {
+                "planks": 4,
+                "rope": 2
+            },
+            "recipe_outputs": {
+                "river_boat": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 18,
+            "shared_resource_modifiers": {},
+            "workers_required": 4,
+            "worker_priority": 42
+        },
+        {
+            "id": "GRANITE_WORKSHOP",
+            "label": "Granite Workshop",
+            "color": "#6D6D6D",
+            "construction_cost": {
+                "stone_blocks": 36,
+                "planks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "granite": 260,
+                "tools": 140,
+                "granite_blocks": 320
+            },
+            "recipe_inputs": {
+                "granite": 3,
+                "tools": 1
+            },
+            "recipe_outputs": {
+                "granite_blocks": 2
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 15,
+            "shared_resource_modifiers": {},
+            "workers_required": 4,
+            "worker_priority": 62
+        },
+        {
+            "id": "JEWELRY_WORKSHOP",
+            "label": "Jewelry Workshop",
+            "color": "#C9A227",
+            "construction_cost": {
+                "planks": 20,
+                "stone_blocks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "gold_ore": 140,
+                "jewelry": 140
+            },
+            "recipe_inputs": {
+                "gold_ore": 2
+            },
+            "recipe_outputs": {
+                "jewelry": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 12,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 40
+        },
+        {
+            "id": "SCULPTURE_WORKSHOP",
+            "label": "Sculpture Workshop",
+            "color": "#C9C9C9",
+            "construction_cost": {
+                "stone_blocks": 48
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "stone_blocks": 260,
+                "tools": 140,
+                "statues": 130
+            },
+            "recipe_inputs": {
+                "stone_blocks": 3,
+                "tools": 1
+            },
+            "recipe_outputs": {
+                "statues": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 17,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 36
+        },
+        {
+            "id": "RELIEF_WORKSHOP",
+            "label": "Relief Workshop",
+            "color": "#B7B7B7",
+            "construction_cost": {
+                "stone_blocks": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "stone_blocks": 260,
+                "tools": 140,
+                "reliefs": 130
+            },
+            "recipe_inputs": {
+                "stone_blocks": 2,
+                "tools": 1
+            },
+            "recipe_outputs": {
+                "reliefs": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 15,
+            "shared_resource_modifiers": {},
+            "workers_required": 3,
+            "worker_priority": 36
+        },
+        {
+            "id": "RITUAL_WORKSHOP",
+            "label": "Ritual Workshop",
+            "color": "#FFD966",
+            "construction_cost": {
+                "linen": 12,
+                "mud_bricks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "linen": 140,
+                "pottery": 140,
+                "ritual_goods": 140
+            },
+            "recipe_inputs": {
+                "linen": 2,
+                "pottery": 1
+            },
+            "recipe_outputs": {
+                "ritual_goods": 2
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 11,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 32
+        },
+        {
+            "id": "TREASURE_HOUSE",
+            "label": "Treasure House",
+            "color": "#FFD700",
+            "construction_cost": {
+                "stone_blocks": 36
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "jewelry": 140,
+                "treasure": 110
+            },
+            "recipe_inputs": {
+                "jewelry": 2
+            },
+            "recipe_outputs": {
+                "treasure": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 15,
+            "shared_resource_modifiers": {},
+            "workers_required": 2,
+            "worker_priority": 26
+        },
+        {
+            "id": "TEMPLE_COMPLEX",
+            "label": "Temple Complex",
+            "color": "#E0D18C",
+            "construction_cost": {
+                "stone_blocks": 110,
+                "mud_bricks": 30
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "statues": 90,
+                "reliefs": 90,
+                "ritual_goods": 90,
+                "temple_complex": 1
+            },
+            "recipe_inputs": {
+                "statues": 2,
+                "reliefs": 2,
+                "ritual_goods": 2
+            },
+            "recipe_outputs": {
+                "temple_complex": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 48,
+            "shared_resource_modifiers": {
+                "attractiveness": 10
+            },
+            "workers_required": 6,
+            "worker_priority": 10
+        },
+        {
+            "id": "OBELISK_MONUMENT",
+            "label": "Obelisk",
+            "color": "#B4A7D6",
+            "construction_cost": {
+                "granite_blocks": 28,
+                "stone_blocks": 12
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "granite_blocks": 140,
+                "tools": 80,
+                "obelisk": 1
+            },
+            "recipe_inputs": {
+                "granite_blocks": 10,
+                "tools": 2
+            },
+            "recipe_outputs": {
+                "obelisk": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 38,
+            "shared_resource_modifiers": {
+                "attractiveness": 8
+            },
+            "workers_required": 5,
+            "worker_priority": 10
+        },
+        {
+            "id": "STEP_PYRAMID",
+            "label": "Step Pyramid",
+            "color": "#C2B280",
+            "construction_cost": {
+                "stone_blocks": 160,
+                "mud_bricks": 30
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "stone_blocks": 650,
+                "rope": 140,
+                "sled": 80,
+                "step_pyramid": 1
+            },
+            "recipe_inputs": {
+                "stone_blocks": 40,
+                "rope": 6,
+                "sled": 2
+            },
+            "recipe_outputs": {
+                "step_pyramid": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 58,
+            "shared_resource_modifiers": {
+                "attractiveness": 12
+            },
+            "workers_required": 8,
+            "worker_priority": 8
+        },
+        {
+            "id": "GREAT_PYRAMID",
+            "label": "Great Pyramid",
+            "color": "#D6C28A",
+            "construction_cost": {
+                "stone_blocks": 280,
+                "mud_bricks": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "stone_blocks": 1100,
+                "granite_blocks": 240,
+                "sled": 120,
+                "great_pyramid": 1
+            },
+            "recipe_inputs": {
+                "stone_blocks": 80,
+                "granite_blocks": 10,
+                "sled": 4
+            },
+            "recipe_outputs": {
+                "great_pyramid": 1
+            },
+            "source_rate_per_sec": 0,
+            "process_time_sec": 86,
+            "shared_resource_modifiers": {
+                "attractiveness": 18
+            },
+            "workers_required": 10,
+            "worker_priority": 5
+        }
+    ],
+    "edges": [
+        {
+            "id": "PORTER",
+            "label": "Porter",
+            "color": "#FFD966",
+            "speed": 45,
+            "capacity_per_trip": 12,
+            "mode": "ping_pong",
+            "transport_resource": "porter",
+            "units_per_edge": 1,
+            "initial_pool_units": 2
+        },
+        {
+            "id": "SLED",
+            "label": "Sled",
+            "color": "#F6B26B",
+            "speed": 70,
+            "capacity_per_trip": 25,
+            "mode": "ping_pong",
+            "transport_resource": "sled",
+            "units_per_edge": 1,
+            "initial_pool_units": 2
+        },
+        {
+            "id": "OX_CART",
+            "label": "Ox Cart",
+            "color": "#C27BA0",
+            "speed": 90,
+            "capacity_per_trip": 40,
+            "mode": "ping_pong",
+            "transport_resource": "ox_cart",
+            "units_per_edge": 1,
+            "initial_pool_units": 0
+        },
+        {
+            "id": "RIVER_BOAT",
+            "label": "River Boat",
+            "color": "#6FA8DC",
+            "speed": 140,
+            "capacity_per_trip": 80,
+            "mode": "ping_pong",
+            "transport_resource": "river_boat",
+            "units_per_edge": 1,
+            "initial_pool_units": 0
+        }
+    ]
+}

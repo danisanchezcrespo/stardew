@@ -1,0 +1,555 @@
+{
+    "version": 1,
+    "nodes": [
+        {
+            "id": 1,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 120.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 2,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 200.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 3,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 280.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 4,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 360.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 5,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 360.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 6,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 440.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 7,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 520.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 8,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 600.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 9,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 680.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 10,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 760.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 11,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 840.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 12,
+            "entity_type": "NILE_RIVER",
+            "world_x": 200.0,
+            "world_y": 920.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 6000.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 13,
+            "entity_type": "DELTA_FOREST",
+            "world_x": 360.0,
+            "world_y": 1000.0,
+            "state": "RUNNING",
+            "inventory": {
+                "wood": 2200.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 14,
+            "entity_type": "DELTA_FOREST",
+            "world_x": 440.0,
+            "world_y": 1000.0,
+            "state": "RUNNING",
+            "inventory": {
+                "wood": 2200.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 15,
+            "entity_type": "DELTA_FOREST",
+            "world_x": 520.0,
+            "world_y": 1000.0,
+            "state": "RUNNING",
+            "inventory": {
+                "wood": 2200.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 16,
+            "entity_type": "DELTA_FOREST",
+            "world_x": 600.0,
+            "world_y": 1000.0,
+            "state": "RUNNING",
+            "inventory": {
+                "wood": 2200.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 17,
+            "entity_type": "CLAY_PIT",
+            "world_x": 760.0,
+            "world_y": 1000.0,
+            "state": "RUNNING",
+            "inventory": {
+                "clay": 1800.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 18,
+            "entity_type": "CLAY_PIT",
+            "world_x": 840.0,
+            "world_y": 1000.0,
+            "state": "RUNNING",
+            "inventory": {
+                "clay": 1800.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 19,
+            "entity_type": "CLAY_PIT",
+            "world_x": 920.0,
+            "world_y": 1000.0,
+            "state": "RUNNING",
+            "inventory": {
+                "clay": 1800.0
+            },
+            "construction_progress": {},
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 20,
+            "entity_type": "BRICK_KILN",
+            "world_x": 760.0,
+            "world_y": 600.0,
+            "state": "RUNNING",
+            "inventory": {
+                "clay": 204.0,
+                "water": 143.0,
+                "mud_bricks": 104.0
+            },
+            "construction_progress": {
+                "wood": 25.0
+            },
+            "active_process_total_sec": 7.0,
+            "active_process_remaining_sec": 1.5000000000000084,
+            "active_process_output_name": "mud_bricks",
+            "workers_assigned": 2.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 21,
+            "entity_type": "BRICK_KILN",
+            "world_x": 840.0,
+            "world_y": 840.0,
+            "state": "RUNNING",
+            "inventory": {
+                "clay": 290.0,
+                "water": 0.0,
+                "mud_bricks": 12.0
+            },
+            "construction_progress": {
+                "wood": 25.0
+            },
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 2.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 22,
+            "entity_type": "WORKERS_HUTS",
+            "world_x": 1080.0,
+            "world_y": 920.0,
+            "state": "RUNNING",
+            "inventory": {},
+            "construction_progress": {
+                "wood": 30.0,
+                "mud_bricks": 12.0
+            },
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 23,
+            "entity_type": "WORKERS_HUTS",
+            "world_x": 360.0,
+            "world_y": 760.0,
+            "state": "UNDER_CONSTRUCTION",
+            "inventory": {},
+            "construction_progress": {
+                "wood": 0.0,
+                "mud_bricks": 0.0
+            },
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 0.0
+        },
+        {
+            "id": 24,
+            "entity_type": "GRAIN_FARM",
+            "world_x": 840.0,
+            "world_y": 680.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 209.0,
+                "grain": 5.0
+            },
+            "construction_progress": {
+                "wood": 20.0,
+                "mud_bricks": 8.0
+            },
+            "active_process_total_sec": 7.0,
+            "active_process_remaining_sec": 6.9,
+            "active_process_output_name": "grain",
+            "workers_assigned": 3.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 25,
+            "entity_type": "GRAIN_FARM",
+            "world_x": 440.0,
+            "world_y": 760.0,
+            "state": "UNDER_CONSTRUCTION",
+            "inventory": {},
+            "construction_progress": {
+                "wood": 0.0,
+                "mud_bricks": 0.0
+            },
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 0.0
+        },
+        {
+            "id": 26,
+            "entity_type": "BAKERY",
+            "world_x": 600.0,
+            "world_y": 520.0,
+            "state": "RUNNING",
+            "inventory": {
+                "grain": 15.0,
+                "water": 139.0,
+                "bread": 0.0
+            },
+            "construction_progress": {
+                "mud_bricks": 24.0
+            },
+            "active_process_total_sec": 7.0,
+            "active_process_remaining_sec": 1.3000000000000083,
+            "active_process_output_name": "bread",
+            "workers_assigned": 2.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 28,
+            "entity_type": "BREWERY",
+            "world_x": 840.0,
+            "world_y": 520.0,
+            "state": "RUNNING",
+            "inventory": {
+                "water": 159.0,
+                "grain": 75.0,
+                "beer": 0.0
+            },
+            "construction_progress": {
+                "mud_bricks": 24.0
+            },
+            "active_process_total_sec": 8.0,
+            "active_process_remaining_sec": 1.8000000000000123,
+            "active_process_output_name": "beer",
+            "workers_assigned": 2.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 30,
+            "entity_type": "KITCHEN",
+            "world_x": 680.0,
+            "world_y": 520.0,
+            "state": "RUNNING",
+            "inventory": {
+                "beer": 35.0,
+                "bread": 72.0,
+                "food": 4.031374250177205
+            },
+            "construction_progress": {
+                "mud_bricks": 24.0
+            },
+            "active_process_total_sec": 7.0,
+            "active_process_remaining_sec": 5.800000000000004,
+            "active_process_output_name": "food",
+            "workers_assigned": 2.0,
+            "worker_efficiency": 1.0
+        },
+        {
+            "id": 31,
+            "entity_type": "BAKERY",
+            "world_x": 600.0,
+            "world_y": 440.0,
+            "state": "UNDER_CONSTRUCTION",
+            "inventory": {},
+            "construction_progress": {
+                "mud_bricks": 0.0
+            },
+            "active_process_total_sec": 0.0,
+            "active_process_remaining_sec": 0.0,
+            "active_process_output_name": null,
+            "workers_assigned": 0.0,
+            "worker_efficiency": 0.0
+        }
+    ],
+    "edges": [
+        {
+            "from_id": 9,
+            "to_id": 24,
+            "edge_type_id": "SLED",
+            "packet": {
+                "resource_name": "water",
+                "amount": 9.0,
+                "progress": 0.6562500000000003
+            },
+            "return_progress": null
+        },
+        {
+            "from_id": 24,
+            "to_id": 28,
+            "edge_type_id": "SLED",
+            "packet": null,
+            "return_progress": 0.7437499999999998
+        },
+        {
+            "from_id": 28,
+            "to_id": 30,
+            "edge_type_id": "PORTER",
+            "packet": null,
+            "return_progress": 0.7593749999999997
+        },
+        {
+            "from_id": 26,
+            "to_id": 30,
+            "edge_type_id": "PORTER",
+            "packet": null,
+            "return_progress": null
+        }
+    ],
+    "state": {
+        "simulation_mode": "RUNNING",
+        "selected_palette_entity": null,
+        "selected_edge_type": "PORTER",
+        "selected_node_id": 20,
+        "selected_edge_index": null,
+        "pan_x": 39.579999999999984,
+        "pan_y": 21.63000000000011,
+        "scale": 1.0,
+        "notification_text": "NEEDS planks, rope",
+        "notification_timer": 974.6999999999945,
+        "transport_inventory": {
+            "porter": 0.0,
+            "sled": 0.0,
+            "ox_cart": 0.0,
+            "river_boat": 0.0
+        },
+        "workers_current": 15.319836508711461,
+        "workers_max": 20.0,
+        "food_available": 4.107689212265825,
+        "food_consumed_last_tick": 0.07631496208862076,
+        "food_support_ratio": 1.0,
+        "attractiveness": 0.0,
+        "worker_trend": "growing"
+    }
+}

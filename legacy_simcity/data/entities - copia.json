@@ -1,0 +1,822 @@
+{
+    "entities": [
+        {
+            "id": "RIO_NILO",
+            "label": "RIO NILO",
+            "color": "#3C78D8",
+            "construction_cost": {},
+            "initial_amounts": {
+                "agua": 800
+            },
+            "max_amounts": {
+                "agua": 5000
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "agua": 25
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0.0,
+            "worker_priority": 0
+        },
+        {
+            "id": "CANTERA",
+            "label": "CANTERA",
+            "color": "#999999",
+            "construction_cost": {},
+            "initial_amounts": {
+                "piedra": 500
+            },
+            "max_amounts": {
+                "piedra": 3000
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "piedra": 12
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0.0,
+            "worker_priority": 0
+        },
+        {
+            "id": "BOSQUE_DELTA",
+            "label": "BOSQUE DELTA",
+            "color": "#38761D",
+            "construction_cost": {},
+            "initial_amounts": {
+                "madera": 300
+            },
+            "max_amounts": {
+                "madera": 2000
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "madera": 8
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0.0,
+            "worker_priority": 0
+        },
+        {
+            "id": "MINA_ORO",
+            "label": "MINA ORO",
+            "color": "#D4AF37",
+            "construction_cost": {},
+            "initial_amounts": {
+                "oro": 120
+            },
+            "max_amounts": {
+                "oro": 600
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "oro": 2
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0.0,
+            "worker_priority": 0
+        },
+        {
+            "id": "MINA_GEMAS",
+            "label": "MINA GEMAS",
+            "color": "#7F60A8",
+            "construction_cost": {},
+            "initial_amounts": {
+                "gemas": 80
+            },
+            "max_amounts": {
+                "gemas": 400
+            },
+            "recipe_inputs": {},
+            "recipe_outputs": {
+                "gemas": 1
+            },
+            "source_rate_per_sec": 1.0,
+            "process_time_sec": 0.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 0.0,
+            "worker_priority": 0
+        },
+        {
+            "id": "BARRACONES",
+            "label": "BARRACONES",
+            "color": "#C27BA0",
+            "construction_cost": {
+                "madera": 80,
+                "piedra": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {},
+            "recipe_inputs": {},
+            "recipe_outputs": {},
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 0.0,
+            "shared_resource_modifiers": {
+                "workers_max": 12
+            },
+            "workers_required": 0.0,
+            "worker_priority": 0
+        },
+        {
+            "id": "MONOLITO",
+            "label": "MONOLITO",
+            "color": "#B4A7D6",
+            "construction_cost": {
+                "piedra": 80
+            },
+            "initial_amounts": {},
+            "max_amounts": {},
+            "recipe_inputs": {},
+            "recipe_outputs": {},
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 0.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 4
+            },
+            "workers_required": 0.0,
+            "worker_priority": 0
+        },
+        {
+            "id": "ASERRADERO",
+            "label": "ASERRADERO",
+            "color": "#8B5A2B",
+            "construction_cost": {
+                "madera": 150,
+                "piedra": 60
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "madera": 500,
+                "tablas": 500
+            },
+            "recipe_inputs": {
+                "madera": 3
+            },
+            "recipe_outputs": {
+                "tablas": 2
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 4.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 4.0,
+            "worker_priority": 60,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "TALLER_CUERDA",
+            "label": "TALLER CUERDA",
+            "color": "#B45F06",
+            "construction_cost": {
+                "madera": 120,
+                "agua": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "madera": 400,
+                "agua": 200,
+                "cuerda": 400
+            },
+            "recipe_inputs": {
+                "madera": 2,
+                "agua": 1
+            },
+            "recipe_outputs": {
+                "cuerda": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 6.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 3.0,
+            "worker_priority": 55
+        },
+        {
+            "id": "TALLER_TRINEOS",
+            "label": "TALLER TRINEOS",
+            "color": "#8C6239",
+            "construction_cost": {
+                "madera": 100,
+                "piedra": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "tablas": 300,
+                "cuerda": 200
+            },
+            "recipe_inputs": {
+                "tablas": 2,
+                "cuerda": 1
+            },
+            "recipe_outputs": {
+                "trineo": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 12.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 5.0,
+            "worker_priority": 45
+        },
+        {
+            "id": "HERRERIA_COBRE",
+            "label": "HERRERIA COBRE",
+            "color": "#B87333",
+            "construction_cost": {
+                "piedra": 120,
+                "madera": 80
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "piedra": 300,
+                "madera": 200,
+                "cinceles": 200
+            },
+            "recipe_inputs": {
+                "piedra": 1,
+                "madera": 1
+            },
+            "recipe_outputs": {
+                "cinceles": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 8.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 4.0,
+            "worker_priority": 65
+        },
+        {
+            "id": "PICAPEDRERO",
+            "label": "PICAPEDRERO",
+            "color": "#777777",
+            "construction_cost": {
+                "madera": 120,
+                "piedra": 80
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "piedra": 800,
+                "agua": 300,
+                "cinceles": 200,
+                "bloques_caliza": 300
+            },
+            "recipe_inputs": {
+                "piedra": 8,
+                "agua": 1,
+                "cinceles": 1
+            },
+            "recipe_outputs": {
+                "bloques_caliza": 2
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 14.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 6.0,
+            "worker_priority": 70
+        },
+        {
+            "id": "OBRADOR_OBELISCO",
+            "label": "OBRADOR OBELISCO",
+            "color": "#9999AA",
+            "construction_cost": {
+                "piedra": 150,
+                "madera": 100
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "piedra": 800,
+                "agua": 300,
+                "cinceles": 200,
+                "bloques_granito": 200
+            },
+            "recipe_inputs": {
+                "piedra": 12,
+                "agua": 1,
+                "cinceles": 1
+            },
+            "recipe_outputs": {
+                "bloques_granito": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 18.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 7.0,
+            "worker_priority": 50
+        },
+        {
+            "id": "LADRILLERIA",
+            "label": "LADRILLERIA",
+            "color": "#A64D2D",
+            "construction_cost": {
+                "agua": 80,
+                "piedra": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "agua": 500,
+                "piedra": 500,
+                "ladrillos_barro": 600
+            },
+            "recipe_inputs": {
+                "agua": 2,
+                "piedra": 1
+            },
+            "recipe_outputs": {
+                "ladrillos_barro": 3
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 7.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 4.0,
+            "worker_priority": 60
+        },
+        {
+            "id": "YESERIA",
+            "label": "YESERIA",
+            "color": "#D9D2C3",
+            "construction_cost": {
+                "piedra": 100,
+                "agua": 60
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "piedra": 500,
+                "agua": 400,
+                "yeso": 400
+            },
+            "recipe_inputs": {
+                "piedra": 2,
+                "agua": 1
+            },
+            "recipe_outputs": {
+                "yeso": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 6.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 3.0,
+            "worker_priority": 40
+        },
+        {
+            "id": "TALLER_ESTATUAS",
+            "label": "TALLER ESTATUAS",
+            "color": "#C9C9C9",
+            "construction_cost": {
+                "piedra": 140,
+                "madera": 60
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bloques_caliza": 300,
+                "cinceles": 200,
+                "estatuas": 120
+            },
+            "recipe_inputs": {
+                "bloques_caliza": 3,
+                "cinceles": 1
+            },
+            "recipe_outputs": {
+                "estatuas": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 20.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 5.0,
+            "worker_priority": 35
+        },
+        {
+            "id": "TALLER_RELIEVES",
+            "label": "TALLER RELIEVES",
+            "color": "#B7B7B7",
+            "construction_cost": {
+                "piedra": 100,
+                "madera": 50
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bloques_caliza": 300,
+                "yeso": 200,
+                "relieves": 150
+            },
+            "recipe_inputs": {
+                "bloques_caliza": 2,
+                "yeso": 1
+            },
+            "recipe_outputs": {
+                "relieves": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 16.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 4.0,
+            "worker_priority": 35
+        },
+        {
+            "id": "ORFEBRERIA",
+            "label": "ORFEBRERIA",
+            "color": "#C9A227",
+            "construction_cost": {
+                "madera": 80,
+                "piedra": 60
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "oro": 200,
+                "gemas": 120,
+                "joyas": 120
+            },
+            "recipe_inputs": {
+                "oro": 2,
+                "gemas": 1
+            },
+            "recipe_outputs": {
+                "joyas": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 14.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 4.0,
+            "worker_priority": 30
+        },
+        {
+            "id": "TESORERIA_REAL",
+            "label": "TESORERIA REAL",
+            "color": "#8E7CC3",
+            "construction_cost": {
+                "piedra": 150,
+                "madera": 80
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "oro": 300,
+                "tesoros": 120
+            },
+            "recipe_inputs": {
+                "oro": 3
+            },
+            "recipe_outputs": {
+                "tesoros": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 18.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 5.0,
+            "worker_priority": 25
+        },
+        {
+            "id": "CARPINTERIA_NAVAL",
+            "label": "CARPINTERIA NAVAL",
+            "color": "#6E4E2E",
+            "construction_cost": {
+                "madera": 180,
+                "agua": 100
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "tablas": 300,
+                "cuerda": 300
+            },
+            "recipe_inputs": {
+                "tablas": 4,
+                "cuerda": 2
+            },
+            "recipe_outputs": {
+                "barca_nilo": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 24.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 6.0,
+            "worker_priority": 20
+        },
+        {
+            "id": "GRANERO_REAL",
+            "label": "GRANERO REAL",
+            "color": "#C69C6D",
+            "construction_cost": {
+                "madera": 120,
+                "piedra": 80
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "agua": 400,
+                "tablas": 300,
+                "food": 800
+            },
+            "recipe_inputs": {
+                "agua": 2,
+                "tablas": 1
+            },
+            "recipe_outputs": {
+                "food": 6
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 10.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 2.0,
+            "worker_priority": 80,
+            "min_worker_efficiency": 0.25
+        },
+        {
+            "id": "MUMIFICADOR",
+            "label": "MUMIFICADOR",
+            "color": "#5F4B32",
+            "construction_cost": {
+                "piedra": 120,
+                "madera": 100
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "yeso": 200,
+                "joyas": 100,
+                "sarcofagos": 80
+            },
+            "recipe_inputs": {
+                "yeso": 2,
+                "joyas": 1
+            },
+            "recipe_outputs": {
+                "sarcofagos": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 22.0,
+            "shared_resource_modifiers": {},
+            "workers_required": 4.0,
+            "worker_priority": 15
+        },
+        {
+            "id": "PIRAMIDE_ESCALONADA",
+            "label": "PIRAMIDE ESCALONADA",
+            "color": "#C2B280",
+            "construction_cost": {
+                "bloques_caliza": 120
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bloques_caliza": 1000,
+                "cuerda": 300,
+                "monumento_piramide_escalonada": 1
+            },
+            "recipe_inputs": {
+                "bloques_caliza": 40,
+                "cuerda": 6
+            },
+            "recipe_outputs": {
+                "monumento_piramide_escalonada": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 45.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 8
+            },
+            "workers_required": 8.0,
+            "worker_priority": 10
+        },
+        {
+            "id": "PIRAMIDE_REAL",
+            "label": "PIRAMIDE REAL",
+            "color": "#D6C28A",
+            "construction_cost": {
+                "bloques_caliza": 200,
+                "bloques_granito": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bloques_caliza": 2000,
+                "bloques_granito": 500,
+                "cuerda": 500,
+                "monumento_piramide_real": 1
+            },
+            "recipe_inputs": {
+                "bloques_caliza": 80,
+                "bloques_granito": 10,
+                "cuerda": 10
+            },
+            "recipe_outputs": {
+                "monumento_piramide_real": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 75.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 12
+            },
+            "workers_required": 10.0,
+            "worker_priority": 5
+        },
+        {
+            "id": "TEMPLO_SOLAR",
+            "label": "TEMPLO SOLAR",
+            "color": "#E0D18C",
+            "construction_cost": {
+                "bloques_caliza": 120,
+                "yeso": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bloques_caliza": 1000,
+                "yeso": 300,
+                "relieves": 200,
+                "estatuas": 100,
+                "templo_solar": 1
+            },
+            "recipe_inputs": {
+                "bloques_caliza": 30,
+                "yeso": 10,
+                "relieves": 4,
+                "estatuas": 2
+            },
+            "recipe_outputs": {
+                "templo_solar": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 60.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 10
+            },
+            "workers_required": 8.0,
+            "worker_priority": 8
+        },
+        {
+            "id": "OBELISCO_SAGRADO",
+            "label": "OBELISCO SAGRADO",
+            "color": "#B4A7D6",
+            "construction_cost": {
+                "bloques_granito": 60
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bloques_granito": 400,
+                "oro": 100,
+                "obelisco": 1
+            },
+            "recipe_inputs": {
+                "bloques_granito": 20,
+                "oro": 3
+            },
+            "recipe_outputs": {
+                "obelisco": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 55.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 9
+            },
+            "workers_required": 7.0,
+            "worker_priority": 8
+        },
+        {
+            "id": "CAMARA_FUNERARIA",
+            "label": "CAMARA FUNERARIA",
+            "color": "#8D6E63",
+            "construction_cost": {
+                "bloques_caliza": 80,
+                "yeso": 30
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "bloques_caliza": 600,
+                "sarcofagos": 80,
+                "joyas": 80,
+                "camara_funeraria": 1
+            },
+            "recipe_inputs": {
+                "bloques_caliza": 20,
+                "sarcofagos": 2,
+                "joyas": 2
+            },
+            "recipe_outputs": {
+                "camara_funeraria": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 50.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 6
+            },
+            "workers_required": 6.0,
+            "worker_priority": 8
+        },
+        {
+            "id": "PUERTO_FLUVIAL",
+            "label": "PUERTO FLUVIAL",
+            "color": "#4A86E8",
+            "construction_cost": {
+                "tablas": 40,
+                "cuerda": 20,
+                "piedra": 40
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "barca_nilo": 50,
+                "tablas": 200,
+                "cuerda": 100,
+                "puerto": 1
+            },
+            "recipe_inputs": {
+                "barca_nilo": 2,
+                "tablas": 6,
+                "cuerda": 3
+            },
+            "recipe_outputs": {
+                "puerto": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 35.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 3
+            },
+            "workers_required": 5.0,
+            "worker_priority": 20
+        },
+        {
+            "id": "TESORO_DEL_FARAON",
+            "label": "TESORO DEL FARAON",
+            "color": "#FFD700",
+            "construction_cost": {
+                "oro": 40,
+                "gemas": 20
+            },
+            "initial_amounts": {},
+            "max_amounts": {
+                "joyas": 100,
+                "tesoros": 100,
+                "tesoro_faraon": 1
+            },
+            "recipe_inputs": {
+                "joyas": 4,
+                "tesoros": 3
+            },
+            "recipe_outputs": {
+                "tesoro_faraon": 1
+            },
+            "source_rate_per_sec": 0.0,
+            "process_time_sec": 40.0,
+            "shared_resource_modifiers": {
+                "attractiveness": 5
+            },
+            "workers_required": 4.0,
+            "worker_priority": 5
+        }
+    ],
+    "edges": [
+        {
+            "id": "PORTEADOR",
+            "label": "Porteador",
+            "color": "#FFD966",
+            "speed": 45,
+            "capacity_per_trip": 12,
+            "mode": "ping_pong",
+            "transport_resource": "porteador",
+            "units_per_edge": 1,
+            "initial_pool_units": 2
+        },
+        {
+            "id": "TRINEO",
+            "label": "Trineo",
+            "color": "#F6B26B",
+            "speed": 70,
+            "capacity_per_trip": 25,
+            "mode": "ping_pong",
+            "transport_resource": "trineo",
+            "units_per_edge": 1,
+            "initial_pool_units": 2
+        },
+        {
+            "id": "CARRO_BUEYES",
+            "label": "Carro Bueyes",
+            "color": "#C27BA0",
+            "speed": 95,
+            "capacity_per_trip": 45,
+            "mode": "ping_pong",
+            "transport_resource": "carro_bueyes",
+            "units_per_edge": 1,
+            "initial_pool_units": 0
+        },
+        {
+            "id": "BARCA_NILO",
+            "label": "Barca Nilo",
+            "color": "#6FA8DC",
+            "speed": 140,
+            "capacity_per_trip": 80,
+            "mode": "ping_pong",
+            "transport_resource": "barca_nilo",
+            "units_per_edge": 1,
+            "initial_pool_units": 0
+        },
+        {
+            "id": "CINTA_OBRAS",
+            "label": "Cinta Obras",
+            "color": "#93C47D",
+            "speed": 85,
+            "capacity_per_trip": 18,
+            "mode": "one_way",
+            "transport_resource": "cinta_obras",
+            "units_per_edge": 1,
+            "initial_pool_units": 0
+        }
+    ]
+}
