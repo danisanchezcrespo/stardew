@@ -8,3 +8,9 @@ root with:
 ```powershell
 godot --headless --path godot --script res://tests/test_definition_registry.gd
 ```
+
+Spatial primitives can be checked independently with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_spatial_primitives.gd
+```

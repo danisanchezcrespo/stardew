@@ -1,6 +1,17 @@
 # Milestone 2: physical world grid
 
-Status: ready for implementation.
+Status: in progress.
+
+## Progress
+
+- [x] Coordinate, direction and footprint value types.
+- [x] Pure footprint and port rotation functions.
+- [ ] Spatial definition schema and validation.
+- [ ] Terrain and occupancy grid with placement queries.
+- [ ] Placement/removal commands and stable entity IDs.
+- [ ] Save/load extension.
+- [ ] Debug scene and overlays.
+- [ ] Full automated regression and acceptance walkthrough.
 
 ## Outcome
 
