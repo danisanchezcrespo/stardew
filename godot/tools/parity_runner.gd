@@ -113,6 +113,16 @@ func _apply_action(action: Variant) -> String:
 			if dt < 0.0 or count < 0:
 				return "Step dt and count must be non-negative."
 			engine.step_many(dt, count)
+		"round_trip_save":
+			var previous_step_count: int = engine.step_count
+			var previous_simulated_seconds: float = engine.simulated_seconds
+			var data: Dictionary = engine.build_savegame_data()
+			var result: Error = engine.load_from_dictionary(data)
+			if result != OK:
+				return "In-memory savegame round-trip failed: %s" % str(engine.savegames.errors)
+			engine.step_count = previous_step_count
+			engine.simulated_seconds = previous_simulated_seconds
+			aliases.clear()
 		"delete_node":
 			var node_id := _resolve_node(action.get("node"))
 			if engine.graph.get_node(node_id) == null:
@@ -175,6 +185,13 @@ func _build_snapshot(scenario_name: String) -> Dictionary:
 			}
 		)
 
+	var unlock_states: Dictionary = engine.progression.get_all_unlock_states(engine.state)
+	var unlock_ids: Array = unlock_states.keys()
+	unlock_ids.sort()
+	var sorted_unlocks: Dictionary = {}
+	for entity_id: Variant in unlock_ids:
+		sorted_unlocks[str(entity_id)] = unlock_states[entity_id]
+
 	return {
 		"snapshot_format_version": SNAPSHOT_FORMAT_VERSION,
 		"scenario": scenario_name,
@@ -194,6 +211,10 @@ func _build_snapshot(scenario_name: String) -> Dictionary:
 				"food_support_ratio": _number(engine.state.food_support_ratio),
 				"attractiveness": _number(engine.state.attractiveness),
 				"worker_trend": engine.state.worker_trend,
+			},
+			"progression": {
+				"reachable_resources": engine.progression.compute_reachable_resources(engine.state),
+				"entity_unlocks": sorted_unlocks,
 			},
 		},
 	}

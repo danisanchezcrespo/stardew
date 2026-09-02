@@ -1,0 +1,29 @@
+{
+  "name": "structural_unlocks",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "DELTA_FOREST",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "op": "create_node",
+      "entity_type": "CLAY_PIT",
+      "x": 80,
+      "y": 0
+    },
+    {
+      "op": "create_node",
+      "entity_type": "NILE_RIVER",
+      "x": 160,
+      "y": 0
+    },
+    {
+      "op": "create_node",
+      "entity_type": "BRICK_KILN",
+      "x": 240,
+      "y": 0
+    }
+  ]
+}

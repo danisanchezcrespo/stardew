@@ -36,9 +36,19 @@ def _load_legacy_types():
 
     from core.enums import NodeState
     from editor.app_controller import AppController
-    from persistence.savegame_io import load_game_from_path
+    from persistence.savegame_io import (
+        build_savegame_data,
+        load_game_from_path,
+        load_savegame_data,
+    )
 
-    return AppController, load_game_from_path, NodeState
+    return (
+        AppController,
+        load_game_from_path,
+        load_savegame_data,
+        build_savegame_data,
+        NodeState,
+    )
 
 
 def _number(value: float | int) -> float | int:
@@ -58,10 +68,18 @@ def _state_name(value: Any) -> str:
 
 class LegacySession:
     def __init__(self) -> None:
-        AppController, load_game_from_path, NodeState = _load_legacy_types()
+        (
+            AppController,
+            load_game_from_path,
+            load_savegame_data,
+            build_savegame_data,
+            NodeState,
+        ) = _load_legacy_types()
         with _working_directory(LEGACY_ROOT):
             self.controller = AppController()
         self._load_game_from_path = load_game_from_path
+        self._load_savegame_data = load_savegame_data
+        self._build_savegame_data = build_savegame_data
         self._node_state_type = NodeState
         self.aliases: dict[str, int] = {}
         self.steps = 0
@@ -149,6 +167,19 @@ class LegacySession:
             self.simulated_seconds += dt * count
             return
 
+        if operation == "round_trip_save":
+            data = self._build_savegame_data(
+                self.controller.project,
+                self.controller.state,
+            )
+            self._load_savegame_data(
+                self.controller.project,
+                self.controller.state,
+                data,
+            )
+            self.aliases.clear()
+            return
+
         if operation == "delete_node":
             self.controller.state.selected_node_id = self.resolve_node(action["node"])
             self.controller.state.selected_edge_index = None
@@ -211,6 +242,18 @@ class LegacySession:
                 }
             )
 
+        reachable_resources = sorted(self.controller.compute_reachable_resources())
+        unlock_states = self.controller.get_entity_unlock_states()
+        progression = {
+            "reachable_resources": reachable_resources,
+            "entity_unlocks": {
+                entity_id: {
+                    "unlocked": bool(unlock_states[entity_id][0]),
+                    "missing": list(unlock_states[entity_id][1]),
+                }
+                for entity_id in sorted(unlock_states)
+            },
+        }
         simulation = {
             "next_node_id": graph.next_node_id,
             "nodes": nodes,
@@ -225,6 +268,7 @@ class LegacySession:
                 "attractiveness": _number(state.attractiveness),
                 "worker_trend": state.worker_trend,
             },
+            "progression": progression,
         }
         canonical = json.dumps(
             simulation,

@@ -17,10 +17,14 @@ uses an absolute numeric tolerance of `1e-9`.
 | `empty_sources_20_ticks` | Source accumulation, capacity data, fixed stepping, initial state. |
 | `machine_batch` | Input consumption at start, no progress on start tick, efficiency floor, timed output. |
 | `partial_food_shortage` | Ordered global food consumption, partial support, population decline. |
+| `attractiveness_modifiers` | Completed-building modifiers and attraction-scaled population growth. |
 | `priority_staffing` | Descending worker priority and ascending node-ID tie-break. |
 | `construction_delivery` | Packet capacity, travel, construction delivery, promotion, edge refund. |
 | `production_output_block` | Atomic output-capacity block and automatic release of a full-input edge. |
 | `delete_inflight_packet` | Cargo loss and transporter refund when deleting a busy edge. |
+| `delete_node_multiple_edges` | Refund and cargo loss across multiple incident occupied edges. |
+| `structural_unlocks` | Fixed-point reachability, including unfinished placed entity types. |
+| `save_round_trip_continuation` | Mid-simulation save/load followed by deterministic continuation. |
 | `egypt_10_ticks` | Real save v1, active production, construction, settlement and transport continuation. |
 | `eg2_10_ticks` | Large real save v1 with ID gaps, 56 nodes and 19 edges. |
 
@@ -38,6 +42,7 @@ Snapshots compare:
 - Global transport inventory.
 - Population, housing capacity, food metrics, attractiveness and trend.
 - Next node ID, executed step count and simulated seconds.
+- Structurally reachable resources and every entity's unlock/missing requirements.
 
 ## Remaining focused scenarios
 
@@ -47,9 +52,6 @@ should still be added when their systems are changed:
 - Multiple-output source with one output full.
 - Zero-duration machine recipe.
 - One-way edge delivery and same-tick relaunch.
-- Attractiveness growth and decline modifiers.
-- Node deletion with several incident occupied edges.
-- Save/load continuation compared after additional ticks.
-- Structural unlock fixed-point calculation.
+- Attractiveness decline modifier under partial food support.
 
 No intentional simulation divergence is currently approved.

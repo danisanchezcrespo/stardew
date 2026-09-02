@@ -21,3 +21,7 @@ only tick entry point that gameplay code should use.
 `persistence/savegame_codec.gd` reads and writes legacy-compatible version 1
 savegames, including partial construction, active batches, packets, empty
 returns, transport pools, and settlement state.
+
+`systems/progression_system.gd` reproduces the legacy structural unlock fixed
+point. It intentionally counts placed entity types regardless of construction,
+connectivity, inventory, or operating state.

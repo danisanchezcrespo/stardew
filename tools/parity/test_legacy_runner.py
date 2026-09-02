@@ -23,7 +23,7 @@ class LegacyRunnerTests(unittest.TestCase):
         self.assertEqual(len(first["simulation"]["nodes"]), 2)
         self.assertEqual(
             first["simulation_sha256"],
-            "d37b1490e94fb3696cadb7d95cbde2c81dab617549b65f8af74f84bbc010865d",
+            "b3a63ff16e88bebee6b836a048b20e6d6047a15204d18f37fe4e57b8ad67c696",
         )
 
     def test_bundled_save_scenarios_are_stable(self) -> None:
@@ -31,12 +31,12 @@ class LegacyRunnerTests(unittest.TestCase):
             "egypt_10_ticks.json": (
                 29,
                 4,
-                "be728a0fc33c9a10c36219590f5d4a47cc90d120ed93f31c01e8777df152a798",
+                "fd4c08401874c40524808da85f5245f1d3c69cb49c4bf7542a38cd3e9479252e",
             ),
             "eg2_10_ticks.json": (
                 56,
                 19,
-                "99384dfa2d74b5740370a078b57e72aab3689e59b58c076c794c103159ce5738",
+                "781400234fc95dbf23e00a8e0ed4e8a1ad65aa75aa5ada5fb100ea7424ed570e",
             ),
         }
         for filename, (node_count, edge_count, expected_digest) in cases.items():

@@ -8,6 +8,7 @@ const ConstructionSystemType = preload("res://simulation/systems/construction_sy
 const WorkforceSystemType = preload("res://simulation/systems/workforce_system.gd")
 const ProductionSystemType = preload("res://simulation/systems/production_system.gd")
 const TransportSystemType = preload("res://simulation/systems/transport_system.gd")
+const ProgressionSystemType = preload("res://simulation/systems/progression_system.gd")
 const SavegameCodecType = preload("res://simulation/persistence/savegame_codec.gd")
 
 var registry: Variant
@@ -18,6 +19,7 @@ var construction: Variant
 var workforce: Variant
 var production: Variant
 var transport: Variant
+var progression: Variant
 var savegames: Variant
 var step_count: int = 0
 var simulated_seconds: float = 0.0
@@ -34,6 +36,7 @@ func _init(definition_registry: Variant) -> void:
 	production = ProductionSystemType.new(registry)
 	transport = TransportSystemType.new(registry, graph, construction, production)
 	production.set_transport_system(transport)
+	progression = ProgressionSystemType.new(registry)
 	savegames = SavegameCodecType.new()
 
 

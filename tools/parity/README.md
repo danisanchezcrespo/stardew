@@ -21,6 +21,7 @@ are resolved relative to the repository root. Supported actions are:
 - `set_node_state`: force a valid runtime state when preparing a focused fixture.
 - `set_workers`: set the current population before the next tick.
 - `step`: execute a fixed `dt` one or more times.
+- `round_trip_save`: serialize and reload the current state in memory.
 - `delete_node`: delete a node through the legacy controller behavior.
 - `delete_edge`: delete an edge by its current list index.
 

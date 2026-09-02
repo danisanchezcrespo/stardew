@@ -1,0 +1,63 @@
+{
+  "name": "delete_node_multiple_edges",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "NILE_RIVER",
+      "x": 0,
+      "y": 0,
+      "as": "nile"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "GRAIN_FARM",
+      "x": 45,
+      "y": 0,
+      "as": "farm"
+    },
+    {
+      "op": "set_node_state",
+      "node": "farm",
+      "state": "READY"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "BAKERY",
+      "x": 90,
+      "y": 0,
+      "as": "bakery"
+    },
+    {
+      "op": "set_node_state",
+      "node": "bakery",
+      "state": "READY"
+    },
+    {
+      "op": "set_inventory",
+      "node": "farm",
+      "inventory": {
+        "grain": 20
+      }
+    },
+    {
+      "op": "connect",
+      "from": "nile",
+      "to": "farm",
+      "edge_type": "PORTER"
+    },
+    {
+      "op": "connect",
+      "from": "farm",
+      "to": "bakery",
+      "edge_type": "SLED"
+    },
+    {
+      "op": "step",
+      "dt": 0.1
+    },
+    {
+      "op": "delete_node",
+      "node": "farm"
+    }
+  ]
+}

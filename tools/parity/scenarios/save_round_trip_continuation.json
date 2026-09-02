@@ -1,0 +1,22 @@
+{
+  "name": "save_round_trip_continuation",
+  "actions": [
+    {
+      "op": "load_save",
+      "path": "legacy_simcity/data/egypt.json"
+    },
+    {
+      "op": "step",
+      "dt": 0.1,
+      "count": 5
+    },
+    {
+      "op": "round_trip_save"
+    },
+    {
+      "op": "step",
+      "dt": 0.1,
+      "count": 5
+    }
+  ]
+}
