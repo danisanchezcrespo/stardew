@@ -1,0 +1,14 @@
+{
+  "name": "eg2_10_ticks",
+  "actions": [
+    {
+      "op": "load_save",
+      "path": "legacy_simcity/data/eg2.json"
+    },
+    {
+      "op": "step",
+      "dt": 0.1,
+      "count": 10
+    }
+  ]
+}

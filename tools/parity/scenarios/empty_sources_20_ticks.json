@@ -1,0 +1,24 @@
+{
+  "name": "empty_sources_20_ticks",
+  "actions": [
+    {
+      "op": "create_node",
+      "entity_type": "NILE_RIVER",
+      "x": 40,
+      "y": 40,
+      "as": "nile"
+    },
+    {
+      "op": "create_node",
+      "entity_type": "DELTA_FOREST",
+      "x": 120,
+      "y": 40,
+      "as": "forest"
+    },
+    {
+      "op": "step",
+      "dt": 0.1,
+      "count": 20
+    }
+  ]
+}

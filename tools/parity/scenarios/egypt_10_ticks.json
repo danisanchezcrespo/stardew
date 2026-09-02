@@ -1,0 +1,14 @@
+{
+  "name": "egypt_10_ticks",
+  "actions": [
+    {
+      "op": "load_save",
+      "path": "legacy_simcity/data/egypt.json"
+    },
+    {
+      "op": "step",
+      "dt": 0.1,
+      "count": 10
+    }
+  ]
+}
