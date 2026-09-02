@@ -17,3 +17,7 @@ capacity-reserved packet transport with one-way or ping-pong movement.
 `simulation_engine.gd` is the rendering-independent facade. Its explicit
 `step(dt)` method composes all systems in the audited legacy order and is the
 only tick entry point that gameplay code should use.
+
+`persistence/savegame_codec.gd` reads and writes legacy-compatible version 1
+savegames, including partial construction, active batches, packets, empty
+returns, transport pools, and settlement state.

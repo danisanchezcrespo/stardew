@@ -8,6 +8,7 @@ const ConstructionSystemType = preload("res://simulation/systems/construction_sy
 const WorkforceSystemType = preload("res://simulation/systems/workforce_system.gd")
 const ProductionSystemType = preload("res://simulation/systems/production_system.gd")
 const TransportSystemType = preload("res://simulation/systems/transport_system.gd")
+const SavegameCodecType = preload("res://simulation/persistence/savegame_codec.gd")
 
 var registry: Variant
 var state: Variant
@@ -17,6 +18,7 @@ var construction: Variant
 var workforce: Variant
 var production: Variant
 var transport: Variant
+var savegames: Variant
 var step_count: int = 0
 var simulated_seconds: float = 0.0
 
@@ -32,6 +34,7 @@ func _init(definition_registry: Variant) -> void:
 	production = ProductionSystemType.new(registry)
 	transport = TransportSystemType.new(registry, graph, construction, production)
 	production.set_transport_system(transport)
+	savegames = SavegameCodecType.new()
 
 
 func step(dt: float) -> void:
@@ -63,3 +66,19 @@ func delete_edge(edge_index: int) -> void:
 
 func delete_node(node_id: int) -> void:
 	transport.delete_node(state, node_id)
+
+
+func build_savegame_data() -> Dictionary:
+	return savegames.build_savegame_data(self)
+
+
+func save_to_path(path: String) -> Error:
+	return savegames.save_to_path(self, path)
+
+
+func load_from_path(path: String) -> Error:
+	return savegames.load_from_path(self, path)
+
+
+func load_from_dictionary(data: Dictionary) -> Error:
+	return savegames.load_from_dictionary(self, data)

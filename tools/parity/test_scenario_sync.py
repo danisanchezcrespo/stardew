@@ -17,6 +17,23 @@ class ScenarioSyncTests(unittest.TestCase):
         godot_digest = hashlib.sha256(godot.read_bytes()).hexdigest()
         self.assertEqual(godot_digest, legacy_digest)
 
+    def test_godot_savegame_fixtures_match_legacy_reference(self) -> None:
+        for filename in ("egypt.json", "eg2.json"):
+            with self.subTest(filename=filename):
+                legacy = REPOSITORY_ROOT / "legacy_simcity" / "data" / filename
+                godot = (
+                    REPOSITORY_ROOT
+                    / "godot"
+                    / "scenarios"
+                    / "ancient_egypt"
+                    / "fixtures"
+                    / filename
+                )
+                self.assertEqual(
+                    hashlib.sha256(godot.read_bytes()).hexdigest(),
+                    hashlib.sha256(legacy.read_bytes()).hexdigest(),
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
