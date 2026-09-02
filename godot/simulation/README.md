@@ -10,4 +10,5 @@ Current layers:
 
 Implemented systems currently cover inventory, construction, graph mutation,
 continuous sources, timed production batches, output capacities, staffing
-efficiency, and production of globally pooled transport resources.
+efficiency, production of globally pooled transport resources, settlement food
+consumption, population change, attractiveness, and priority-based staffing.
