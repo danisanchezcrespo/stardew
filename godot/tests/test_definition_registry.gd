@@ -8,6 +8,8 @@ func _initialize() -> void:
 	_test_ancient_egypt(failures)
 	_test_legacy_defaults(failures)
 	_test_invalid_edge_mode(failures)
+	_test_spatial_definition(failures)
+	_test_invalid_spatial_definition(failures)
 
 	if failures.is_empty():
 		print("PASS: definition registry")
@@ -63,6 +65,43 @@ func _test_invalid_edge_mode(failures: Array[String]) -> void:
 	)
 	_expect(result == ERR_INVALID_DATA, "Invalid edge mode should be rejected.", failures)
 	_expect(not registry.errors.is_empty(), "Invalid data should produce a diagnostic.", failures)
+
+
+func _test_spatial_definition(failures: Array[String]) -> void:
+	var registry := RegistryType.new()
+	var result: Error = registry.load_from_dictionary(
+		{
+			"entities": [{
+				"id": "CHEST",
+				"spatial": {
+					"footprint": [[0, 0], [1, 0]],
+					"rotations": [0, 2],
+					"allowed_terrain": ["ground"],
+					"ports": {"use": [0, 1]},
+				},
+			}],
+			"edges": [],
+		}
+	)
+	_expect(result == OK, "Valid spatial metadata should load: %s" % str(registry.errors), failures)
+	var chest: Variant = registry.get_entity("CHEST")
+	_expect(chest != null and chest.is_placeable(), "Spatial entity should be placeable.", failures)
+	if chest != null and chest.is_placeable():
+		_expect(chest.spatial_footprint.cells.size() == 2, "CHEST should occupy two cells.", failures)
+		_expect(chest.spatial_footprint.ports["use"] == Vector2i(0, 1), "CHEST use port should be parsed.", failures)
+		_expect(chest.allowed_terrain == ["ground"], "CHEST terrain restriction should be parsed.", failures)
+
+
+func _test_invalid_spatial_definition(failures: Array[String]) -> void:
+	var registry := RegistryType.new()
+	var result: Error = registry.load_from_dictionary(
+		{
+			"entities": [{"id": "BROKEN", "spatial": {"footprint": [[0, 0], [0, 0]], "rotations": [7]}}],
+			"edges": [],
+		}
+	)
+	_expect(result == ERR_INVALID_DATA, "Invalid spatial metadata should be rejected.", failures)
+	_expect(registry.get_entity("BROKEN") == null, "Rejected spatial entity should not enter the registry.", failures)
 
 
 func _expect(condition: bool, message: String, failures: Array[String]) -> void:

@@ -14,3 +14,9 @@ Spatial primitives can be checked independently with:
 ```powershell
 godot --headless --path godot --script res://tests/test_spatial_primitives.gd
 ```
+
+Placement and occupancy can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_world_grid.gd
+```

@@ -6,9 +6,9 @@ Status: in progress.
 
 - [x] Coordinate, direction and footprint value types.
 - [x] Pure footprint and port rotation functions.
-- [ ] Spatial definition schema and validation.
-- [ ] Terrain and occupancy grid with placement queries.
-- [ ] Placement/removal commands and stable entity IDs.
+- [x] Spatial definition schema and validation.
+- [x] Terrain and occupancy grid with placement queries.
+- [x] Placement/removal commands and stable entity IDs.
 - [ ] Save/load extension.
 - [ ] Debug scene and overlays.
 - [ ] Full automated regression and acceptance walkthrough.

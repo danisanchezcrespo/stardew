@@ -123,7 +123,83 @@ func _parse_entity(item: Dictionary, index: int) -> Variant:
 	definition.workers_required = float(item.get("workers_required", 0.0))
 	definition.worker_priority = int(item.get("worker_priority", 0))
 	definition.min_worker_efficiency = float(item.get("min_worker_efficiency", 0.0))
+	if item.has("spatial"):
+		if not _parse_spatial_definition(definition, item["spatial"]):
+			return null
 	return definition
+
+
+func _parse_spatial_definition(definition: RefCounted, value: Variant) -> bool:
+	if typeof(value) != TYPE_DICTIONARY:
+		errors.append("Field 'spatial' on '%s' must be an object." % definition.entity_id)
+		return false
+	var spatial: Dictionary = value
+	var cells := _cell_array(spatial.get("footprint", []), definition.entity_id, "footprint")
+	var ports := _port_map(spatial.get("ports", {}), definition.entity_id)
+	var rotations := _rotation_array(spatial.get("rotations", [0, 1, 2, 3]), definition.entity_id)
+	var terrain := _string_array(spatial.get("allowed_terrain", []), definition.entity_id, "allowed_terrain")
+	if not errors.is_empty():
+		return false
+	definition.spatial_footprint = EntityDefinitionType.SpatialFootprintType.new(cells, ports, rotations)
+	var footprint_errors: Array[String] = definition.spatial_footprint.validate()
+	for message in footprint_errors:
+		errors.append("Invalid spatial definition for '%s': %s" % [definition.entity_id, message])
+	definition.allowed_terrain = terrain
+	return footprint_errors.is_empty()
+
+
+func _cell_array(value: Variant, owner_id: String, field_name: String) -> Array[Vector2i]:
+	var converted: Array[Vector2i] = []
+	if typeof(value) != TYPE_ARRAY:
+		errors.append("Field '%s.%s' must be an array." % [owner_id, field_name])
+		return converted
+	for index in range(value.size()):
+		var pair: Variant = value[index]
+		if typeof(pair) != TYPE_ARRAY or pair.size() != 2 or not pair[0] is int or not pair[1] is int:
+			errors.append("Cell '%s.%s[%d]' must contain two integers." % [owner_id, field_name, index])
+			return []
+		converted.append(Vector2i(pair[0], pair[1]))
+	return converted
+
+
+func _port_map(value: Variant, owner_id: String) -> Dictionary:
+	if typeof(value) != TYPE_DICTIONARY:
+		errors.append("Field '%s.spatial.ports' must be an object." % owner_id)
+		return {}
+	var converted: Dictionary = {}
+	for key: Variant in value:
+		var pair: Variant = value[key]
+		if typeof(pair) != TYPE_ARRAY or pair.size() != 2 or not pair[0] is int or not pair[1] is int:
+			errors.append("Port '%s.spatial.ports.%s' must contain two integers." % [owner_id, str(key)])
+			return {}
+		converted[str(key)] = Vector2i(pair[0], pair[1])
+	return converted
+
+
+func _rotation_array(value: Variant, owner_id: String) -> Array[int]:
+	var converted: Array[int] = []
+	if typeof(value) != TYPE_ARRAY:
+		errors.append("Field '%s.spatial.rotations' must be an array." % owner_id)
+		return converted
+	for rotation: Variant in value:
+		if not rotation is int:
+			errors.append("Rotations for '%s' must be integers." % owner_id)
+			return []
+		converted.append(rotation)
+	return converted
+
+
+func _string_array(value: Variant, owner_id: String, field_name: String) -> Array[String]:
+	var converted: Array[String] = []
+	if typeof(value) != TYPE_ARRAY:
+		errors.append("Field '%s.%s' must be an array." % [owner_id, field_name])
+		return converted
+	for item: Variant in value:
+		if not item is String or String(item).is_empty():
+			errors.append("Values in '%s.%s' must be non-empty strings." % [owner_id, field_name])
+			return []
+		converted.append(item)
+	return converted
 
 
 func _parse_edge_type(item: Dictionary, index: int) -> Variant:
