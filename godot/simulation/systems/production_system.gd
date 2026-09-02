@@ -6,6 +6,7 @@ const InventorySystem = preload("res://simulation/systems/inventory_system.gd")
 
 var registry: Variant
 var _transport_resource_ids: Dictionary = {}
+var _transport_system_ref: WeakRef = null
 
 
 func _init(definition_registry: Variant) -> void:
@@ -19,6 +20,10 @@ func _init(definition_registry: Variant) -> void:
 func process_all(simulation_state: Variant, dt: float) -> void:
 	for node: Variant in simulation_state.nodes.values():
 		process_node(simulation_state, node, dt)
+
+
+func set_transport_system(value: Variant) -> void:
+	_transport_system_ref = weakref(value) if value != null else null
 
 
 func process_node(simulation_state: Variant, node: Variant, dt: float) -> void:
@@ -97,6 +102,7 @@ func _process_source(
 
 	if not has_capacity:
 		node.state = NodeInstanceType.STATE_READY
+		_release_blocked_edges(simulation_state, node)
 		return
 
 	node.state = NodeInstanceType.STATE_RUNNING
@@ -108,6 +114,7 @@ func _process_source(
 			str(resource_name),
 			float(definition.recipe_outputs[resource_name]) * rate * dt
 		)
+	_release_blocked_edges(simulation_state, node)
 
 
 func _process_machine(
@@ -122,6 +129,7 @@ func _process_machine(
 		return
 	if not has_output_capacity_for_batch(node, definition):
 		node.state = NodeInstanceType.STATE_READY
+		_release_blocked_edges(simulation_state, node)
 		return
 
 	if node.active_process_remaining_sec > 0.0:
@@ -132,10 +140,12 @@ func _process_machine(
 		)
 		if node.active_process_remaining_sec <= 0.0:
 			_finish_batch(simulation_state, node, definition)
+		_release_blocked_edges(simulation_state, node)
 		return
 
 	if not InventorySystem.has_resources(node.inventory, definition.recipe_inputs):
 		node.state = NodeInstanceType.STATE_READY
+		_release_blocked_edges(simulation_state, node)
 		return
 
 	node.state = NodeInstanceType.STATE_RUNNING
@@ -149,6 +159,7 @@ func _process_machine(
 	)
 	if node.active_process_remaining_sec <= 0.0:
 		_finish_batch(simulation_state, node, definition)
+	_release_blocked_edges(simulation_state, node)
 
 
 func _finish_batch(simulation_state: Variant, node: Variant, definition: Variant) -> void:
@@ -179,3 +190,11 @@ func _add_output(
 		simulation_state.transport_inventory[resource_name] = current + amount
 		return
 	InventorySystem.add_capped(node.inventory, definition.max_amounts, resource_name, amount)
+
+
+func _release_blocked_edges(simulation_state: Variant, node: Variant) -> void:
+	if _transport_system_ref == null:
+		return
+	var transport_system: Variant = _transport_system_ref.get_ref()
+	if transport_system != null:
+		transport_system.release_blocked_production_edges(simulation_state, node)
