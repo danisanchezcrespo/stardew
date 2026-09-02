@@ -26,3 +26,15 @@ are resolved relative to the repository root. Supported actions are:
 The output deliberately excludes camera, selection, notification, and canvas
 state. Nodes are ordered by ID, numeric values are rounded consistently, and a
 SHA-256 digest covers the normalized simulation payload.
+
+## Cross-engine comparison
+
+Once Godot is available, execute all golden scenarios in both engines:
+
+```powershell
+python tools/parity/compare_runners.py
+```
+
+Set `GODOT_BIN` or pass `--godot PATH` when the executable is not discoverable.
+The comparator reports the first differing JSON path and uses an absolute
+numeric tolerance of `1e-9` by default.

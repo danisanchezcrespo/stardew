@@ -319,10 +319,9 @@ func _edge_distance(edge: Variant) -> float:
 	var to_node: Variant = graph.get_node(edge.to_id)
 	if from_node == null or to_node == null:
 		return 1.0
-	return maxf(
-		1.0,
-		Vector2(to_node.world_x - from_node.world_x, to_node.world_y - from_node.world_y).length()
-	)
+	var delta_x := float(to_node.world_x) - float(from_node.world_x)
+	var delta_y := float(to_node.world_y) - float(from_node.world_y)
+	return maxf(1.0, sqrt(delta_x * delta_x + delta_y * delta_y))
 
 
 func _edge_is_busy(edge: Variant) -> bool:

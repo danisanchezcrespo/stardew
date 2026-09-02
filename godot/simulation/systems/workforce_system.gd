@@ -69,6 +69,8 @@ func consume_global_resource(
 			break
 		if node.state == NodeInstanceType.STATE_UNDER_CONSTRUCTION:
 			continue
+		if InventorySystem.get_amount(node.inventory, resource_name) <= 0.0:
+			continue
 		var taken := InventorySystem.consume(node.inventory, resource_name, remaining)
 		consumed += taken
 		remaining -= taken
