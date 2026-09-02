@@ -22,12 +22,12 @@ func _initialize() -> void:
 func _test_ancient_egypt(failures: Array[String]) -> void:
 	var registry := RegistryType.new()
 	var result: Error = registry.load_from_path("res://scenarios/ancient_egypt/entities.json")
-	_expect(result == OK, "Ancient Egypt definitions should load: %s" % registry.errors, failures)
+	_expect(result == OK, "Ancient Egypt definitions should load: %s" % str(registry.errors), failures)
 	_expect(registry.entities_by_id.size() == 35, "Expected 35 Ancient Egypt entities.", failures)
 	_expect(registry.edge_types_by_id.size() == 4, "Expected 4 Ancient Egypt edge types.", failures)
 	_expect(registry.get_default_edge_type_id() == "PORTER", "PORTER should be the default edge type.", failures)
 
-	var kiln: EntityDefinition = registry.get_entity("BRICK_KILN")
+	var kiln: Variant = registry.get_entity("BRICK_KILN")
 	_expect(kiln != null, "BRICK_KILN should exist.", failures)
 	if kiln != null:
 		_expect(kiln.recipe_inputs.get("clay") == 2.0, "BRICK_KILN should consume 2 clay.", failures)
@@ -44,8 +44,8 @@ func _test_legacy_defaults(failures: Array[String]) -> void:
 		}
 	)
 	_expect(result == OK, "Legacy edge_types alias should load.", failures)
-	var source: EntityDefinition = registry.get_entity("SOURCE")
-	var road: EdgeTypeDefinition = registry.get_edge_type("ROAD")
+	var source: Variant = registry.get_entity("SOURCE")
+	var road: Variant = registry.get_edge_type("ROAD")
 	_expect(source.label == "SOURCE", "Entity label should default to its ID.", failures)
 	_expect(source.color == "#888888", "Entity color default should match legacy.", failures)
 	_expect(road.speed == 50.0, "Edge speed default should match legacy.", failures)

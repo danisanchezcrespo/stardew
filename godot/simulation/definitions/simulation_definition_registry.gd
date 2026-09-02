@@ -63,7 +63,7 @@ func load_from_dictionary(data: Dictionary) -> Error:
 		if typeof(item) != TYPE_DICTIONARY:
 			errors.append("Entity at index %d must be an object." % index)
 			return ERR_INVALID_DATA
-		var result := _parse_entity(item, index)
+		var result: Variant = _parse_entity(item, index)
 		if result == null:
 			return ERR_INVALID_DATA
 		entities_by_id[result.entity_id] = result
@@ -74,7 +74,7 @@ func load_from_dictionary(data: Dictionary) -> Error:
 		if typeof(item) != TYPE_DICTIONARY:
 			errors.append("Edge type at index %d must be an object." % index)
 			return ERR_INVALID_DATA
-		var result := _parse_edge_type(item, index)
+		var result: Variant = _parse_edge_type(item, index)
 		if result == null:
 			return ERR_INVALID_DATA
 		edge_types_by_id[result.edge_type_id] = result
@@ -83,24 +83,24 @@ func load_from_dictionary(data: Dictionary) -> Error:
 	return OK
 
 
-func get_entity(entity_id: String) -> EntityDefinition:
-	return entities_by_id.get(entity_id) as EntityDefinition
+func get_entity(entity_id: String) -> Variant:
+	return entities_by_id.get(entity_id)
 
 
-func get_edge_type(edge_type_id: String) -> EdgeTypeDefinition:
-	return edge_types_by_id.get(edge_type_id) as EdgeTypeDefinition
+func get_edge_type(edge_type_id: String) -> Variant:
+	return edge_types_by_id.get(edge_type_id)
 
 
 func get_default_edge_type_id() -> String:
 	return edge_type_order[0] if not edge_type_order.is_empty() else ""
 
 
-func _parse_entity(item: Dictionary, index: int) -> EntityDefinition:
+func _parse_entity(item: Dictionary, index: int) -> Variant:
 	if not item.has("id"):
 		errors.append("Entity at index %d is missing required field 'id'." % index)
 		return null
 
-	var definition := EntityDefinitionType.new() as EntityDefinition
+	var definition := EntityDefinitionType.new()
 	definition.entity_id = str(item["id"])
 	definition.label = str(item.get("label", definition.entity_id))
 	definition.color = str(item.get("color", "#888888"))
@@ -126,12 +126,12 @@ func _parse_entity(item: Dictionary, index: int) -> EntityDefinition:
 	return definition
 
 
-func _parse_edge_type(item: Dictionary, index: int) -> EdgeTypeDefinition:
+func _parse_edge_type(item: Dictionary, index: int) -> Variant:
 	if not item.has("id"):
 		errors.append("Edge type at index %d is missing required field 'id'." % index)
 		return null
 
-	var definition := EdgeTypeDefinitionType.new() as EdgeTypeDefinition
+	var definition := EdgeTypeDefinitionType.new()
 	definition.edge_type_id = str(item["id"])
 	definition.label = str(item.get("label", definition.edge_type_id))
 	definition.color = str(item.get("color", "#FFD966"))
