@@ -3,11 +3,14 @@ extends CharacterBody2D
 
 const InputDefaultsType = preload("res://input/input_defaults.gd")
 const CHARACTER_TEXTURE = preload("res://assets/generated/character/egyptian_worker_8frame_sheet.png")
+const LATERAL_CHARACTER_TEXTURE = preload("res://assets/generated/character/egyptian_worker_lateral_10frame_sheet.png")
 
 const WALK_SPEED_PX := 128.0
 const COLLISION_RADIUS_PX := 10.0
 const WALK_FRAME_COUNT := 8
+const LATERAL_WALK_FRAME_COUNT := 10
 const WALK_FRAME_RATE := 8.0
+const LATERAL_WALK_FRAME_RATE := 10.0
 const FRAME_SIZE := Vector2(64, 80)
 
 var facing := "south"
@@ -54,10 +57,14 @@ func apply_movement_intent(intent: Vector2) -> void:
 
 func _draw() -> void:
 	_draw_shadow_ellipse(Vector2(0, 9), Vector2(13, 6), Color(0.0, 0.0, 0.0, 0.25))
-	var row := {"south": 0, "west": 1, "east": 2, "north": 3}.get(facing, 0) as int
 	var column := current_animation_frame()
+	var texture := CHARACTER_TEXTURE
+	var row := {"south": 0, "north": 3}.get(facing, 0) as int
+	if facing == "west" or facing == "east":
+		texture = LATERAL_CHARACTER_TEXTURE
+		row = 0 if facing == "west" else 1
 	draw_texture_rect_region(
-		CHARACTER_TEXTURE,
+		texture,
 		Rect2(Vector2(-32, -64), FRAME_SIZE),
 		Rect2(Vector2(column * 64, row * 80), FRAME_SIZE)
 	)
@@ -66,6 +73,8 @@ func _draw() -> void:
 func current_animation_frame() -> int:
 	if velocity.is_zero_approx():
 		return 0
+	if facing == "west" or facing == "east":
+		return int(animation_time * LATERAL_WALK_FRAME_RATE) % LATERAL_WALK_FRAME_COUNT
 	return int(animation_time * WALK_FRAME_RATE) % WALK_FRAME_COUNT
 
 
