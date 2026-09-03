@@ -2,10 +2,13 @@ class_name PlayerController
 extends CharacterBody2D
 
 const InputDefaultsType = preload("res://input/input_defaults.gd")
-const CHARACTER_TEXTURE = preload("res://assets/generated/character/egyptian_worker_sheet.png")
+const CHARACTER_TEXTURE = preload("res://assets/generated/character/egyptian_worker_8frame_sheet.png")
 
 const WALK_SPEED_PX := 128.0
 const COLLISION_RADIUS_PX := 10.0
+const WALK_FRAME_COUNT := 8
+const WALK_FRAME_RATE := 8.0
+const FRAME_SIZE := Vector2(64, 80)
 
 var facing := "south"
 var movement_enabled := true
@@ -52,15 +55,18 @@ func apply_movement_intent(intent: Vector2) -> void:
 func _draw() -> void:
 	_draw_shadow_ellipse(Vector2(0, 9), Vector2(13, 6), Color(0.0, 0.0, 0.0, 0.25))
 	var row := {"south": 0, "west": 1, "east": 2, "north": 3}.get(facing, 0) as int
-	var column := 0
-	if not velocity.is_zero_approx():
-		var walk_cycle: Array[int] = [1, 2, 3, 2]
-		column = walk_cycle[int(animation_time * 7.0) % walk_cycle.size()]
+	var column := current_animation_frame()
 	draw_texture_rect_region(
 		CHARACTER_TEXTURE,
-		Rect2(-32, -48, 64, 64),
-		Rect2(column * 64, row * 64, 64, 64)
+		Rect2(Vector2(-32, -64), FRAME_SIZE),
+		Rect2(Vector2(column * 64, row * 80), FRAME_SIZE)
 	)
+
+
+func current_animation_frame() -> int:
+	if velocity.is_zero_approx():
+		return 0
+	return int(animation_time * WALK_FRAME_RATE) % WALK_FRAME_COUNT
 
 
 func _draw_shadow_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
