@@ -20,6 +20,15 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	var input_crate := _place(game, "storage_crate", Vector2i(7, 7))
 	var output_crate := _place(game, "storage_crate", Vector2i(7, 9))
 	var kiln_id := _place(game, "brick_kiln_plan", Vector2i(9, 7))
+	game.player.position = Vector2(7.5, 6.5) * game.CELL_SIZE
+	game.player.facing = "south"
+	game._update_interaction_target()
+	var route_key := InputEventKey.new()
+	route_key.physical_keycode = KEY_R
+	route_key.pressed = true
+	game._input(route_key)
+	_expect(game.route_source_id == input_crate, "R input should select the adjacent completed crate as route source.", failures)
+	game.route_source_id = ""
 	_expect(not kiln_id.is_empty(), "Kiln should be placed within player range.", failures)
 	if kiln_id.is_empty():
 		game_root.queue_free()

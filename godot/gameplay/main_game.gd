@@ -132,6 +132,34 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 
+func _input(event: InputEvent) -> void:
+	if not event.is_action_pressed("rotate_blueprint") or placement_mode:
+		return
+	if scenario_select_open or machine_open or storage_open or crafting_open:
+		return
+	_update_route_interaction_target()
+	if interaction_target == null:
+		interaction_label.text = "Move beside a completed storage or machine to create a route"
+	elif interaction_target.target_kind == "construction":
+		interaction_label.text = "Complete this building before connecting a route"
+	elif interaction_target.target_kind != "storage" and interaction_target.target_kind != "machine":
+		interaction_label.text = "This object cannot be a route endpoint"
+	else:
+		select_route_endpoint(interaction_target.stable_id)
+	get_viewport().set_input_as_handled()
+
+
+func _update_route_interaction_target() -> void:
+	var endpoints: Array = []
+	for target: Variant in placed_targets.values():
+		if is_instance_valid(target): endpoints.append(target)
+	var selected: Variant = TargetingType.select_target(player.global_position, player.facing, endpoints, INTERACTION_REACH_PX)
+	if selected != interaction_target:
+		if is_instance_valid(interaction_target): interaction_target.set_targeted(false)
+		interaction_target = selected
+		if interaction_target != null: interaction_target.set_targeted(true)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if scenario_select_open:
 		if event.is_action_pressed("quick_slot_1"):
@@ -217,8 +245,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		select_quick_slot(selected_slot - 1)
 	elif not crafting_open and event.is_action_pressed("quick_next"):
 		select_quick_slot(selected_slot + 1)
-	elif not crafting_open and event.is_action_pressed("rotate_blueprint"):
-		select_route_endpoint(interaction_target.stable_id if interaction_target != null else "")
 	elif not crafting_open:
 		for index in range(8):
 			if event.is_action_pressed("quick_slot_%d" % (index + 1)):
@@ -891,6 +917,11 @@ func _update_machine_panel() -> void:
 
 func select_route_endpoint(instance_id: String) -> bool:
 	if instance_id.is_empty() or not placed_targets.has(instance_id):
+		interaction_label.text = "No valid route endpoint selected"
+		return false
+	var target: Variant = placed_targets[instance_id]
+	if target.target_kind != "storage" and target.target_kind != "machine":
+		interaction_label.text = "Complete this building before connecting a route"
 		return false
 	if route_source_id.is_empty():
 		route_source_id = instance_id
