@@ -44,3 +44,9 @@ Recipe loading, transactional crafting and the crafting submenu can be checked w
 ```powershell
 godot --headless --path godot --script res://tests/test_crafting.gd
 ```
+
+The complete craft, select, preview and place loop can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_gameplay_placement.gd
+```

@@ -1,0 +1,83 @@
+extends SceneTree
+
+
+func _initialize() -> void:
+	var failures: Array[String] = []
+	await _test_craft_place_and_collide(failures)
+	await _test_invalid_placement_preserves_inventory(failures)
+
+	if failures.is_empty():
+		print("PASS: gameplay placement")
+		quit(0)
+		return
+	for failure in failures:
+		push_error(failure)
+	quit(1)
+
+
+func _create_game() -> Array:
+	var scene: PackedScene = load("res://main.tscn")
+	var game_root: Node = scene.instantiate()
+	root.add_child(game_root)
+	await process_frame
+	return [game_root, game_root.get_node("MainGame")]
+
+
+func _craft_crate(game: Node2D) -> int:
+	game.inventory.add("wood", 10)
+	var crafted: bool = game.craft_selected_recipe()
+	if not crafted:
+		return -1
+	for index in range(game.inventory.slots.size()):
+		if game.inventory.slots[index].get("item_id") == "storage_crate":
+			return index
+	return -1
+
+
+func _test_craft_place_and_collide(failures: Array[String]) -> void:
+	var nodes: Array = await _create_game()
+	var game_root: Node = nodes[0]
+	var game: Node2D = nodes[1]
+	var crate_slot: int = _craft_crate(game)
+	_expect(crate_slot >= 0, "Crafted crate should occupy an inventory slot.", failures)
+	game.select_quick_slot(crate_slot)
+	_expect(game.begin_placement(), "Selected crate should enter placement mode.", failures)
+	var placed_cell: Vector2i = game.placement_cursor
+	_expect(game.confirm_placement(), "Valid adjacent crate should place.", failures)
+	_expect(game.inventory.count("storage_crate") == 0, "Successful placement should consume exactly one crate.", failures)
+	_expect(not game.world_grid.occupant_at(placed_cell).is_empty(), "Placed crate should occupy its world cell.", failures)
+
+	Input.action_press("move_down")
+	for _index in range(10):
+		await physics_frame
+	Input.action_release("move_down")
+	var crate_top := float(placed_cell.y * game.CELL_SIZE)
+	_expect(game.player.position.y <= crate_top - 9.9, "Player should collide with the placed crate.", failures)
+	game_root.queue_free()
+	await process_frame
+
+
+func _test_invalid_placement_preserves_inventory(failures: Array[String]) -> void:
+	var nodes: Array = await _create_game()
+	var game_root: Node = nodes[0]
+	var game: Node2D = nodes[1]
+	var crate_slot: int = _craft_crate(game)
+	game.select_quick_slot(crate_slot)
+	game.begin_placement()
+	game.player.position = Vector2(33.5, 5.5) * game.CELL_SIZE
+	game.placement_cursor = Vector2i(34, 5)
+	_expect(not game.confirm_placement(), "Water cell should reject a crate.", failures)
+	_expect(game.inventory.count("storage_crate") == 1, "Rejected terrain must not consume inventory.", failures)
+	game.placement_cursor = Vector2i(45, 5)
+	_expect(not game.confirm_placement(), "Remote cell should reject local placement.", failures)
+	_expect(game.inventory.count("storage_crate") == 1, "Out-of-range placement must not consume inventory.", failures)
+	game.placement_cursor = Vector2i(33, 5)
+	_expect(not game.confirm_placement(), "Player cell should reject placement.", failures)
+	_expect(game.inventory.count("storage_crate") == 1, "Player overlap must not consume inventory.", failures)
+	game_root.queue_free()
+	await process_frame
+
+
+func _expect(condition: bool, message: String, failures: Array[String]) -> void:
+	if not condition:
+		failures.append(message)

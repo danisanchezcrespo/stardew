@@ -1,6 +1,6 @@
 # Milestone 4: pickup and inventory
 
-Status: in progress.
+Status: complete (validated in Godot on 2026-09-03).
 
 ## Outcome
 
@@ -17,7 +17,7 @@ pick up as much as fits, and see the result in a limited slot inventory.
 - [x] Partial pickup when inventory capacity is limited.
 - [x] Inventory HUD readable during movement.
 - [x] Automated inventory, targeting and pickup tests.
-- [ ] Visual acceptance walkthrough.
+- [x] Visual acceptance walkthrough.
 
 ## Acceptance walkthrough
 

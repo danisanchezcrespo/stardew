@@ -1,6 +1,6 @@
 # Milestone 5: inventory crafting
 
-Status: in progress.
+Status: complete (validated in Godot on 2026-09-03).
 
 ## Outcome
 
@@ -19,7 +19,7 @@ milestone.
 - [x] Crafted output appears in the player inventory HUD.
 - [x] Placeable storage-crate item recipe.
 - [x] Automated domain and scene integration tests.
-- [ ] Visual acceptance walkthrough.
+- [x] Visual acceptance walkthrough.
 
 ## Acceptance walkthrough
 

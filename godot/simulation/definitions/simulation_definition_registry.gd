@@ -155,10 +155,10 @@ func _cell_array(value: Variant, owner_id: String, field_name: String) -> Array[
 		return converted
 	for index in range(value.size()):
 		var pair: Variant = value[index]
-		if typeof(pair) != TYPE_ARRAY or pair.size() != 2 or not pair[0] is int or not pair[1] is int:
+		if typeof(pair) != TYPE_ARRAY or pair.size() != 2 or not _is_integer_value(pair[0]) or not _is_integer_value(pair[1]):
 			errors.append("Cell '%s.%s[%d]' must contain two integers." % [owner_id, field_name, index])
 			return []
-		converted.append(Vector2i(pair[0], pair[1]))
+		converted.append(Vector2i(int(pair[0]), int(pair[1])))
 	return converted
 
 
@@ -169,10 +169,10 @@ func _port_map(value: Variant, owner_id: String) -> Dictionary:
 	var converted: Dictionary = {}
 	for key: Variant in value:
 		var pair: Variant = value[key]
-		if typeof(pair) != TYPE_ARRAY or pair.size() != 2 or not pair[0] is int or not pair[1] is int:
+		if typeof(pair) != TYPE_ARRAY or pair.size() != 2 or not _is_integer_value(pair[0]) or not _is_integer_value(pair[1]):
 			errors.append("Port '%s.spatial.ports.%s' must contain two integers." % [owner_id, str(key)])
 			return {}
-		converted[str(key)] = Vector2i(pair[0], pair[1])
+		converted[str(key)] = Vector2i(int(pair[0]), int(pair[1]))
 	return converted
 
 
@@ -182,10 +182,10 @@ func _rotation_array(value: Variant, owner_id: String) -> Array[int]:
 		errors.append("Field '%s.spatial.rotations' must be an array." % owner_id)
 		return converted
 	for rotation: Variant in value:
-		if not rotation is int:
+		if not _is_integer_value(rotation):
 			errors.append("Rotations for '%s' must be integers." % owner_id)
 			return []
-		converted.append(rotation)
+		converted.append(int(rotation))
 	return converted
 
 
@@ -200,6 +200,13 @@ func _string_array(value: Variant, owner_id: String, field_name: String) -> Arra
 			return []
 		converted.append(item)
 	return converted
+
+
+func _is_integer_value(value: Variant) -> bool:
+	return (
+		(typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT)
+		and float(value) == float(int(value))
+	)
 
 
 func _parse_edge_type(item: Dictionary, index: int) -> Variant:

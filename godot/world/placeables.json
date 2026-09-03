@@ -1,0 +1,16 @@
+{
+  "entities": [
+    {
+      "id": "STORAGE_CRATE",
+      "label": "Storage Crate",
+      "color": "#71472b",
+      "spatial": {
+        "footprint": [[0, 0]],
+        "rotations": [0, 1, 2, 3],
+        "allowed_terrain": ["sand"],
+        "ports": {"use": [0, 1]}
+      }
+    }
+  ],
+  "edges": []
+}

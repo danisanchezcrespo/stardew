@@ -8,6 +8,8 @@ const PickupType = preload("res://world/items/world_pickup.gd")
 const TargetingType = preload("res://world/interaction/interaction_targeting.gd")
 const RecipeRegistryType = preload("res://crafting/recipe_registry.gd")
 const CraftingSystemType = preload("res://crafting/crafting_system.gd")
+const DefinitionRegistryType = preload("res://simulation/definitions/simulation_definition_registry.gd")
+const WorldGridType = preload("res://world/placement/world_grid.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -16,6 +18,7 @@ const SAND := Color("#cdbb7d")
 const WATER := Color("#4d8fbd")
 const GRID_LINE := Color(0.16, 0.14, 0.10, 0.18)
 const INTERACTION_REACH_PX := 40.0
+const PLACEMENT_RANGE_CELLS := 4.0
 
 var player: CharacterBody2D
 var position_label: Label
@@ -33,6 +36,14 @@ var selected_recipe_index := 0
 var crafting_panel: Control
 var crafting_list_label: Label
 var crafting_detail_label: Label
+var placement_registry: Variant
+var world_grid: Variant
+var selected_slot := 0
+var placement_mode := false
+var placement_cursor := Vector2i.ZERO
+var placement_rotation := 0
+var next_placed_id := 1
+var placement_feedback := ""
 
 
 func _ready() -> void:
@@ -52,6 +63,29 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if placement_mode:
+		if event is InputEventMouseMotion:
+			var mouse_world := get_global_mouse_position()
+			var hovered := Vector2i(floori(mouse_world.x / CELL_SIZE), floori(mouse_world.y / CELL_SIZE))
+			if world_grid.contains(hovered) and hovered != placement_cursor:
+				placement_cursor = hovered
+				_update_placement_feedback()
+				queue_redraw()
+		elif event.is_action_pressed("cancel"):
+			cancel_placement()
+		elif event.is_action_pressed("rotate_blueprint"):
+			rotate_placement()
+		elif event.is_action_pressed("move_left"):
+			move_placement_cursor(Vector2i.LEFT)
+		elif event.is_action_pressed("move_right"):
+			move_placement_cursor(Vector2i.RIGHT)
+		elif event.is_action_pressed("move_up"):
+			move_placement_cursor(Vector2i.UP)
+		elif event.is_action_pressed("move_down"):
+			move_placement_cursor(Vector2i.DOWN)
+		elif event.is_action_pressed("use_selected") or event.is_action_pressed("interact"):
+			confirm_placement()
+		return
 	if event.is_action_pressed("open_crafting"):
 		set_crafting_open(not crafting_open)
 	elif crafting_open and event.is_action_pressed("cancel"):
@@ -64,9 +98,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		craft_selected_recipe()
 	elif not crafting_open and event.is_action_pressed("interact"):
 		collect_target()
+	elif not crafting_open and event.is_action_pressed("use_selected"):
+		begin_placement()
+	elif not crafting_open and event.is_action_pressed("quick_previous"):
+		select_quick_slot(selected_slot - 1)
+	elif not crafting_open and event.is_action_pressed("quick_next"):
+		select_quick_slot(selected_slot + 1)
+	elif not crafting_open:
+		for index in range(8):
+			if event.is_action_pressed("quick_slot_%d" % (index + 1)):
+				select_quick_slot(index)
+				break
 
 
 func _build_terrain() -> void:
+	world_grid = WorldGridType.new(WORLD_SIZE, "sand")
 	for y in range(4, 26):
 		for x in range(34, 40):
 			water_cells[Vector2i(x, y)] = true
@@ -75,6 +121,7 @@ func _build_terrain() -> void:
 	water_cells.erase(Vector2i(13, 10))
 	water_cells.erase(Vector2i(14, 10))
 	for cell: Vector2i in water_cells:
+		world_grid.set_terrain(cell, "water")
 		_add_static_rect(Vector2(cell * CELL_SIZE) + Vector2.ONE * 16.0, Vector2.ONE * CELL_SIZE, "Water")
 
 
@@ -117,6 +164,9 @@ func _build_items() -> void:
 	result = recipe_registry.load_from_path("res://crafting/recipes.json", item_registry)
 	assert(result == OK, "Recipe definitions must load: %s" % str(recipe_registry.errors))
 	crafting = CraftingSystemType.new(recipe_registry)
+	placement_registry = DefinitionRegistryType.new()
+	result = placement_registry.load_from_path("res://world/placeables.json")
+	assert(result == OK, "Placeable definitions must load: %s" % str(placement_registry.errors))
 	_spawn_pickup("pickup-wood-1", "wood", 18, Vector2(7.5, 6.5) * CELL_SIZE)
 	_spawn_pickup("pickup-clay-1", "clay", 12, Vector2(9.5, 7.5) * CELL_SIZE)
 	_spawn_pickup("pickup-grain-1", "grain", 25, Vector2(12.5, 5.5) * CELL_SIZE)
@@ -144,7 +194,7 @@ func _build_hud() -> void:
 	layer.add_child(background)
 	var title := Label.new()
 	title.position = Vector2(34, 26)
-	title.text = "STARDew - Pickup and inventory prototype"
+	title.text = "STARDew - Craft and place prototype"
 	title.add_theme_font_size_override("font_size", 18)
 	layer.add_child(title)
 	position_label = Label.new()
@@ -171,7 +221,7 @@ func _build_hud() -> void:
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move: WASD / arrows / left stick    Pick up: E / Space / A    Crafting: C / Y"
+	help.text = "Move/Pick up: WASD + E/A    Craft: C/Y    Select: 1-8 or Q/F    Use/place: Space/X/click"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
@@ -215,6 +265,119 @@ func set_crafting_open(value: bool) -> void:
 	crafting_panel.visible = value
 	if value:
 		_update_crafting_ui()
+
+
+func select_quick_slot(index: int) -> void:
+	selected_slot = posmod(index, mini(8, inventory.slots.size()))
+	_update_inventory_hud()
+
+
+func begin_placement() -> bool:
+	var definition: Variant = _selected_placeable_definition()
+	if definition == null:
+		interaction_label.text = "Selected slot is not placeable"
+		return false
+	placement_mode = true
+	player.movement_enabled = false
+	player.velocity = Vector2.ZERO
+	placement_rotation = 0
+	placement_cursor = _player_cell() + _facing_cell(player.facing)
+	_update_placement_feedback()
+	queue_redraw()
+	return true
+
+
+func cancel_placement() -> void:
+	placement_mode = false
+	player.movement_enabled = true
+	placement_feedback = ""
+	queue_redraw()
+
+
+func move_placement_cursor(direction: Vector2i) -> void:
+	placement_cursor += direction
+	_update_placement_feedback()
+	queue_redraw()
+
+
+func rotate_placement() -> void:
+	placement_rotation = posmod(placement_rotation + 1, 4)
+	_update_placement_feedback()
+	queue_redraw()
+
+
+func confirm_placement() -> bool:
+	var definition: Variant = _selected_placeable_definition()
+	if definition == null:
+		cancel_placement()
+		return false
+	var validation: Dictionary = _placement_validation(definition)
+	if not validation.valid:
+		placement_feedback = validation.reason
+		_update_placement_feedback()
+		queue_redraw()
+		return false
+	var instance_id := "placed-%04d" % next_placed_id
+	var result: Variant = world_grid.place(instance_id, definition.entity_id, definition.spatial_footprint, placement_cursor, placement_rotation, definition.allowed_terrain)
+	if not result.valid:
+		placement_feedback = result.reason
+		return false
+	var selected_item: String = inventory.slots[selected_slot].item_id
+	var removed: int = inventory.remove(selected_item, 1)
+	assert(removed == 1, "Validated placement must consume exactly one item.")
+	next_placed_id += 1
+	_add_placed_collision(instance_id, result.cells)
+	cancel_placement()
+	_update_inventory_hud()
+	interaction_label.text = "Placed %s" % definition.label
+	queue_redraw()
+	return true
+
+
+func _placement_validation(definition: Variant) -> Dictionary:
+	var player_cell := _player_cell()
+	if Vector2(placement_cursor - player_cell).length() > PLACEMENT_RANGE_CELLS:
+		return {"valid": false, "reason": "OUT_OF_RANGE", "cells": definition.spatial_footprint.transformed_cells(placement_cursor, placement_rotation)}
+	var result: Variant = world_grid.query_placement(definition.spatial_footprint, placement_cursor, placement_rotation, definition.allowed_terrain)
+	if result.cells.has(player_cell):
+		return {"valid": false, "reason": "PLAYER_OCCUPIED", "cells": result.cells}
+	return {"valid": result.valid, "reason": result.reason, "cells": result.cells}
+
+
+func _selected_placeable_definition() -> Variant:
+	if selected_slot >= inventory.slots.size() or inventory.slots[selected_slot].is_empty():
+		return null
+	var item: Variant = item_registry.get_item(inventory.slots[selected_slot].item_id)
+	if item == null or item.placeable_entity_id.is_empty():
+		return null
+	return placement_registry.get_entity(item.placeable_entity_id)
+
+
+func _player_cell() -> Vector2i:
+	return Vector2i(floori(player.position.x / CELL_SIZE), floori(player.position.y / CELL_SIZE))
+
+
+func _facing_cell(facing: String) -> Vector2i:
+	match facing:
+		"north": return Vector2i.UP
+		"east": return Vector2i.RIGHT
+		"west": return Vector2i.LEFT
+	return Vector2i.DOWN
+
+
+func _update_placement_feedback() -> void:
+	var definition: Variant = _selected_placeable_definition()
+	if definition == null:
+		return
+	var validation: Dictionary = _placement_validation(definition)
+	placement_feedback = "Valid - Space/X to place" if validation.valid else "Blocked: %s" % validation.reason
+	interaction_label.text = "Placement %s at %s | %s | R rotate, Esc cancel" % [definition.label, str(placement_cursor), placement_feedback]
+
+
+func _add_placed_collision(instance_id: String, cells: Array[Vector2i]) -> void:
+	for index in range(cells.size()):
+		var cell := cells[index]
+		_add_static_rect(Vector2(cell * CELL_SIZE) + Vector2.ONE * 16.0, Vector2.ONE * CELL_SIZE, "%s-%d" % [instance_id, index])
 
 
 func select_recipe(direction: int) -> void:
@@ -269,6 +432,11 @@ func _crafting_failure_text(result: Dictionary) -> String:
 
 
 func _update_interaction_target() -> void:
+	if placement_mode or crafting_open:
+		if is_instance_valid(interaction_target):
+			interaction_target.set_targeted(false)
+		interaction_target = null
+		return
 	var active: Array = []
 	for pickup: Variant in pickups:
 		if is_instance_valid(pickup) and pickup.amount > 0:
@@ -312,10 +480,10 @@ func _update_inventory_hud() -> void:
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
 		if slot.is_empty():
-			labels.append("[%d] --" % (index + 1))
+			labels.append("%s[%d] --" % [">" if index == selected_slot else " ", index + 1])
 		else:
 			var definition: Variant = item_registry.get_item(slot.item_id)
-			labels.append("[%d] %s x%d" % [index + 1, definition.label, int(slot.amount)])
+			labels.append("%s[%d] %s x%d" % [">" if index == selected_slot else " ", index + 1, definition.label, int(slot.amount)])
 	inventory_label.text = "   ".join(labels)
 
 
@@ -326,3 +494,16 @@ func _draw() -> void:
 			var rect := Rect2(Vector2(cell * CELL_SIZE), Vector2.ONE * CELL_SIZE)
 			draw_rect(rect, WATER if water_cells.has(cell) else SAND)
 			draw_rect(rect, GRID_LINE, false, 1.0)
+	if world_grid != null:
+		for placed: Variant in world_grid.entities_by_id.values():
+			for cell: Vector2i in placed.cells:
+				var placed_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE * 2.0, Vector2.ONE * (CELL_SIZE - 4))
+				draw_rect(placed_rect, Color("#71472b"))
+	if placement_mode:
+		var definition: Variant = _selected_placeable_definition()
+		if definition != null:
+			var validation: Dictionary = _placement_validation(definition)
+			for cell: Vector2i in validation.cells:
+				var preview_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE, Vector2.ONE * (CELL_SIZE - 2))
+				draw_rect(preview_rect, Color(0.2, 0.9, 0.4, 0.58) if validation.valid else Color(0.95, 0.2, 0.2, 0.62))
+				draw_rect(preview_rect, Color.WHITE, false, 2.0)
