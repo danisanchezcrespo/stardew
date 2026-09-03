@@ -12,6 +12,7 @@ const DefinitionRegistryType = preload("res://simulation/definitions/simulation_
 const WorldGridType = preload("res://world/placement/world_grid.gd")
 const PlacedTargetType = preload("res://world/placement/placed_object_target.gd")
 const ConstructionSiteType = preload("res://world/construction/construction_site.gd")
+const EgyptCampaignType = preload("res://world/progression/egypt_campaign.gd")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
@@ -65,10 +66,13 @@ var route_source_id := ""
 var next_route_id := 1
 var workforce: Variant
 var population_label: Label
+var campaign: Variant
+var objective_label: Label
 
 
 func _ready() -> void:
 	workforce = PhysicalWorkforceType.new()
+	campaign = EgyptCampaignType.new()
 	_build_terrain()
 	_build_boundaries()
 	_build_player()
@@ -93,6 +97,9 @@ func _process(delta: float) -> void:
 		machine.process(delta)
 	for route: Variant in logistics_routes:
 		_process_logistics_route(route, delta)
+	campaign.refresh(machines_by_entity_id, logistics_routes)
+	if objective_label != null:
+		objective_label.text = campaign.current_text()
 	if not machines_by_entity_id.is_empty():
 		queue_redraw()
 
@@ -259,6 +266,11 @@ func _build_hud() -> void:
 	population_label.position = Vector2(500, 58)
 	population_label.add_theme_font_size_override("font_size", 16)
 	layer.add_child(population_label)
+	objective_label = Label.new()
+	objective_label.position = Vector2(500, 84)
+	objective_label.add_theme_font_size_override("font_size", 16)
+	objective_label.add_theme_color_override("font_color", Color("#f0cc72"))
+	layer.add_child(objective_label)
 	interaction_label = Label.new()
 	interaction_label.position = Vector2(34, 82)
 	interaction_label.add_theme_font_size_override("font_size", 16)
@@ -427,6 +439,7 @@ func confirm_placement() -> bool:
 			definition.construction_work_seconds
 		)
 	_add_placed_target(instance_id, definition, placement_cursor, placement_rotation)
+	campaign.record_placement(definition.entity_id)
 	if definition.storage_slots > 0:
 		storage_by_entity_id[instance_id] = PlayerInventoryType.new(item_registry, definition.storage_slots)
 	cancel_placement()
@@ -503,6 +516,7 @@ func craft_selected_recipe() -> bool:
 	var recipe_id: String = recipe_registry.recipe_order[selected_recipe_index]
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
 	if result.valid:
+		campaign.record_craft(recipe_id)
 		_update_inventory_hud()
 		_update_crafting_ui("Crafted successfully.")
 		return true
@@ -594,6 +608,7 @@ func collect_target() -> int:
 		interaction_label.text = "Inventory full"
 		return 0
 	interaction_target.take(accepted)
+	campaign.record_pickup(interaction_target.item_id)
 	if interaction_target.amount == 0:
 		interaction_target.set_targeted(false)
 		interaction_target.queue_free()
@@ -630,6 +645,8 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		if definition != null and not definition.recipe_outputs.is_empty():
 			machines_by_entity_id[instance_id] = PhysicalMachineType.new(instance_id, definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, item_registry)
 			workforce.register_job(instance_id, ceili(definition.workers_required), definition.worker_priority)
+		if definition != null:
+			campaign.record_completion(definition.entity_id)
 		_refresh_population_capacity()
 		interaction_label.text = "%s completed" % (target.item_label if target != null else "Building")
 	else:

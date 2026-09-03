@@ -86,3 +86,9 @@ Machine wear, breakdown safety and local repair can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_machine_maintenance.gd
 ```
+
+Egypt vertical-slice objective progression can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_egypt_campaign.gd
+```
