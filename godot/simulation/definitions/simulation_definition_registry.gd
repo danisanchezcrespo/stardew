@@ -127,6 +127,10 @@ func _parse_entity(item: Dictionary, index: int) -> Variant:
 	if definition.storage_slots < 0:
 		errors.append("storage_slots must not be negative for entity '%s'." % definition.entity_id)
 		return null
+	definition.construction_work_seconds = float(item.get("construction_work_seconds", 0.0))
+	if definition.construction_work_seconds < 0.0:
+		errors.append("construction_work_seconds must not be negative for entity '%s'." % definition.entity_id)
+		return null
 	if item.has("spatial"):
 		if not _parse_spatial_definition(definition, item["spatial"]):
 			return null

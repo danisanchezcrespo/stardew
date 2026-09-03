@@ -8,9 +8,10 @@ var targeted := false
 var interaction_offset := Vector2.ZERO
 
 
-func configure(instance_id: String, label: String, world_position: Vector2, use_position: Vector2) -> void:
+func configure(instance_id: String, label: String, world_position: Vector2, use_position: Vector2, kind: String = "storage") -> void:
 	stable_id = instance_id
 	item_label = label
+	target_kind = kind
 	global_position = world_position
 	interaction_offset = use_position - world_position
 	queue_redraw()

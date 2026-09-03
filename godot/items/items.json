@@ -4,6 +4,7 @@
     {"id": "clay", "label": "Clay", "color": "#a95d45", "max_stack": 50},
     {"id": "grain", "label": "Grain", "color": "#e4bc42", "max_stack": 50},
     {"id": "mud_bricks", "label": "Mud bricks", "color": "#b96f50", "max_stack": 50},
-    {"id": "storage_crate", "label": "Storage crate", "color": "#71472b", "max_stack": 10, "placeable_entity_id": "STORAGE_CRATE"}
+    {"id": "storage_crate", "label": "Storage crate", "color": "#71472b", "max_stack": 10, "placeable_entity_id": "STORAGE_CRATE"},
+    {"id": "brick_kiln_plan", "label": "Brick kiln plan", "color": "#d7c7a2", "max_stack": 5, "placeable_entity_id": "BRICK_KILN"}
   ]
 }

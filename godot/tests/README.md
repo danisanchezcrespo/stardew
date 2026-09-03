@@ -56,3 +56,9 @@ Placed crate targeting, deposit and withdrawal can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_storage_interaction.gd
 ```
+
+Physical construction supply, work and completion can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_physical_construction.gd
+```

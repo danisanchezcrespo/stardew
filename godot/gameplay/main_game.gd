@@ -11,6 +11,7 @@ const CraftingSystemType = preload("res://crafting/crafting_system.gd")
 const DefinitionRegistryType = preload("res://simulation/definitions/simulation_definition_registry.gd")
 const WorldGridType = preload("res://world/placement/world_grid.gd")
 const PlacedTargetType = preload("res://world/placement/placed_object_target.gd")
+const ConstructionSiteType = preload("res://world/construction/construction_site.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -54,6 +55,7 @@ var storage_panel: Control
 var storage_player_label: Label
 var storage_contents_label: Label
 var storage_feedback_label: Label
+var construction_by_entity_id: Dictionary = {}
 
 
 func _ready() -> void:
@@ -65,11 +67,17 @@ func _ready() -> void:
 	queue_redraw()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if player != null and position_label != null:
 		var cell := Vector2i(floori(player.position.x / CELL_SIZE), floori(player.position.y / CELL_SIZE))
 		position_label.text = "Cell %s    Facing: %s" % [str(cell), player.facing]
 	_update_interaction_target()
+	if (
+		interaction_target != null
+		and interaction_target.target_kind == "construction"
+		and Input.is_action_pressed("use_selected")
+	):
+		apply_construction_work(interaction_target.stable_id, delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -121,7 +129,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif not crafting_open and event.is_action_pressed("interact"):
 		collect_target()
 	elif not crafting_open and event.is_action_pressed("use_selected"):
-		begin_placement()
+		if interaction_target != null and interaction_target.target_kind == "construction":
+			apply_construction_work(interaction_target.stable_id, 0.1)
+		else:
+			begin_placement()
 	elif not crafting_open and event.is_action_pressed("quick_previous"):
 		select_quick_slot(selected_slot - 1)
 	elif not crafting_open and event.is_action_pressed("quick_next"):
@@ -384,6 +395,12 @@ func confirm_placement() -> bool:
 	assert(removed == 1, "Validated placement must consume exactly one item.")
 	next_placed_id += 1
 	_add_placed_collision(instance_id, result.cells)
+	if not definition.construction_cost.is_empty() or definition.construction_work_seconds > 0.0:
+		construction_by_entity_id[instance_id] = ConstructionSiteType.new(
+			instance_id,
+			definition.construction_cost,
+			definition.construction_work_seconds
+		)
 	_add_placed_target(instance_id, definition, placement_cursor, placement_rotation)
 	if definition.storage_slots > 0:
 		storage_by_entity_id[instance_id] = PlayerInventoryType.new(item_registry, definition.storage_slots)
@@ -446,7 +463,8 @@ func _add_placed_target(instance_id: String, definition: Variant, origin: Vector
 	var use_cell: Vector2i = ports.get("use", origin)
 	var use_position := Vector2(use_cell * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5)
 	var target := PlacedTargetType.new()
-	target.configure(instance_id, definition.label, origin_position, use_position)
+	var kind := "construction" if construction_by_entity_id.has(instance_id) else ("storage" if definition.storage_slots > 0 else "machine")
+	target.configure(instance_id, definition.label, origin_position, use_position, kind)
 	add_child(target)
 	placed_targets[instance_id] = target
 
@@ -527,6 +545,8 @@ func _update_interaction_target() -> void:
 			interaction_label.text = "Approach a resource stack or placed object"
 		elif interaction_target.target_kind == "pickup":
 			interaction_label.text = "E  Pick up %s x%d" % [interaction_target.item_label, interaction_target.amount]
+		elif interaction_target.target_kind == "construction":
+			interaction_label.text = _construction_prompt(interaction_target.stable_id)
 		else:
 			interaction_label.text = "E  Open %s" % interaction_target.item_label
 
@@ -537,6 +557,11 @@ func collect_target() -> int:
 		return 0
 	if interaction_target.target_kind == "storage":
 		open_storage(interaction_target.stable_id)
+		return 0
+	if interaction_target.target_kind == "construction":
+		return deliver_selected_to_construction(interaction_target.stable_id)
+	if interaction_target.target_kind == "machine":
+		interaction_label.text = "%s is complete" % interaction_target.item_label
 		return 0
 	var accepted: int = inventory.add(interaction_target.item_id, interaction_target.amount)
 	if accepted <= 0:
@@ -549,6 +574,50 @@ func collect_target() -> int:
 		interaction_target = null
 	_update_inventory_hud()
 	return accepted
+
+
+func deliver_selected_to_construction(instance_id: String) -> int:
+	var site: Variant = construction_by_entity_id.get(instance_id)
+	if site == null or site.complete or inventory.slots[selected_slot].is_empty():
+		return 0
+	var slot: Dictionary = inventory.slots[selected_slot]
+	var accepted: int = site.deliver(slot.item_id, int(slot.amount))
+	if accepted > 0:
+		inventory.remove(slot.item_id, accepted)
+		_update_inventory_hud()
+	interaction_label.text = _construction_prompt(instance_id)
+	queue_redraw()
+	return accepted
+
+
+func apply_construction_work(instance_id: String, seconds: float) -> float:
+	var site: Variant = construction_by_entity_id.get(instance_id)
+	if site == null or site.complete:
+		return 0.0
+	var applied: float = site.apply_work(seconds)
+	if site.complete:
+		var target: Variant = placed_targets.get(instance_id)
+		if target != null:
+			target.target_kind = "machine"
+		interaction_label.text = "%s completed" % target.item_label
+	else:
+		interaction_label.text = _construction_prompt(instance_id)
+	queue_redraw()
+	return applied
+
+
+func _construction_prompt(instance_id: String) -> String:
+	var site: Variant = construction_by_entity_id.get(instance_id)
+	if site == null:
+		return "Construction unavailable"
+	if not site.materials_complete():
+		var missing: Array[String] = []
+		for item_id: String in site.requirements:
+			var amount: int = site.receivable(item_id)
+			if amount > 0:
+				missing.append("%s %d" % [item_registry.get_item(item_id).label, amount])
+		return "E  Deliver selected | Missing: %s" % ", ".join(missing)
+	return "Hold Space/X  Build %d%%" % roundi(site.work_progress() * 100.0)
 
 
 func open_storage(instance_id: String) -> bool:
@@ -659,9 +728,14 @@ func _draw() -> void:
 			draw_rect(rect, GRID_LINE, false, 1.0)
 	if world_grid != null:
 		for placed: Variant in world_grid.entities_by_id.values():
+			var site: Variant = construction_by_entity_id.get(placed.instance_id)
+			var placed_color := Color("#8c7a66") if site != null and not site.complete else Color("#71472b")
 			for cell: Vector2i in placed.cells:
 				var placed_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE * 2.0, Vector2.ONE * (CELL_SIZE - 4))
-				draw_rect(placed_rect, Color("#71472b"))
+				draw_rect(placed_rect, placed_color)
+				if site != null and not site.complete:
+					draw_line(placed_rect.position, placed_rect.end, Color("#d7c7a2"), 2.0)
+					draw_line(Vector2(placed_rect.end.x, placed_rect.position.y), Vector2(placed_rect.position.x, placed_rect.end.y), Color("#d7c7a2"), 2.0)
 	if placement_mode:
 		var definition: Variant = _selected_placeable_definition()
 		if definition != null:

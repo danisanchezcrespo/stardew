@@ -11,6 +11,19 @@
         "allowed_terrain": ["sand"],
         "ports": {"use": [0, -1]}
       }
+    },
+    {
+      "id": "BRICK_KILN",
+      "label": "Brick Kiln",
+      "color": "#a94f32",
+      "construction_cost": {"wood": 8, "mud_bricks": 8},
+      "construction_work_seconds": 3.0,
+      "spatial": {
+        "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
+        "rotations": [0, 1, 2, 3],
+        "allowed_terrain": ["sand"],
+        "ports": {"use": [0, -1], "input": [-1, 0], "output": [2, 1]}
+      }
     }
   ],
   "edges": []
