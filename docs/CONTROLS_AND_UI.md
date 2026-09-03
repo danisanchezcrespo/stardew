@@ -11,6 +11,7 @@ Gameplay code consumes named actions, never hardware keys directly.
 | --- | --- | --- | --- |
 | Move | WASD / arrows | Left stick / D-pad | Virtual stick |
 | Interact | E | South face button | Context button |
+| Craft selected recipe | Enter | South face button | Craft button |
 | Use selected item | Left mouse / Space | West face button | Use button |
 | Cancel / back | Escape / right mouse | East face button | Back button |
 | Inventory | Tab / I | North face button | Inventory icon |

@@ -41,7 +41,7 @@ func _test_craft_place_and_collide(failures: Array[String]) -> void:
 	var crate_slot: int = _craft_crate(game)
 	_expect(crate_slot >= 0, "Crafted crate should occupy an inventory slot.", failures)
 	game.select_quick_slot(crate_slot)
-	_expect(game.begin_placement(), "Selected crate should enter placement mode.", failures)
+	_expect(game.placement_mode, "Selecting a placeable item should automatically enter placement mode.", failures)
 	_expect(game.player.movement_enabled, "Player should keep walking while the placement ghost is active.", failures)
 	var starting_position: Vector2 = game.player.position
 	var starting_cursor: Vector2i = game.placement_cursor

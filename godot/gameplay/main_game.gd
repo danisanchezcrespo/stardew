@@ -223,7 +223,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		select_recipe(-1)
 	elif crafting_open and event.is_action_pressed("menu_down"):
 		select_recipe(1)
-	elif crafting_open and event.is_action_pressed("interact"):
+	elif crafting_open and event.is_action_pressed("craft_confirm"):
 		craft_selected_recipe()
 	elif not crafting_open and event.is_action_pressed("interact"):
 		collect_target()
@@ -468,7 +468,7 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_panel.add_child(crafting_detail_label)
 	var controls := Label.new()
 	controls.position = Vector2(24, 405)
-	controls.text = "Click a recipe, or W/S + E/A to craft    C/Esc/B closes"
+	controls.text = "Click a recipe, or W/S + Enter to craft    C/Esc/B closes"
 	controls.add_theme_font_size_override("font_size", 14)
 	controls.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(controls)
@@ -521,6 +521,8 @@ func set_crafting_open(value: bool) -> void:
 func select_quick_slot(index: int) -> void:
 	selected_slot = posmod(index, mini(8, inventory.slots.size()))
 	_update_inventory_hud()
+	if not crafting_open and not storage_open and not machine_open and _selected_placeable_definition() != null:
+		begin_placement()
 
 
 func begin_placement() -> bool:
