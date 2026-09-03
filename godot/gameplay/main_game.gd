@@ -14,6 +14,7 @@ const PlacedTargetType = preload("res://world/placement/placed_object_target.gd"
 const ConstructionSiteType = preload("res://world/construction/construction_site.gd")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
+const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -62,9 +63,12 @@ var machines_by_entity_id: Dictionary = {}
 var logistics_routes: Array = []
 var route_source_id := ""
 var next_route_id := 1
+var workforce: Variant
+var population_label: Label
 
 
 func _ready() -> void:
+	workforce = PhysicalWorkforceType.new()
 	_build_terrain()
 	_build_boundaries()
 	_build_player()
@@ -85,6 +89,7 @@ func _process(delta: float) -> void:
 	):
 		apply_construction_work(interaction_target.stable_id, delta)
 	for machine: Variant in machines_by_entity_id.values():
+		machine.staffed = workforce.assigned_to(machine.instance_id) > 0
 		machine.process(delta)
 	for route: Variant in logistics_routes:
 		_process_logistics_route(route, delta)
@@ -250,6 +255,10 @@ func _build_hud() -> void:
 	position_label.position = Vector2(34, 58)
 	position_label.add_theme_font_size_override("font_size", 16)
 	layer.add_child(position_label)
+	population_label = Label.new()
+	population_label.position = Vector2(500, 58)
+	population_label.add_theme_font_size_override("font_size", 16)
+	layer.add_child(population_label)
 	interaction_label = Label.new()
 	interaction_label.position = Vector2(34, 82)
 	interaction_label.add_theme_font_size_override("font_size", 16)
@@ -614,12 +623,14 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 	var applied: float = site.apply_work(seconds)
 	if site.complete:
 		var target: Variant = placed_targets.get(instance_id)
-		if target != null:
-			target.target_kind = "machine"
 		var placed: Variant = world_grid.entities_by_id.get(instance_id)
 		var definition: Variant = placement_registry.get_entity(placed.definition_id) if placed != null else null
+		if target != null:
+			target.target_kind = "machine" if definition != null and not definition.recipe_outputs.is_empty() else "building"
 		if definition != null and not definition.recipe_outputs.is_empty():
 			machines_by_entity_id[instance_id] = PhysicalMachineType.new(instance_id, definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, item_registry)
+			workforce.register_job(instance_id, ceili(definition.workers_required), definition.worker_priority)
+		_refresh_population_capacity()
 		interaction_label.text = "%s completed" % (target.item_label if target != null else "Building")
 	else:
 		interaction_label.text = _construction_prompt(instance_id)
@@ -825,6 +836,26 @@ func _update_inventory_hud() -> void:
 			var definition: Variant = item_registry.get_item(slot.item_id)
 			labels.append("%s[%d] %s x%d" % [">" if index == selected_slot else " ", index + 1, definition.label, int(slot.amount)])
 	inventory_label.text = "   ".join(labels)
+	_update_population_hud()
+
+
+func _update_population_hud() -> void:
+	if population_label != null and workforce != null:
+		population_label.text = workforce.employment_summary()
+
+
+func _refresh_population_capacity() -> void:
+	var capacity := 1
+	for instance_id: String in construction_by_entity_id:
+		var site: Variant = construction_by_entity_id[instance_id]
+		if not site.complete:
+			continue
+		var placed: Variant = world_grid.entities_by_id.get(instance_id)
+		var definition: Variant = placement_registry.get_entity(placed.definition_id) if placed != null else null
+		if definition != null:
+			capacity += definition.population_capacity
+	workforce.set_population(capacity)
+	_update_population_hud()
 
 
 func _draw() -> void:
@@ -864,3 +895,11 @@ func _draw() -> void:
 		var porter_position := start.lerp(finish, route.progress())
 		draw_circle(porter_position, 7.0, Color("#315b70"))
 		draw_circle(porter_position, 7.0, Color.WHITE, false, 1.5)
+	for instance_id: String in machines_by_entity_id:
+		if workforce.assigned_to(instance_id) <= 0:
+			continue
+		var worker_target: Variant = placed_targets.get(instance_id)
+		if worker_target != null:
+			var worker_position: Vector2 = worker_target.global_position + Vector2(12, -10)
+			draw_circle(worker_position, 6.0, Color("#efe1c1"))
+			draw_circle(worker_position + Vector2(0, -5), 3.5, Color("#3a251e"))

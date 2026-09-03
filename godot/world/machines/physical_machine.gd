@@ -9,6 +9,7 @@ var input_inventory: Variant
 var output_inventory: Variant
 var remaining_seconds := 0.0
 var batches_completed := 0
+var staffed := true
 
 func _init(stable_id: String, inputs: Dictionary, outputs: Dictionary, duration: float, item_registry: Variant, inventory_slots: int = 4) -> void:
 	instance_id = stable_id
@@ -25,6 +26,8 @@ func add_input(item_id: String, amount: int) -> int:
 	return input_inventory.add(item_id, amount) if accepts(item_id) else 0
 
 func process(delta: float) -> void:
+	if not staffed:
+		return
 	if remaining_seconds > 0.0:
 		remaining_seconds = maxf(0.0, remaining_seconds - maxf(delta, 0.0))
 		if remaining_seconds <= 0.0:

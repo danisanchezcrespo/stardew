@@ -2,6 +2,7 @@
   "recipes": [
     {"id": "storage_crate", "label": "Storage Crate", "inputs": {"wood": 10}, "outputs": {"storage_crate": 1}},
     {"id": "mud_bricks", "label": "Mud Bricks x4", "inputs": {"clay": 2}, "outputs": {"mud_bricks": 4}},
-    {"id": "brick_kiln_plan", "label": "Brick Kiln Plan", "inputs": {"wood": 5}, "outputs": {"brick_kiln_plan": 1}}
+    {"id": "brick_kiln_plan", "label": "Brick Kiln Plan", "inputs": {"wood": 5}, "outputs": {"brick_kiln_plan": 1}},
+    {"id": "dwelling_plan", "label": "Dwelling Plan", "inputs": {"wood": 4, "mud_bricks": 4}, "outputs": {"dwelling_plan": 1}}
   ]
 }

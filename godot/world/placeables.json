@@ -21,11 +21,27 @@
       "recipe_inputs": {"clay": 2},
       "recipe_outputs": {"mud_bricks": 1},
       "process_time_sec": 4.0,
+      "workers_required": 1,
+      "worker_priority": 50,
       "spatial": {
         "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
         "rotations": [0, 1, 2, 3],
         "allowed_terrain": ["sand"],
         "ports": {"use": [0, -1], "input": [-1, 0], "output": [2, 1]}
+      }
+    },
+    {
+      "id": "DWELLING",
+      "label": "Reed Dwelling",
+      "color": "#c9985b",
+      "construction_cost": {"wood": 4, "mud_bricks": 6},
+      "construction_work_seconds": 2.0,
+      "population_capacity": 2,
+      "spatial": {
+        "footprint": [[0, 0], [1, 0]],
+        "rotations": [0, 1, 2, 3],
+        "allowed_terrain": ["sand"],
+        "ports": {"use": [0, 1]}
       }
     }
   ],

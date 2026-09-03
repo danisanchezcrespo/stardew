@@ -24,6 +24,7 @@ var spatial_footprint: RefCounted = null
 var allowed_terrain: Array[String] = []
 var storage_slots: int = 0
 var construction_work_seconds: float = 0.0
+var population_capacity: int = 0
 
 
 func is_placeable() -> bool:
