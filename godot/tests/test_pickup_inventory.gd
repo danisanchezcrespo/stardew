@@ -64,8 +64,11 @@ func _test_gameplay_pickup(failures: Array[String]) -> void:
 	var game: Node2D = game_root.get_node("MainGame")
 	game._update_interaction_target()
 	_expect(game.interaction_target != null and game.interaction_target.item_id == "wood", "Nearby wood should become the contextual target.", failures)
-	var collected: int = game.collect_target()
-	_expect(collected == 18, "Interaction should collect the complete nearby stack.", failures)
+	_expect(game.interaction_label.text.contains("Space = Pick up"), "Pickup hover should show the Space control.", failures)
+	var pickup_action := InputEventAction.new()
+	pickup_action.action = "use_selected"
+	pickup_action.pressed = true
+	game._unhandled_input(pickup_action)
 	_expect(game.inventory.count("wood") == 18, "Collected wood should enter player inventory.", failures)
 	_expect(game.interaction_target == null, "Exhausted pickup should clear the target.", failures)
 
@@ -73,7 +76,7 @@ func _test_gameplay_pickup(failures: Array[String]) -> void:
 	game.inventory.add("wood", 45)
 	var remainder_pickup: Variant = game._spawn_pickup("pickup-partial", "wood", 10, game.player.position)
 	game._update_interaction_target()
-	collected = game.collect_target()
+	var collected: int = game.collect_target()
 	_expect(collected == 5 and game.inventory.count("wood") == 50, "Pickup should accept only available inventory capacity.", failures)
 	_expect(remainder_pickup.amount == 5 and is_instance_valid(remainder_pickup), "Unaccepted pickup remainder should stay in the world.", failures)
 	game_root.queue_free()

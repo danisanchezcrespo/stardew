@@ -37,15 +37,22 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 
 	game.inventory.add("clay", 37)
 	game.select_quick_slot(_find_slot(game.inventory, "clay"))
-	var deposited: int = game.deposit_selected_stack()
-	_expect(deposited == 37 and game.inventory.count("clay") == 0, "Deposit should move the complete selected stack out of player inventory.", failures)
+	_expect(game.storage_focus_side == 0, "Storage should open focused on player inventory.", failures)
+	game._unhandled_input(_action("move_right"))
+	_expect(game.storage_focus_side == 1, "Right should focus the crate inventory.", failures)
+	game._unhandled_input(_action("move_left"))
+	_expect(game.storage_focus_side == 0, "Left should focus the player inventory.", failures)
+	game._unhandled_input(_action("use_selected"))
+	_expect(game.inventory.count("clay") == 0, "Space should move the complete selected stack out of player inventory.", failures)
 	_expect(game.storage_by_entity_id[instance_id].count("clay") == 37, "Deposited items should belong to that crate.", failures)
 
 	game.close_storage()
 	_expect(not game.storage_open and game.player.movement_enabled, "Closing storage should restore player movement.", failures)
 	_expect(game.open_storage(instance_id), "Placed crate should reopen with its contents intact.", failures)
-	var withdrawn: int = game.withdraw_selected_stack()
-	_expect(withdrawn == 37 and game.inventory.count("clay") == 37, "Withdrawal should return stored items to player inventory.", failures)
+	game.set_storage_focus(1)
+	_expect(game.storage_contents_label.text.begins_with("▶"), "Right-side focus should be visible on the crate column.", failures)
+	game._unhandled_input(_action("use_selected"))
+	_expect(game.inventory.count("clay") == 37, "Space should return the selected crate stack to player inventory.", failures)
 	_expect(game.storage_by_entity_id[instance_id].count("clay") == 0, "Withdrawal should remove items from the crate.", failures)
 
 	game.storage_by_entity_id[instance_id].add("wood", 400)
@@ -77,6 +84,13 @@ func _find_slot(inventory: Variant, item_id: String) -> int:
 		if inventory.slots[index].get("item_id") == item_id:
 			return index
 	return -1
+
+
+func _action(name: String) -> InputEventAction:
+	var event := InputEventAction.new()
+	event.action = name
+	event.pressed = true
+	return event
 
 
 func _expect(condition: bool, message: String, failures: Array[String]) -> void:

@@ -43,6 +43,7 @@ func _test_craft_place_and_collide(failures: Array[String]) -> void:
 	game.select_quick_slot(crate_slot)
 	_expect(game.placement_mode, "Selecting a placeable item should automatically enter placement mode.", failures)
 	_expect(game.player.movement_enabled, "Player should keep walking while the placement ghost is active.", failures)
+	_expect(game.interaction_label.text.contains("Storage Crate") and game.interaction_label.text.contains("Space = Place"), "Placement hover should name the ghost and show the Space control.", failures)
 	var starting_position: Vector2 = game.player.position
 	var starting_cursor: Vector2i = game.placement_cursor
 	game.player.position += Vector2.RIGHT * game.CELL_SIZE

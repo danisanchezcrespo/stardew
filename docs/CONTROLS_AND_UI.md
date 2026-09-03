@@ -10,7 +10,8 @@ Gameplay code consumes named actions, never hardware keys directly.
 | Action | Keyboard/mouse | Controller | Touch intent |
 | --- | --- | --- | --- |
 | Move | WASD / arrows | Left stick / D-pad | Virtual stick |
-| Interact | E | South face button | Context button |
+| Interact/open | E | South face button | Context button |
+| Pick up / place | Space | West face button | Context action |
 | Craft selected recipe | Enter | South face button | Craft button |
 | Use selected item | Left mouse / Space | West face button | Use button |
 | Cancel / back | Escape / right mouse | East face button | Back button |
@@ -43,6 +44,10 @@ menu actions are discrete intents. Placement uses character movement plus
 rotate, confirm and cancel. The ghost stays immediately in front of the physical
 character; pointer input confirms that same local position and never moves the
 blueprint remotely.
+
+Storage uses a two-column transfer layout. Left/right selects Player Inventory
+or Crate Inventory, up/down selects a slot in that column, and Space transfers
+the complete selected stack to the opposite side.
 
 ## Interaction feedback
 

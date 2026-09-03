@@ -59,6 +59,7 @@ var storage_by_entity_id: Dictionary = {}
 var storage_open := false
 var active_storage_id := ""
 var selected_storage_slot := 0
+var storage_focus_side := 0 # 0 = player inventory, 1 = crate
 var storage_panel: Control
 var storage_player_label: Label
 var storage_contents_label: Label
@@ -209,14 +210,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if storage_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
 			close_storage()
+		elif event.is_action_pressed("move_left"):
+			set_storage_focus(0)
+		elif event.is_action_pressed("move_right"):
+			set_storage_focus(1)
 		elif event.is_action_pressed("menu_up"):
-			select_storage_slot(-1)
+			select_active_storage_slot(-1)
 		elif event.is_action_pressed("menu_down"):
-			select_storage_slot(1)
-		elif event.is_action_pressed("interact"):
-			deposit_selected_stack()
+			select_active_storage_slot(1)
 		elif event.is_action_pressed("use_selected"):
-			withdraw_selected_stack()
+			transfer_storage_selected()
 		return
 	if placement_mode:
 		if event.is_action_pressed("cancel"):
@@ -237,9 +240,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif crafting_open and event.is_action_pressed("craft_confirm"):
 		craft_selected_recipe()
 	elif not crafting_open and event.is_action_pressed("interact"):
-		collect_target()
+		if interaction_target == null or interaction_target.target_kind != "pickup":
+			collect_target()
 	elif not crafting_open and event.is_action_pressed("use_selected"):
-		if interaction_target != null and interaction_target.target_kind == "construction":
+		if interaction_target != null and interaction_target.target_kind == "pickup":
+			collect_target()
+		elif interaction_target != null and interaction_target.target_kind == "construction":
 			apply_construction_work(interaction_target.stable_id, 0.1)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
 			withdraw_machine_output(interaction_target.stable_id)
@@ -396,7 +402,7 @@ func _build_hud() -> void:
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move: WASD    Use: E/Space    Craft: C+Enter    Route: R    Zoom: wheel    Fullscreen: Alt+Enter/F11    Save: K"
+	help.text = "Move: WASD    Pick up/place: Space    Interact: E    Craft: C+Enter    Route: R    Zoom: wheel    Fullscreen: F11"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
@@ -536,7 +542,7 @@ func _build_storage_panel(layer: CanvasLayer) -> void:
 	storage_panel.add_child(storage_feedback_label)
 	var controls := Label.new()
 	controls.position = Vector2(24, 382)
-	controls.text = "W/S: crate slot    E/A: deposit selected player stack    Space/X: withdraw    Esc/B: close"
+	controls.text = "Left/Right: choose inventory    Up/Down: choose item    Space: move stack    Esc: close"
 	controls.add_theme_font_size_override("font_size", 13)
 	storage_panel.add_child(controls)
 
@@ -665,8 +671,8 @@ func _update_placement_feedback() -> void:
 	if definition == null:
 		return
 	var validation: Dictionary = _placement_validation(definition)
-	placement_feedback = "Valid - Space/X or click to place" if validation.valid else "Blocked: %s" % validation.reason
-	interaction_label.text = "Walk to move %s ghost | %s | R rotate, Esc cancel" % [definition.label, placement_feedback]
+	placement_feedback = "Space = Place" if validation.valid else "Blocked: %s" % validation.reason
+	interaction_label.text = "%s   %s   | Walk to move ghost | R rotate, Esc cancel" % [definition.label, placement_feedback]
 
 
 func _add_placed_collision(instance_id: String, cells: Array[Vector2i]) -> void:
@@ -773,7 +779,7 @@ func _update_interaction_target() -> void:
 		if interaction_target == null:
 			interaction_label.text = "ROUTE: approach destination and press R" if not route_source_id.is_empty() else "Approach a resource stack or placed object"
 		elif interaction_target.target_kind == "pickup":
-			interaction_label.text = "E  Pick up %s x%d" % [interaction_target.item_label, interaction_target.amount]
+			interaction_label.text = "%s x%d   Space = Pick up" % [interaction_target.item_label, interaction_target.amount]
 		elif interaction_target.target_kind == "construction":
 			interaction_label.text = _construction_prompt(interaction_target.stable_id)
 		elif interaction_target.target_kind == "machine":
@@ -1022,6 +1028,7 @@ func open_storage(instance_id: String) -> bool:
 	storage_open = true
 	active_storage_id = instance_id
 	selected_storage_slot = 0
+	storage_focus_side = 0
 	player.movement_enabled = false
 	player.velocity = Vector2.ZERO
 	storage_panel.visible = true
@@ -1046,6 +1053,24 @@ func select_storage_slot(direction: int) -> void:
 		return
 	selected_storage_slot = posmod(selected_storage_slot + direction, storage.slots.size())
 	_update_storage_ui()
+
+
+func set_storage_focus(side: int) -> void:
+	storage_focus_side = clampi(side, 0, 1)
+	_update_storage_ui("Space moves the selected stack to the other side.")
+
+
+func select_active_storage_slot(direction: int) -> void:
+	if storage_focus_side == 0:
+		selected_slot = posmod(selected_slot + direction, inventory.slots.size())
+		_update_inventory_hud()
+	else:
+		select_storage_slot(direction)
+	_update_storage_ui()
+
+
+func transfer_storage_selected() -> int:
+	return deposit_selected_stack() if storage_focus_side == 0 else withdraw_selected_stack()
 
 
 func deposit_selected_stack() -> int:
@@ -1082,15 +1107,17 @@ func _update_storage_ui(feedback: String = "") -> void:
 	var storage: Variant = storage_by_entity_id.get(active_storage_id)
 	if storage == null:
 		return
-	var player_rows: Array[String] = ["PLAYER INVENTORY"]
+	var player_rows: Array[String] = ["▶ PLAYER INVENTORY" if storage_focus_side == 0 else "  PLAYER INVENTORY"]
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
-		player_rows.append("%s[%d] %s" % [">" if index == selected_slot else " ", index + 1, _slot_text(slot)])
+		player_rows.append("%s[%d] %s" % [">" if storage_focus_side == 0 and index == selected_slot else " ", index + 1, _slot_text(slot)])
 	storage_player_label.text = "\n".join(player_rows)
-	var storage_rows: Array[String] = ["CRATE INVENTORY"]
+	storage_player_label.add_theme_color_override("font_color", Color("#ffe27a") if storage_focus_side == 0 else Color("#b9b3a7"))
+	var storage_rows: Array[String] = ["▶ CRATE INVENTORY" if storage_focus_side == 1 else "  CRATE INVENTORY"]
 	for index in range(storage.slots.size()):
-		storage_rows.append("%s[%d] %s" % [">" if index == selected_storage_slot else " ", index + 1, _slot_text(storage.slots[index])])
+		storage_rows.append("%s[%d] %s" % [">" if storage_focus_side == 1 and index == selected_storage_slot else " ", index + 1, _slot_text(storage.slots[index])])
 	storage_contents_label.text = "\n".join(storage_rows)
+	storage_contents_label.add_theme_color_override("font_color", Color("#ffe27a") if storage_focus_side == 1 else Color("#b9b3a7"))
 	storage_feedback_label.text = feedback
 
 
