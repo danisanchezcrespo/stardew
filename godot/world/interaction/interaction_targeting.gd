@@ -11,7 +11,8 @@ static func select_target(player_position: Vector2, facing: String, candidates: 
 	for candidate: Variant in candidates:
 		if candidate == null or not candidate.has_method("is_interactable") or not candidate.is_interactable():
 			continue
-		var offset: Vector2 = candidate.interaction_position() - player_position
+		var target_position: Vector2 = candidate.interaction_position_for(player_position) if candidate.has_method("interaction_position_for") else candidate.interaction_position()
+		var offset: Vector2 = target_position - player_position
 		var distance := offset.length()
 		if distance > reach_px:
 			continue

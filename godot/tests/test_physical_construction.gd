@@ -28,6 +28,9 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	var instance_id: String = game.world_grid.occupant_at(origin)
 	var site: Variant = game.construction_by_entity_id.get(instance_id)
 	_expect(site != null and not site.complete, "Placed kiln plan should create an incomplete site.", failures)
+	var target: Variant = game.placed_targets[instance_id]
+	var east_side_player: Vector2 = Vector2(origin + Vector2i(2, 0)) * float(game.CELL_SIZE) + Vector2.ONE * 16.0
+	_expect(target.interaction_position_for(east_side_player).distance_to(east_side_player) <= game.CELL_SIZE, "Construction should be targetable from any adjacent footprint edge.", failures)
 	_expect(game.world_grid.entities_by_id[instance_id].origin == origin, "Construction should retain its stable spatial identity.", failures)
 	_expect(game.apply_construction_work(instance_id, 1.0) == 0.0, "Work before material delivery should be rejected.", failures)
 
