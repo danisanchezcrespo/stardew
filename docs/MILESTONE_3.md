@@ -1,6 +1,6 @@
 # Milestone 3: physical player
 
-Status: in progress.
+Status: complete (validated in Godot on 2026-09-03).
 
 ## Outcome
 
@@ -17,7 +17,7 @@ form a stable base for later pickup and contextual interaction.
 - [x] Keyboard and controller-compatible movement.
 - [x] Placeholder presentation with readable position and facing HUD.
 - [x] Automated movement and collision checks.
-- [ ] Visual acceptance walkthrough.
+- [x] Visual acceptance walkthrough.
 
 ## Acceptance walkthrough
 

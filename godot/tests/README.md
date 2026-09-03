@@ -32,3 +32,9 @@ Player movement, facing, camera and collision can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_player_movement.gd
 ```
+
+Item definitions, inventory capacity, targeting and pickup can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_pickup_inventory.gd
+```
