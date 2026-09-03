@@ -22,6 +22,19 @@ func count(item_id: String) -> int:
 	return total
 
 
+func capacity_for(item_id: String) -> int:
+	var definition: Variant = registry.get_item(item_id)
+	if definition == null:
+		return 0
+	var capacity := 0
+	for slot: Dictionary in slots:
+		if slot.is_empty():
+			capacity += definition.max_stack
+		elif slot.get("item_id") == item_id:
+			capacity += definition.max_stack - int(slot.amount)
+	return capacity
+
+
 func add(item_id: String, amount: int) -> int:
 	var definition: Variant = registry.get_item(item_id)
 	if definition == null or amount <= 0:

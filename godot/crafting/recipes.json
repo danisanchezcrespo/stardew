@@ -1,0 +1,6 @@
+{
+  "recipes": [
+    {"id": "storage_crate", "label": "Storage Crate", "inputs": {"wood": 10}, "outputs": {"storage_crate": 1}},
+    {"id": "mud_bricks", "label": "Mud Bricks x4", "inputs": {"clay": 2}, "outputs": {"mud_bricks": 4}}
+  ]
+}

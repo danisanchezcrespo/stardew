@@ -38,3 +38,9 @@ Item definitions, inventory capacity, targeting and pickup can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_pickup_inventory.gd
 ```
+
+Recipe loading, transactional crafting and the crafting submenu can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_crafting.gd
+```

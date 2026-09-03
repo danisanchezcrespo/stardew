@@ -6,6 +6,8 @@ const ItemRegistryType = preload("res://items/item_registry.gd")
 const PlayerInventoryType = preload("res://player/player_inventory.gd")
 const PickupType = preload("res://world/items/world_pickup.gd")
 const TargetingType = preload("res://world/interaction/interaction_targeting.gd")
+const RecipeRegistryType = preload("res://crafting/recipe_registry.gd")
+const CraftingSystemType = preload("res://crafting/crafting_system.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -24,6 +26,13 @@ var item_registry: Variant
 var inventory: Variant
 var pickups: Array = []
 var interaction_target: Variant = null
+var recipe_registry: Variant
+var crafting: Variant
+var crafting_open := false
+var selected_recipe_index := 0
+var crafting_panel: Control
+var crafting_list_label: Label
+var crafting_detail_label: Label
 
 
 func _ready() -> void:
@@ -43,7 +52,17 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact"):
+	if event.is_action_pressed("open_crafting"):
+		set_crafting_open(not crafting_open)
+	elif crafting_open and event.is_action_pressed("cancel"):
+		set_crafting_open(false)
+	elif crafting_open and event.is_action_pressed("menu_up"):
+		select_recipe(-1)
+	elif crafting_open and event.is_action_pressed("menu_down"):
+		select_recipe(1)
+	elif crafting_open and event.is_action_pressed("interact"):
+		craft_selected_recipe()
+	elif not crafting_open and event.is_action_pressed("interact"):
 		collect_target()
 
 
@@ -94,6 +113,10 @@ func _build_items() -> void:
 	var result: Error = item_registry.load_from_path("res://items/items.json")
 	assert(result == OK, "Item definitions must load: %s" % str(item_registry.errors))
 	inventory = PlayerInventoryType.new(item_registry, 12)
+	recipe_registry = RecipeRegistryType.new()
+	result = recipe_registry.load_from_path("res://crafting/recipes.json", item_registry)
+	assert(result == OK, "Recipe definitions must load: %s" % str(recipe_registry.errors))
+	crafting = CraftingSystemType.new(recipe_registry)
 	_spawn_pickup("pickup-wood-1", "wood", 18, Vector2(7.5, 6.5) * CELL_SIZE)
 	_spawn_pickup("pickup-clay-1", "clay", 12, Vector2(9.5, 7.5) * CELL_SIZE)
 	_spawn_pickup("pickup-grain-1", "grain", 25, Vector2(12.5, 5.5) * CELL_SIZE)
@@ -144,13 +167,105 @@ func _build_hud() -> void:
 	inventory_label.add_theme_font_size_override("font_size", 15)
 	layer.add_child(inventory_label)
 	_update_inventory_hud()
+	_build_crafting_panel(layer)
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move: WASD / arrows / left stick    Pick up: E / Space / A button"
+	help.text = "Move: WASD / arrows / left stick    Pick up: E / Space / A    Crafting: C / Y"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
+
+
+func _build_crafting_panel(layer: CanvasLayer) -> void:
+	crafting_panel = ColorRect.new()
+	crafting_panel.position = Vector2(360, 150)
+	crafting_panel.size = Vector2(560, 390)
+	crafting_panel.color = Color(0.06, 0.07, 0.09, 0.96)
+	crafting_panel.visible = false
+	layer.add_child(crafting_panel)
+	var title := Label.new()
+	title.position = Vector2(24, 20)
+	title.text = "CRAFTING"
+	title.add_theme_font_size_override("font_size", 24)
+	crafting_panel.add_child(title)
+	crafting_list_label = Label.new()
+	crafting_list_label.position = Vector2(24, 70)
+	crafting_list_label.size = Vector2(250, 260)
+	crafting_list_label.add_theme_font_size_override("font_size", 18)
+	crafting_panel.add_child(crafting_list_label)
+	crafting_detail_label = Label.new()
+	crafting_detail_label.position = Vector2(290, 70)
+	crafting_detail_label.size = Vector2(240, 260)
+	crafting_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	crafting_detail_label.add_theme_font_size_override("font_size", 17)
+	crafting_panel.add_child(crafting_detail_label)
+	var controls := Label.new()
+	controls.position = Vector2(24, 345)
+	controls.text = "W/S or D-pad: select    E/A: craft    C/Esc/B: close"
+	controls.add_theme_font_size_override("font_size", 14)
+	crafting_panel.add_child(controls)
+	_update_crafting_ui()
+
+
+func set_crafting_open(value: bool) -> void:
+	crafting_open = value
+	player.movement_enabled = not value
+	player.velocity = Vector2.ZERO
+	crafting_panel.visible = value
+	if value:
+		_update_crafting_ui()
+
+
+func select_recipe(direction: int) -> void:
+	selected_recipe_index = posmod(selected_recipe_index + direction, recipe_registry.recipe_order.size())
+	_update_crafting_ui()
+
+
+func craft_selected_recipe() -> bool:
+	var recipe_id: String = recipe_registry.recipe_order[selected_recipe_index]
+	var result: Dictionary = crafting.craft(inventory, recipe_id)
+	if result.valid:
+		_update_inventory_hud()
+		_update_crafting_ui("Crafted successfully.")
+		return true
+	_update_crafting_ui(_crafting_failure_text(result))
+	return false
+
+
+func _update_crafting_ui(feedback: String = "") -> void:
+	if crafting_list_label == null:
+		return
+	var rows: Array[String] = []
+	for index in range(recipe_registry.recipe_order.size()):
+		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
+		rows.append("%s %s" % [">" if index == selected_recipe_index else " ", recipe.label])
+	crafting_list_label.text = "\n".join(rows)
+	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
+	var ingredients: Array[String] = []
+	for item_id: String in selected.inputs:
+		var definition: Variant = item_registry.get_item(item_id)
+		ingredients.append("%s: %d / %d" % [definition.label, inventory.count(item_id), int(selected.inputs[item_id])])
+	var outputs: Array[String] = []
+	for item_id: String in selected.outputs:
+		var definition: Variant = item_registry.get_item(item_id)
+		outputs.append("%s x%d" % [definition.label, int(selected.outputs[item_id])])
+	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
+	var status := "Ready to craft" if query.valid else _crafting_failure_text(query)
+	if not feedback.is_empty():
+		status = feedback
+	crafting_detail_label.text = "%s\n\nNeeds:\n%s\n\nProduces:\n%s\n\n%s" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
+
+
+func _crafting_failure_text(result: Dictionary) -> String:
+	if result.reason == CraftingSystemType.MISSING_INGREDIENTS:
+		var parts: Array[String] = []
+		for item_id: String in result.missing:
+			parts.append("%s x%d" % [item_registry.get_item(item_id).label, int(result.missing[item_id])])
+		return "Missing: %s" % ", ".join(parts)
+	if result.reason == CraftingSystemType.OUTPUT_FULL:
+		return "Inventory has no room for output"
+	return "Recipe unavailable"
 
 
 func _update_interaction_target() -> void:

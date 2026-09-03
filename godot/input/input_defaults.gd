@@ -11,6 +11,10 @@ const ACTIONS := {
 	"remove_placed": [KEY_X, KEY_DELETE],
 	"select_previous": [KEY_Q],
 	"select_next": [KEY_F],
+	"open_crafting": [KEY_C],
+	"cancel": [KEY_ESCAPE],
+	"menu_up": [KEY_W, KEY_UP],
+	"menu_down": [KEY_S, KEY_DOWN],
 }
 
 
@@ -28,6 +32,10 @@ static func ensure_actions() -> void:
 	_add_joypad_button("remove_placed", JOY_BUTTON_X)
 	_add_joypad_button("select_previous", JOY_BUTTON_LEFT_SHOULDER)
 	_add_joypad_button("select_next", JOY_BUTTON_Y)
+	_add_joypad_button("open_crafting", JOY_BUTTON_Y)
+	_add_joypad_button("cancel", JOY_BUTTON_B)
+	_add_joypad_button("menu_up", JOY_BUTTON_DPAD_UP)
+	_add_joypad_button("menu_down", JOY_BUTTON_DPAD_DOWN)
 	_add_joypad_button("move_left", JOY_BUTTON_DPAD_LEFT)
 	_add_joypad_button("move_right", JOY_BUTTON_DPAD_RIGHT)
 	_add_joypad_button("move_up", JOY_BUTTON_DPAD_UP)
