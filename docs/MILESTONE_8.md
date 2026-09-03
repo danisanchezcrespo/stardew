@@ -1,6 +1,6 @@
 # Milestone 8: physical construction
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

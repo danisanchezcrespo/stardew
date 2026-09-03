@@ -1,6 +1,6 @@
 # Milestone 7: physical storage transfer
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

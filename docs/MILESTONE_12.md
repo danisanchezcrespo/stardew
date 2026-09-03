@@ -1,6 +1,6 @@
 # Milestone 12: maintenance, breakdowns and recovery
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

@@ -1,6 +1,6 @@
 # Milestone 9: physical machines and visible production
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

@@ -1,6 +1,6 @@
 # Milestone 13: Egypt vertical slice progression
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

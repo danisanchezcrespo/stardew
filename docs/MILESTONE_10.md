@@ -1,6 +1,6 @@
 # Milestone 10: physical logistics
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

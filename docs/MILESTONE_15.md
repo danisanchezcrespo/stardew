@@ -1,6 +1,6 @@
 # Milestone 15: data-driven second scenario
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

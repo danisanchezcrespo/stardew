@@ -1,6 +1,6 @@
 # Milestone 14: physical-world save and recovery
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 

@@ -1,6 +1,6 @@
 # Milestone 11: population and visible workers
 
-Status: in progress.
+Status: implementation complete; visual walkthrough pending.
 
 ## Outcome
 
