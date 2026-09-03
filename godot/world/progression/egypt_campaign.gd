@@ -8,7 +8,8 @@ const OBJECTIVES := [
 	{"id": "build_kiln", "label": "Supply and build the Brick Kiln"},
 	{"id": "fire_bricks", "label": "Fire a batch of mud bricks"},
 	{"id": "build_home", "label": "Build a Reed Dwelling"},
-	{"id": "automate", "label": "Create a porter route"}
+	{"id": "automate", "label": "Create a porter route"},
+	{"id": "monument", "label": "Complete the River Shrine"}
 ]
 var completed: Dictionary = {}
 var gathered_wood := false
@@ -28,6 +29,7 @@ func record_placement(entity_id: String) -> void:
 func record_completion(entity_id: String) -> void:
 	if entity_id == "BRICK_KILN": completed["build_kiln"] = true
 	if entity_id == "DWELLING": completed["build_home"] = true
+	if entity_id == "SHRINE": completed["monument"] = true
 
 func refresh(machines: Dictionary, routes: Array) -> void:
 	for machine: Variant in machines.values():

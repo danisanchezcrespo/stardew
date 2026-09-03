@@ -43,6 +43,19 @@
         "allowed_terrain": ["sand"],
         "ports": {"use": [0, 1]}
       }
+    },
+    {
+      "id": "SHRINE",
+      "label": "River Shrine",
+      "color": "#d9b85f",
+      "construction_cost": {"wood": 6, "mud_bricks": 10},
+      "construction_work_seconds": 5.0,
+      "spatial": {
+        "footprint": [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
+        "rotations": [0, 1, 2, 3],
+        "allowed_terrain": ["sand"],
+        "ports": {"use": [0, 3]}
+      }
     }
   ],
   "edges": []

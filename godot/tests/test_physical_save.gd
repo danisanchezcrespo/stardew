@@ -31,7 +31,7 @@ func _initialize() -> void:
 	_expect(restored.player.position == Vector2(300, 220), "Player position should round-trip.", failures)
 	_expect(restored.world_grid.occupant_at(origin) == crate_id, "Placed entity identity should round-trip.", failures)
 	_expect(restored.storage_by_entity_id[crate_id].count("grain") == 7, "Container contents should round-trip.", failures)
-	_expect(restored.campaign.gathered_wood == false and restored.campaign.completed == {}, "Transient campaign flags should remain conservative.", failures)
+	_expect(restored.campaign.gathered_wood and restored.campaign.completed == {}, "Partial campaign progress should round-trip.", failures)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	restored_root.queue_free()
 	await process_frame

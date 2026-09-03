@@ -17,5 +17,5 @@ workers are visible beside their workplace.
 - [x] Visible workplace worker marker.
 - [x] Automated scarcity and recovery test.
 - [x] Population capacity growth through completed housing.
-- [ ] Food-supported population wellbeing.
+- [x] Food-supported population wellbeing and hunger staffing pressure.
 - [ ] Visual acceptance walkthrough.

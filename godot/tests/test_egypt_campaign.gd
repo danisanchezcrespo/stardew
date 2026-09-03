@@ -15,6 +15,7 @@ func _initialize() -> void:
 	campaign.refresh({"kiln": {"batches_completed": 1}}, [])
 	campaign.record_completion("DWELLING")
 	campaign.refresh({}, [{"route_id": "route-1"}])
+	campaign.record_completion("SHRINE")
 	_expect(campaign.is_complete(), "Full settlement loop should complete all campaign goals.", failures)
 	_expect(campaign.current_text().contains("SETTLEMENT ESTABLISHED"), "Completion should produce a clear outcome.", failures)
 	if failures.is_empty():

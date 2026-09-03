@@ -19,6 +19,10 @@ func _initialize() -> void:
 	machine.process(2.0)
 	_expect(machine.input_inventory.count("clay") == 1, "Unstaffed machine must not consume input.", failures)
 	workforce.set_population(2)
+	workforce.process(0.1)
+	_expect(workforce.hungry, "Expanded population without food should become hungry.", failures)
+	workforce.add_food(2)
+	_expect(not workforce.hungry, "Delivered food should restore settlement wellbeing.", failures)
 	machine.staffed = workforce.assigned_to("low") > 0
 	machine.process(0.1)
 	machine.process(1.0)

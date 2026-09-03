@@ -102,6 +102,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	workforce.process(delta)
+	_update_population_hud()
 	if player != null and position_label != null:
 		var cell := Vector2i(floori(player.position.x / CELL_SIZE), floori(player.position.y / CELL_SIZE))
 		position_label.text = "Cell %s    Facing: %s" % [str(cell), player.facing]
@@ -672,6 +674,8 @@ func collect_target() -> int:
 		return 0
 	if interaction_target.target_kind == "construction":
 		return deliver_selected_to_construction(interaction_target.stable_id)
+	if interaction_target.target_kind == "building":
+		return feed_settlement()
 	if interaction_target.target_kind == "machine":
 		return deliver_selected_to_machine(interaction_target.stable_id)
 	var accepted: int = inventory.add(interaction_target.item_id, interaction_target.amount)
@@ -686,6 +690,20 @@ func collect_target() -> int:
 		interaction_target = null
 	_update_inventory_hud()
 	return accepted
+
+
+func feed_settlement() -> int:
+	if inventory.slots[selected_slot].is_empty(): return 0
+	var slot: Dictionary = inventory.slots[selected_slot]
+	if slot.item_id != "food_ration":
+		interaction_label.text = "Select a Food ration to support the settlement"
+		return 0
+	var amount := int(slot.amount)
+	inventory.remove("food_ration", amount)
+	workforce.add_food(amount)
+	_update_inventory_hud()
+	interaction_label.text = "Delivered %d food rations" % amount
+	return amount
 
 
 func deliver_selected_to_construction(instance_id: String) -> int:

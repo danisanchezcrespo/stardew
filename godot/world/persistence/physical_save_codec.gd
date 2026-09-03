@@ -23,7 +23,7 @@ func capture(game: Node2D) -> Dictionary:
 	var pickup_amounts: Dictionary = {}
 	for pickup: Variant in game.pickups:
 		if is_instance_valid(pickup): pickup_amounts[pickup.stable_id] = pickup.amount
-	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "pickups": pickup_amounts, "campaign": game.campaign.completed.duplicate(true)}
+	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "pickups": pickup_amounts, "campaign": {"completed": game.campaign.completed.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
 	var file := FileAccess.open(path, FileAccess.WRITE)
@@ -81,8 +81,12 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		route.progress_seconds = float(row.progress)
 		route.trips_completed = int(row.trips)
 		game.logistics_routes.append(route)
-	game.campaign.completed = data.get("campaign", {}).duplicate(true)
 	game._refresh_population_capacity()
+	var campaign_data: Dictionary = data.get("campaign", {})
+	game.campaign.completed = campaign_data.get("completed", {}).duplicate(true)
+	game.campaign.gathered_wood = bool(campaign_data.get("wood", false))
+	game.campaign.gathered_clay = bool(campaign_data.get("clay", false))
+	game.workforce.food_reserve = float(data.get("workforce", {}).get("food", 0.0))
 	game._update_inventory_hud()
 	game.queue_redraw()
 	return OK

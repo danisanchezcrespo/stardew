@@ -10,7 +10,7 @@ event-based, so experimentation outside the suggested order is retained.
 
 ## Progress
 
-- [x] Seven-step visible campaign objective chain.
+- [x] Eight-step visible campaign objective chain ending in a civic shrine.
 - [x] Event-based progress that tolerates out-of-order play.
 - [x] Clear settlement-established completion state.
 - [x] Automated campaign progression test.
