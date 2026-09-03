@@ -95,6 +95,10 @@ displayed unless a scenario specifically requires them.
 Clicking either a villager or a placed building opens the same parchment-style
 inspector on the right. Its contents change with the selected subject while its
 position, spacing, colours and close behaviour remain consistent.
+Space beside an unfinished building opens this same inspector. Space inside it
+delivers the selected compatible material or starts construction. Once started,
+construction continues for the definition's configured duration even if the
+player leaves; beginning to walk closes the inspector without cancelling work.
 
 Opened by interacting with a building. It occupies part of the screen and keeps
 the world visible. It contains:

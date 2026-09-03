@@ -55,17 +55,19 @@ func _draw_hint(anchor: Vector2, lines: Array[String]) -> void:
 	for index in range(lines.size()): draw_string(font, rect.position + Vector2(9, 17 + index * 16), lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 
 func _draw_requirement_hint(anchor: Vector2, title: String, needs: Array[Dictionary]) -> void:
-	var width := maxf(150.0, needs.size() * 58.0 + 16.0)
-	var rect := Rect2(anchor - Vector2(width * 0.5, 70), Vector2(width, 70))
+	var width := 190.0
+	var height := 58.0 + needs.size() * 28.0
+	var rect := Rect2(anchor - Vector2(width * 0.5, height), Vector2(width, height))
 	_panel(rect)
 	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, 17), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, 33), "Needs", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#f0cc72"))
 	for index in range(needs.size()):
 		var row: Dictionary = needs[index]
-		var pos := rect.position + Vector2(48 + index * 58, 42)
+		var pos := rect.position + Vector2(12, 38 + index * 28)
 		draw_texture_rect_region(ItemIconAtlasType.TEXTURE, Rect2(pos, Vector2(22, 22)), ItemIconAtlasType.region(str(row.item)))
-		draw_string(ThemeDB.fallback_font, pos + Vector2(24, 16), "x%d" % int(row.amount), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
-	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, 63), "Space to place", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+		var definition: Variant = game.item_registry.get_item(str(row.item))
+		draw_string(ThemeDB.fallback_font, pos + Vector2(29, 16), "%s  x%d" % [definition.label, int(row.amount)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, height - 8), "Space to open", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 func _draw_progress_hint(anchor: Vector2, progress: float) -> void:
 	var rect := Rect2(anchor - Vector2(85, 48), Vector2(170, 48))

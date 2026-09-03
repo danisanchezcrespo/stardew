@@ -107,6 +107,7 @@ var building_details_id := ""
 var building_details_panel: Control
 var building_details_title: Label
 var building_details_body: Label
+var building_details_controls: Label
 var world_overlay: Node2D
 var active_player_build_id := ""
 var day_time_seconds := 60.0
@@ -158,14 +159,13 @@ func _process(delta: float) -> void:
 			queue_redraw()
 	_update_interaction_target()
 	if not active_player_build_id.is_empty():
-		var build_target: Variant = placed_targets.get(active_player_build_id)
 		var build_site: Variant = construction_by_entity_id.get(active_player_build_id)
-		if build_target == null or build_site == null or build_site.complete or player.position.distance_to(build_target.interaction_position_for(player.position)) > INTERACTION_REACH_PX + 8.0:
+		if build_site == null or build_site.complete:
 			active_player_build_id = ""
 		else:
 			apply_construction_work(active_player_build_id, delta)
 	for machine: Variant in machines_by_entity_id.values():
-		machine.staffed = assigned_villagers_to(machine.instance_id) > 0
+		machine.staffed = machine.manually_activated or assigned_villagers_to(machine.instance_id) > 0
 		machine.process(delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes)
 	if objective_label != null:
@@ -234,8 +234,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		cycle_villager_selection()
 		return
 	if building_details_open:
-		if event.is_action_pressed("cancel") or event.is_action_pressed("use_selected"):
+		if event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down"):
 			close_building_details()
+			return
+		if event.is_action_pressed("cancel"):
+			close_building_details()
+		elif event.is_action_pressed("use_selected"):
+			building_details_context_action()
 		return
 	if scenario_select_open:
 		if event.is_action_pressed("quick_slot_1"):
@@ -297,9 +302,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if interaction_target != null and interaction_target.target_kind == "pickup":
 			collect_target()
 		elif interaction_target != null and interaction_target.target_kind == "construction":
-			var site: Variant = construction_by_entity_id.get(interaction_target.stable_id)
-			if site != null and site.materials_complete(): active_player_build_id = interaction_target.stable_id
-			else: deliver_selected_to_construction(interaction_target.stable_id)
+			open_building_details(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
 			open_machine(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "storage":
@@ -607,11 +610,11 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_body.add_theme_font_size_override("font_size", 17)
 	building_details_body.add_theme_color_override("font_color", Color("#3b281b"))
 	building_details_panel.add_child(building_details_body)
-	var controls := Label.new()
-	controls.position = Vector2(24, 438)
-	controls.text = "Space / Esc: close"
-	controls.add_theme_color_override("font_color", Color("#6b3e20"))
-	building_details_panel.add_child(controls)
+	building_details_controls = Label.new()
+	building_details_controls.position = Vector2(24, 438)
+	building_details_controls.text = "Esc: close"
+	building_details_controls.add_theme_color_override("font_color", Color("#6b3e20"))
+	building_details_panel.add_child(building_details_controls)
 
 
 func open_building_details(instance_id: String) -> bool:
@@ -636,6 +639,18 @@ func close_building_details() -> void:
 	player.movement_enabled = true
 
 
+func building_details_context_action() -> void:
+	var site: Variant = construction_by_entity_id.get(building_details_id)
+	if site == null or site.complete:
+		close_building_details()
+		return
+	if site.materials_complete():
+		active_player_build_id = building_details_id
+	else:
+		deliver_selected_to_construction(building_details_id)
+	_update_building_details()
+
+
 func _update_building_details() -> void:
 	var placed: Variant = world_grid.entities_by_id.get(building_details_id)
 	if placed == null: close_building_details(); return
@@ -647,7 +662,9 @@ func _update_building_details() -> void:
 		for item_id: String in site.requirements:
 			materials.append("%s: %d / %d" % [item_registry.get_item(item_id).label, int(site.delivered.get(item_id, 0)), int(site.requirements[item_id])])
 		building_details_body.text = "UNDER CONSTRUCTION\n\nMaterials\n%s\n\nWork: %d%%\nHealth: stable" % ["\n".join(materials), roundi(site.work_progress() * 100.0)]
+		building_details_controls.text = "Space: %s    Esc: close" % ("start building" if site.materials_complete() else "place selected material")
 		return
+	building_details_controls.text = "Space / Esc: close"
 	if storage_by_entity_id.has(building_details_id):
 		var rows: Array[String] = []
 		for slot: Dictionary in storage_by_entity_id[building_details_id].slots:
@@ -1345,6 +1362,7 @@ func deliver_selected_to_machine(instance_id: String) -> int:
 		return repair_cost
 	var accepted: int = machine.add_input(slot.item_id, int(slot.amount))
 	if accepted > 0:
+		machine.manually_activated = true
 		inventory.remove(slot.item_id, accepted)
 		_update_inventory_hud()
 	interaction_label.text = _machine_prompt(instance_id)
@@ -1517,7 +1535,9 @@ func villager_deliver(villager: Variant) -> int:
 	var accepted := 0
 	var delivered_item: String = villager.carrying_item
 	var destination_id := str(villager.task.destination)
-	if machines_by_entity_id.has(destination_id): accepted = machines_by_entity_id[destination_id].add_input(villager.carrying_item, villager.carrying_amount)
+	if machines_by_entity_id.has(destination_id):
+		accepted = machines_by_entity_id[destination_id].add_input(villager.carrying_item, villager.carrying_amount)
+		if accepted > 0: machines_by_entity_id[destination_id].manually_activated = true
 	elif storage_by_entity_id.has(destination_id): accepted = storage_by_entity_id[destination_id].add(villager.carrying_item, villager.carrying_amount)
 	villager.carrying_amount -= accepted
 	if villager.carrying_amount <= 0: villager.carrying_item = ""

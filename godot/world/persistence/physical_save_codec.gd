@@ -15,7 +15,7 @@ func capture(game: Node2D) -> Dictionary:
 		if storage != null: row.storage = storage.snapshot()
 		var machine: Variant = game.machines_by_entity_id.get(placed.instance_id)
 		if machine != null:
-			row.machine = {"input": machine.input_inventory.snapshot(), "output": machine.output_inventory.snapshot(), "remaining": machine.remaining_seconds, "batches": machine.batches_completed, "durability": machine.durability, "broken": machine.broken}
+			row.machine = {"input": machine.input_inventory.snapshot(), "output": machine.output_inventory.snapshot(), "remaining": machine.remaining_seconds, "batches": machine.batches_completed, "durability": machine.durability, "broken": machine.broken, "manually_activated": machine.manually_activated}
 		entities.append(row)
 	var routes: Array[Dictionary] = []
 	for route: Variant in game.logistics_routes:
@@ -89,6 +89,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			machine.batches_completed = int(row.machine.batches)
 			machine.durability = int(row.machine.durability)
 			machine.broken = bool(row.machine.broken)
+			machine.manually_activated = bool(row.machine.get("manually_activated", false))
 			game.machines_by_entity_id[str(row.id)] = machine
 			game.workforce.register_job(str(row.id), ceili(definition.workers_required), definition.worker_priority)
 		game._add_placed_target(str(row.id), definition, origin, int(row.rotation))

@@ -33,15 +33,9 @@ func _test_kiln(failures: Array[String]) -> void:
 	_expect(machine != null, "Completed kiln should create a physical machine runtime.", failures)
 	game.interaction_target = game.placed_targets[instance_id]
 	game._unhandled_input(_action("use_selected"))
-	_expect(game.machine_open, "Enter details should open the nearby kiln status panel.", failures)
+	_expect(game.machine_open, "Space should open the nearby kiln status panel.", failures)
 	_expect(game.machine_status_label.text.contains("Health") and game.machine_status_label.text.contains("ACCUMULATED OUTPUT"), "Machine details should expose health and accumulated product.", failures)
 	game.close_machine()
-	game.spawn_villagers_for_home(instance_id, 1)
-	var worker: Variant = game.villagers.values()[0]
-	worker.assign_work(instance_id)
-	worker.position = game.placed_targets[instance_id].interaction_position_for(worker.position)
-	worker.process_life(game, 0.1)
-	machine.staffed = game.assigned_villagers_to(instance_id) > 0
 	game.inventory.add("grain", 3)
 	game.select_quick_slot(_find_slot(game.inventory, "grain"))
 	_expect(game.deliver_selected_to_machine(instance_id) == 0, "Kiln should reject unrelated input.", failures)
@@ -49,8 +43,8 @@ func _test_kiln(failures: Array[String]) -> void:
 	game.inventory.add("clay", 4)
 	game.select_quick_slot(_find_slot(game.inventory, "clay"))
 	_expect(game.deliver_selected_to_machine(instance_id) == 4, "Kiln should accept carried clay.", failures)
-	machine.process(0.1)
-	_expect(machine.is_running(), "Supplied kiln should start a timed batch.", failures)
+	game._process(0.1)
+	_expect(machine.manually_activated and machine.is_running(), "Supplying compatible input should start a timed batch without a villager assignment.", failures)
 	machine.process(4.0)
 	_expect(machine.output_inventory.count("mud_bricks") == 1, "Finished batch should store its output.", failures)
 	var before: int = game.inventory.count("mud_bricks")

@@ -10,6 +10,7 @@ var output_inventory: Variant
 var remaining_seconds := 0.0
 var batches_completed := 0
 var staffed := true
+var manually_activated := false
 var durability := 3
 var max_durability := 3
 var broken := false

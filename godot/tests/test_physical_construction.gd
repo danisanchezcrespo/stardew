@@ -52,9 +52,17 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	build_action.action = "use_selected"
 	build_action.pressed = true
 	game._unhandled_input(build_action)
-	_expect(game.active_player_build_id == instance_id, "One Space press should start timed construction.", failures)
+	_expect(game.building_details_open, "Space beside a construction should open the shared details panel.", failures)
+	game._unhandled_input(build_action)
+	_expect(game.active_player_build_id == instance_id, "Space inside construction details should start timed construction.", failures)
+	var move_action := InputEventAction.new()
+	move_action.action = "move_right"
+	move_action.pressed = true
+	game._unhandled_input(move_action)
+	_expect(not game.building_details_open and game.player.movement_enabled, "Moving should close construction details without cancelling work.", failures)
+	game.player.position += Vector2(400, 0)
 	game._process(1.25)
-	_expect(not site.complete and site.work_progress() > 0.4, "Partial work should keep the site incomplete.", failures)
+	_expect(not site.complete and site.work_progress() > 0.4, "Construction should continue after the player walks away.", failures)
 	game._process(5.0)
 	_expect(site.complete and is_equal_approx(site.work_progress(), 1.0), "Enough local work should complete the building.", failures)
 	_expect(game.placed_targets[instance_id].target_kind == "machine", "Completed site should become a machine target.", failures)
