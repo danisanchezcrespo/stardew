@@ -28,8 +28,8 @@ func _test_velocity_and_facing(failures: Array[String]) -> void:
 	player.animation_time = 0.9
 	_expect(player.current_animation_frame() == 9, "Lateral walking should use all ten animation frames.", failures)
 	player.apply_movement_intent(Vector2.UP)
-	player.animation_time = 0.875
-	_expect(player.current_animation_frame() == 7, "Vertical walking should retain its eight animation frames.", failures)
+	player.animation_time = 0.9
+	_expect(player.current_animation_frame() == 9, "Vertical walking should use all ten animation frames.", failures)
 	player.apply_movement_intent(Vector2.ZERO)
 	_expect(player.facing == "north", "Stopping should retain the last facing direction.", failures)
 	player.velocity = Vector2.ZERO
