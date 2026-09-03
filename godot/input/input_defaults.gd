@@ -18,8 +18,9 @@ const ACTIONS := {
 	"menu_down": [KEY_S, KEY_DOWN],
 	"quick_previous": [KEY_Q],
 	"quick_next": [KEY_F],
-	"save_game": [KEY_F5],
-	"load_game": [KEY_F9],
+	# Function keys are reserved by the Godot editor while testing the game.
+	"save_game": [KEY_K],
+	"load_game": [KEY_L],
 }
 
 

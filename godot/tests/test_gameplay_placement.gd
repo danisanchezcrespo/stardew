@@ -42,6 +42,16 @@ func _test_craft_place_and_collide(failures: Array[String]) -> void:
 	_expect(crate_slot >= 0, "Crafted crate should occupy an inventory slot.", failures)
 	game.select_quick_slot(crate_slot)
 	_expect(game.begin_placement(), "Selected crate should enter placement mode.", failures)
+	_expect(game.player.movement_enabled, "Player should keep walking while the placement ghost is active.", failures)
+	var starting_position: Vector2 = game.player.position
+	var starting_cursor: Vector2i = game.placement_cursor
+	game.player.position += Vector2.RIGHT * game.CELL_SIZE
+	game.player.facing = "east"
+	game._process(0.0)
+	_expect(game.placement_cursor != starting_cursor and game.placement_cursor == game._player_cell() + Vector2i.RIGHT, "Placement ghost should follow player position and facing.", failures)
+	game.player.position = starting_position
+	game.player.facing = "south"
+	game._process(0.0)
 	var placed_cell: Vector2i = game.placement_cursor
 	_expect(game.confirm_placement(), "Valid adjacent crate should place.", failures)
 	_expect(game.inventory.count("storage_crate") == 0, "Successful placement should consume exactly one crate.", failures)

@@ -58,6 +58,8 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	game.inventory.add("wood", 10)
 	game.set_crafting_open(true)
 	_expect(game.crafting_open and not game.player.movement_enabled and game.crafting_panel.visible, "Opening crafting should show the submenu and stop player movement.", failures)
+	_expect(game.crafting_recipe_buttons.size() == game.recipe_registry.recipe_order.size(), "Crafting should expose one clickable button per recipe.", failures)
+	_expect(game.crafting_panel.color == Color("#d8bd83"), "Crafting should use a readable parchment panel instead of an opaque black screen.", failures)
 	_expect(game.craft_selected_recipe(), "Default Storage Crate recipe should craft through the scene menu.", failures)
 	_expect(game.inventory.count("wood") == 0 and game.inventory.count("storage_crate") == 1, "Scene crafting should update the shared player inventory.", failures)
 	game.select_recipe(1)

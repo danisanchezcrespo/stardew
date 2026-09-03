@@ -26,9 +26,23 @@ func capture(game: Node2D) -> Dictionary:
 	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "pickups": pickup_amounts, "campaign": {"completed": game.campaign.completed.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
-	var file := FileAccess.open(path, FileAccess.WRITE)
+	var absolute_path := ProjectSettings.globalize_path(path)
+	var temporary_path := absolute_path + ".tmp"
+	var backup_path := absolute_path + ".bak"
+	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
 	if file == null: return FileAccess.get_open_error()
 	file.store_string(JSON.stringify(capture(game)))
+	file.flush()
+	file.close()
+	if FileAccess.file_exists(backup_path): DirAccess.remove_absolute(backup_path)
+	if FileAccess.file_exists(absolute_path):
+		var backup_result := DirAccess.rename_absolute(absolute_path, backup_path)
+		if backup_result != OK: return backup_result
+	var result := DirAccess.rename_absolute(temporary_path, absolute_path)
+	if result != OK and FileAccess.file_exists(backup_path):
+		DirAccess.rename_absolute(backup_path, absolute_path)
+		return result
+	if FileAccess.file_exists(backup_path): DirAccess.remove_absolute(backup_path)
 	return OK
 
 func load_from_path(game: Node2D, path: String) -> Error:

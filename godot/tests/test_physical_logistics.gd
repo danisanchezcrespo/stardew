@@ -28,7 +28,8 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	route_key.pressed = true
 	game._input(route_key)
 	_expect(game.route_source_id == input_crate, "R input should select the adjacent completed crate as route source.", failures)
-	game.route_source_id = ""
+	game._process(0.0)
+	_expect(game.interaction_label.text.contains("ROUTE SOURCE SET"), "Route source feedback should remain visible across frames.", failures)
 	_expect(not kiln_id.is_empty(), "Kiln should be placed within player range.", failures)
 	if kiln_id.is_empty():
 		game_root.queue_free()
@@ -41,7 +42,10 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 		game.deliver_selected_to_construction(kiln_id)
 	game.apply_construction_work(kiln_id, 10.0)
 	game.storage_by_entity_id[input_crate].add("clay", 2)
-	_expect(game.create_logistics_route(input_crate, kiln_id), "Storage-to-kiln route should be created.", failures)
+	game.player.position = Vector2(8.5, 7.5) * game.CELL_SIZE
+	game.player.facing = "east"
+	game._input(route_key)
+	_expect(game.logistics_routes.size() == 1 and game.route_source_id.is_empty(), "Second R input should create the storage-to-kiln route.", failures)
 	_expect(not game.create_logistics_route(input_crate, kiln_id), "Duplicate route should be rejected.", failures)
 	var inbound: Variant = game.logistics_routes[0]
 	game._process_logistics_route(inbound, 2.1)
@@ -50,7 +54,12 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	_expect(game.machines_by_entity_id[kiln_id].input_inventory.count("clay") == 2, "Porter should deliver compatible clay to kiln.", failures)
 	game.machines_by_entity_id[kiln_id].process(0.1)
 	game.machines_by_entity_id[kiln_id].process(4.0)
-	_expect(game.create_logistics_route(kiln_id, output_crate), "Kiln-to-storage route should be created.", failures)
+	game._input(route_key)
+	_expect(game.route_source_id == kiln_id, "R should select kiln as output route source.", failures)
+	game.player.position = Vector2(7.5, 8.5) * game.CELL_SIZE
+	game.player.facing = "south"
+	game._input(route_key)
+	_expect(game.logistics_routes.size() == 2, "Second R should connect kiln output to storage.", failures)
 	var outbound: Variant = game.logistics_routes[1]
 	game._process_logistics_route(outbound, 2.1)
 	_expect(game.storage_by_entity_id[output_crate].count("mud_bricks") == 1, "Porter should carry finished bricks to destination storage.", failures)

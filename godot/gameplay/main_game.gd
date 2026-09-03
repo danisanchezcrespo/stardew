@@ -15,6 +15,7 @@ const ConstructionSiteType = preload("res://world/construction/construction_site
 const EgyptCampaignType = preload("res://world/progression/egypt_campaign.gd")
 const PhysicalSaveCodecType = preload("res://world/persistence/physical_save_codec.gd")
 const PhysicalScenarioType = preload("res://world/scenario/physical_scenario.gd")
+const BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_buildings_sheet.png")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
@@ -42,6 +43,7 @@ var selected_recipe_index := 0
 var crafting_panel: Control
 var crafting_list_label: Label
 var crafting_detail_label: Label
+var crafting_recipe_buttons: Array[Button] = []
 var placement_registry: Variant
 var world_grid: Variant
 var selected_slot := 0
@@ -111,6 +113,12 @@ func _process(delta: float) -> void:
 	if player != null and position_label != null:
 		var cell := Vector2i(floori(player.position.x / CELL_SIZE), floori(player.position.y / CELL_SIZE))
 		position_label.text = "Cell %s    Facing: %s" % [str(cell), player.facing]
+	if placement_mode:
+		var followed_cursor := _player_cell() + _facing_cell(player.facing)
+		if followed_cursor != placement_cursor:
+			placement_cursor = followed_cursor
+			_update_placement_feedback()
+			queue_redraw()
 	_update_interaction_target()
 	if (
 		interaction_target != null
@@ -200,25 +208,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			withdraw_selected_stack()
 		return
 	if placement_mode:
-		if event is InputEventMouseMotion:
-			var mouse_world := get_global_mouse_position()
-			var hovered := Vector2i(floori(mouse_world.x / CELL_SIZE), floori(mouse_world.y / CELL_SIZE))
-			if world_grid.contains(hovered) and hovered != placement_cursor:
-				placement_cursor = hovered
-				_update_placement_feedback()
-				queue_redraw()
-		elif event.is_action_pressed("cancel"):
+		if event.is_action_pressed("cancel"):
 			cancel_placement()
 		elif event.is_action_pressed("rotate_blueprint"):
 			rotate_placement()
-		elif event.is_action_pressed("move_left"):
-			move_placement_cursor(Vector2i.LEFT)
-		elif event.is_action_pressed("move_right"):
-			move_placement_cursor(Vector2i.RIGHT)
-		elif event.is_action_pressed("move_up"):
-			move_placement_cursor(Vector2i.UP)
-		elif event.is_action_pressed("move_down"):
-			move_placement_cursor(Vector2i.DOWN)
 		elif event.is_action_pressed("use_selected") or event.is_action_pressed("interact"):
 			confirm_placement()
 		return
@@ -371,7 +364,7 @@ func _build_hud() -> void:
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move/Pick up: WASD + E/A    Craft: C/Y    Use: Space/X    Routes: R    Save/Load: F5/F9"
+	help.text = "Move/Pick up: WASD + E/A    Craft: C/Y    Use: Space/X    Routes: R    Save/Load: K/L"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
@@ -438,31 +431,46 @@ func select_scenario(path: String) -> void:
 
 func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_panel = ColorRect.new()
-	crafting_panel.position = Vector2(360, 150)
-	crafting_panel.size = Vector2(560, 390)
-	crafting_panel.color = Color(0.06, 0.07, 0.09, 0.96)
+	crafting_panel.position = Vector2(290, 125)
+	crafting_panel.size = Vector2(700, 450)
+	crafting_panel.color = Color("#d8bd83")
 	crafting_panel.visible = false
 	layer.add_child(crafting_panel)
 	var title := Label.new()
 	title.position = Vector2(24, 20)
-	title.text = "CRAFTING"
+	title.text = "WORKBENCH — CHOOSE A RECIPE"
 	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(title)
 	crafting_list_label = Label.new()
-	crafting_list_label.position = Vector2(24, 70)
-	crafting_list_label.size = Vector2(250, 260)
+	crafting_list_label.position = Vector2(24, 78)
+	crafting_list_label.size = Vector2(300, 300)
 	crafting_list_label.add_theme_font_size_override("font_size", 18)
+	crafting_list_label.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(crafting_list_label)
+	for index in range(recipe_registry.recipe_order.size()):
+		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
+		var button := Button.new()
+		button.position = Vector2(22, 74 + index * 43)
+		button.size = Vector2(292, 38)
+		button.text = "%d.  %s" % [index + 1, recipe.label]
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.pressed.connect(_on_recipe_button_pressed.bind(index))
+		crafting_panel.add_child(button)
+		crafting_recipe_buttons.append(button)
+	crafting_list_label.visible = false
 	crafting_detail_label = Label.new()
-	crafting_detail_label.position = Vector2(290, 70)
-	crafting_detail_label.size = Vector2(240, 260)
+	crafting_detail_label.position = Vector2(345, 78)
+	crafting_detail_label.size = Vector2(325, 300)
 	crafting_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	crafting_detail_label.add_theme_font_size_override("font_size", 17)
+	crafting_detail_label.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(crafting_detail_label)
 	var controls := Label.new()
-	controls.position = Vector2(24, 345)
-	controls.text = "W/S or D-pad: select    E/A: craft    C/Esc/B: close"
+	controls.position = Vector2(24, 405)
+	controls.text = "Click a recipe, or W/S + E/A to craft    C/Esc/B closes"
 	controls.add_theme_font_size_override("font_size", 14)
+	controls.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(controls)
 	_update_crafting_ui()
 
@@ -521,7 +529,7 @@ func begin_placement() -> bool:
 		interaction_label.text = "Selected slot is not placeable"
 		return false
 	placement_mode = true
-	player.movement_enabled = false
+	player.movement_enabled = true
 	player.velocity = Vector2.ZERO
 	placement_rotation = 0
 	placement_cursor = _player_cell() + _facing_cell(player.facing)
@@ -623,8 +631,8 @@ func _update_placement_feedback() -> void:
 	if definition == null:
 		return
 	var validation: Dictionary = _placement_validation(definition)
-	placement_feedback = "Valid - Space/X to place" if validation.valid else "Blocked: %s" % validation.reason
-	interaction_label.text = "Placement %s at %s | %s | R rotate, Esc cancel" % [definition.label, str(placement_cursor), placement_feedback]
+	placement_feedback = "Valid - Space/X or click to place" if validation.valid else "Blocked: %s" % validation.reason
+	interaction_label.text = "Walk to move %s ghost | %s | R rotate, Esc cancel" % [definition.label, placement_feedback]
 
 
 func _add_placed_collision(instance_id: String, cells: Array[Vector2i]) -> void:
@@ -653,6 +661,11 @@ func select_recipe(direction: int) -> void:
 	_update_crafting_ui()
 
 
+func _on_recipe_button_pressed(index: int) -> void:
+	selected_recipe_index = index
+	craft_selected_recipe()
+
+
 func craft_selected_recipe() -> bool:
 	var recipe_id: String = recipe_registry.recipe_order[selected_recipe_index]
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
@@ -673,6 +686,8 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
 		rows.append("%s %s" % [">" if index == selected_recipe_index else " ", recipe.label])
 	crafting_list_label.text = "\n".join(rows)
+	for index in range(crafting_recipe_buttons.size()):
+		crafting_recipe_buttons[index].modulate = Color("#fff0be") if index == selected_recipe_index else Color.WHITE
 	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
 	var ingredients: Array[String] = []
 	for item_id: String in selected.inputs:
@@ -722,7 +737,7 @@ func _update_interaction_target() -> void:
 			interaction_target.set_targeted(true)
 	if interaction_label != null:
 		if interaction_target == null:
-			interaction_label.text = "Approach a resource stack or placed object"
+			interaction_label.text = "ROUTE: approach destination and press R" if not route_source_id.is_empty() else "Approach a resource stack or placed object"
 		elif interaction_target.target_kind == "pickup":
 			interaction_label.text = "E  Pick up %s x%d" % [interaction_target.item_label, interaction_target.amount]
 		elif interaction_target.target_kind == "construction":
@@ -731,6 +746,8 @@ func _update_interaction_target() -> void:
 			interaction_label.text = _machine_prompt(interaction_target.stable_id) + " | R route"
 		else:
 			interaction_label.text = "E  Open %s | R route" % interaction_target.item_label
+		if not route_source_id.is_empty() and interaction_target != null:
+			interaction_label.text = "ROUTE SOURCE SET | Approach destination and press R | " + interaction_label.text
 
 
 func collect_target() -> int:
@@ -1102,6 +1119,8 @@ func _draw() -> void:
 				if site != null and not site.complete:
 					draw_line(placed_rect.position, placed_rect.end, Color("#d7c7a2"), 2.0)
 					draw_line(Vector2(placed_rect.end.x, placed_rect.position.y), Vector2(placed_rect.position.x, placed_rect.end.y), Color("#d7c7a2"), 2.0)
+			if site == null or site.complete:
+				_draw_structure_sprite(placed.definition_id, placed.cells)
 	if placement_mode:
 		var definition: Variant = _selected_placeable_definition()
 		if definition != null:
@@ -1110,6 +1129,7 @@ func _draw() -> void:
 				var preview_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE, Vector2.ONE * (CELL_SIZE - 2))
 				draw_rect(preview_rect, Color(0.2, 0.9, 0.4, 0.58) if validation.valid else Color(0.95, 0.2, 0.2, 0.62))
 				draw_rect(preview_rect, Color.WHITE, false, 2.0)
+			_draw_structure_sprite(definition.entity_id, validation.cells, true, validation.valid)
 	for route: Variant in logistics_routes:
 		var from_target: Variant = placed_targets.get(route.source_id)
 		var to_target: Variant = placed_targets.get(route.destination_id)
@@ -1121,6 +1141,10 @@ func _draw() -> void:
 		var porter_position := start.lerp(finish, route.progress())
 		draw_circle(porter_position, 7.0, Color("#315b70"))
 		draw_circle(porter_position, 7.0, Color.WHITE, false, 1.5)
+	if not route_source_id.is_empty():
+		var source_target: Variant = placed_targets.get(route_source_id)
+		if source_target != null:
+			draw_circle(source_target.global_position, 23.0, Color("#ffe27a"), false, 4.0)
 	for instance_id: String in machines_by_entity_id:
 		if workforce.assigned_to(instance_id) <= 0:
 			continue
@@ -1129,3 +1153,20 @@ func _draw() -> void:
 			var worker_position: Vector2 = worker_target.global_position + Vector2(12, -10)
 			draw_circle(worker_position, 6.0, Color("#efe1c1"))
 			draw_circle(worker_position + Vector2(0, -5), 3.5, Color("#3a251e"))
+
+
+func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost: bool = false, valid: bool = true) -> void:
+	var columns := {"STORAGE_CRATE": 0, "BRICK_KILN": 1, "DWELLING": 2, "SHRINE": 3}
+	if not columns.has(definition_id) or cells.is_empty(): return
+	var minimum := cells[0]
+	var maximum := cells[0]
+	for cell: Vector2i in cells:
+		minimum = Vector2i(mini(minimum.x, cell.x), mini(minimum.y, cell.y))
+		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
+	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
+	var sprite_size := Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
+	if definition_id == "SHRINE": sprite_size.y += 20.0
+	var bottom_center := Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
+	var destination := Rect2(bottom_center - Vector2(sprite_size.x * 0.5, sprite_size.y), sprite_size)
+	var tint := Color(0.45, 1.0, 0.55, 0.62) if valid else Color(1.0, 0.35, 0.35, 0.62)
+	draw_texture_rect_region(BUILDING_TEXTURE, destination, Rect2(int(columns[definition_id]) * 256, 0, 256, 256), tint if ghost else Color.WHITE)

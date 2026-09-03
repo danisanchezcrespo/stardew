@@ -21,6 +21,11 @@ func _initialize() -> void:
 	var codec := CodecType.new()
 	var path := "user://physical_save_test.json"
 	_expect(codec.save_to_path(source, path) == OK, "Physical game should save to JSON.", failures)
+	var save_key := InputEventKey.new()
+	save_key.physical_keycode = KEY_K
+	save_key.pressed = true
+	source._unhandled_input(save_key)
+	_expect(FileAccess.file_exists("user://physical_save.json"), "K input should save without invoking the editor's F5 shortcut.", failures)
 	source_root.queue_free()
 	await process_frame
 	var restored_root: Node = packed.instantiate()
@@ -33,6 +38,7 @@ func _initialize() -> void:
 	_expect(restored.storage_by_entity_id[crate_id].count("grain") == 7, "Container contents should round-trip.", failures)
 	_expect(restored.campaign.gathered_wood and restored.campaign.completed == {}, "Partial campaign progress should round-trip.", failures)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://physical_save.json"))
 	restored_root.queue_free()
 	await process_frame
 	if failures.is_empty():

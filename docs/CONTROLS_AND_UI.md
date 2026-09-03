@@ -18,6 +18,7 @@ Gameplay code consumes named actions, never hardware keys directly.
 | Rotate blueprint | R | Right bumper | Rotate button |
 | Pause | Escape / P | Menu button | Pause icon |
 | Strategic map | M | View button | Map icon |
+| Quick save / load | K / L | Menu flow | Save/load buttons |
 
 Bindings must be remappable. Prompts display the active device and update when
 the last-used device changes.
@@ -35,8 +36,10 @@ world and UI systems must not check specific keys. This supports:
 - Future accessibility devices.
 
 Movement uses a two-dimensional intent vector. Interaction, use, cancel and
-menu actions are discrete intents. Placement uses movement/pointing plus rotate,
-confirm and cancel.
+menu actions are discrete intents. Placement uses character movement plus
+rotate, confirm and cancel. The ghost stays immediately in front of the physical
+character; pointer input confirms that same local position and never moves the
+blueprint remotely.
 
 ## Interaction feedback
 

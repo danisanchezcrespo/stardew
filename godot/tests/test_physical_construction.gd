@@ -31,6 +31,10 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	var target: Variant = game.placed_targets[instance_id]
 	var east_side_player: Vector2 = Vector2(origin + Vector2i(2, 0)) * float(game.CELL_SIZE) + Vector2.ONE * 16.0
 	_expect(target.interaction_position_for(east_side_player).distance_to(east_side_player) <= game.CELL_SIZE, "Construction should be targetable from any adjacent footprint edge.", failures)
+	game.player.position = east_side_player
+	game.player.facing = "west"
+	game._update_interaction_target()
+	_expect(game.interaction_target == target, "Interaction targeting should select construction from its east edge.", failures)
 	_expect(game.world_grid.entities_by_id[instance_id].origin == origin, "Construction should retain its stable spatial identity.", failures)
 	_expect(game.apply_construction_work(instance_id, 1.0) == 0.0, "Work before material delivery should be rejected.", failures)
 
