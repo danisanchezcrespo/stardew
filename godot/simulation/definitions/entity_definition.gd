@@ -22,6 +22,7 @@ var min_worker_efficiency: float = 0.0
 
 var spatial_footprint: RefCounted = null
 var allowed_terrain: Array[String] = []
+var storage_slots: int = 0
 
 
 func is_placeable() -> bool:

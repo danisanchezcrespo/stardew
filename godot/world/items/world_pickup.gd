@@ -7,6 +7,7 @@ var amount := 0
 var item_label := ""
 var item_color := Color.WHITE
 var targeted := false
+var target_kind := "pickup"
 
 
 func configure(id: String, definition: Variant, stack_amount: int) -> void:
@@ -20,6 +21,10 @@ func configure(id: String, definition: Variant, stack_amount: int) -> void:
 
 func interaction_position() -> Vector2:
 	return global_position
+
+
+func is_interactable() -> bool:
+	return amount > 0
 
 
 func set_targeted(value: bool) -> void:

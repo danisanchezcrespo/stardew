@@ -1,6 +1,6 @@
 # Milestone 6: place crafted objects
 
-Status: in progress.
+Status: complete (validated in Godot on 2026-09-03).
 
 ## Outcome
 
@@ -19,7 +19,7 @@ physical world. Inventory is consumed only after a valid placement succeeds.
 - [x] Placed-object collision and world rendering.
 - [x] Keyboard, mouse and controller controls.
 - [x] Automated end-to-end craft-to-place tests.
-- [ ] Visual acceptance walkthrough.
+- [x] Visual acceptance walkthrough.
 
 ## Acceptance walkthrough
 

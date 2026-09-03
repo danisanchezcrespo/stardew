@@ -9,7 +9,7 @@ static func select_target(player_position: Vector2, facing: String, candidates: 
 	var best_distance := INF
 	var best_id := ""
 	for candidate: Variant in candidates:
-		if candidate == null or candidate.amount <= 0:
+		if candidate == null or not candidate.has_method("is_interactable") or not candidate.is_interactable():
 			continue
 		var offset: Vector2 = candidate.interaction_position() - player_position
 		var distance := offset.length()

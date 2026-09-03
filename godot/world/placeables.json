@@ -4,11 +4,12 @@
       "id": "STORAGE_CRATE",
       "label": "Storage Crate",
       "color": "#71472b",
+      "storage_slots": 8,
       "spatial": {
         "footprint": [[0, 0]],
         "rotations": [0, 1, 2, 3],
         "allowed_terrain": ["sand"],
-        "ports": {"use": [0, 1]}
+        "ports": {"use": [0, -1]}
       }
     }
   ],

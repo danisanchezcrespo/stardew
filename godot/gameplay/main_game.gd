@@ -10,6 +10,7 @@ const RecipeRegistryType = preload("res://crafting/recipe_registry.gd")
 const CraftingSystemType = preload("res://crafting/crafting_system.gd")
 const DefinitionRegistryType = preload("res://simulation/definitions/simulation_definition_registry.gd")
 const WorldGridType = preload("res://world/placement/world_grid.gd")
+const PlacedTargetType = preload("res://world/placement/placed_object_target.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -44,6 +45,15 @@ var placement_cursor := Vector2i.ZERO
 var placement_rotation := 0
 var next_placed_id := 1
 var placement_feedback := ""
+var placed_targets: Dictionary = {}
+var storage_by_entity_id: Dictionary = {}
+var storage_open := false
+var active_storage_id := ""
+var selected_storage_slot := 0
+var storage_panel: Control
+var storage_player_label: Label
+var storage_contents_label: Label
+var storage_feedback_label: Label
 
 
 func _ready() -> void:
@@ -63,6 +73,18 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if storage_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
+			close_storage()
+		elif event.is_action_pressed("menu_up"):
+			select_storage_slot(-1)
+		elif event.is_action_pressed("menu_down"):
+			select_storage_slot(1)
+		elif event.is_action_pressed("interact"):
+			deposit_selected_stack()
+		elif event.is_action_pressed("use_selected"):
+			withdraw_selected_stack()
+		return
 	if placement_mode:
 		if event is InputEventMouseMotion:
 			var mouse_world := get_global_mouse_position()
@@ -218,6 +240,7 @@ func _build_hud() -> void:
 	layer.add_child(inventory_label)
 	_update_inventory_hud()
 	_build_crafting_panel(layer)
+	_build_storage_panel(layer)
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
@@ -256,6 +279,40 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	controls.add_theme_font_size_override("font_size", 14)
 	crafting_panel.add_child(controls)
 	_update_crafting_ui()
+
+
+func _build_storage_panel(layer: CanvasLayer) -> void:
+	storage_panel = ColorRect.new()
+	storage_panel.position = Vector2(300, 140)
+	storage_panel.size = Vector2(680, 420)
+	storage_panel.color = Color(0.06, 0.07, 0.09, 0.96)
+	storage_panel.visible = false
+	layer.add_child(storage_panel)
+	var title := Label.new()
+	title.position = Vector2(24, 18)
+	title.text = "STORAGE CRATE"
+	title.add_theme_font_size_override("font_size", 24)
+	storage_panel.add_child(title)
+	storage_player_label = Label.new()
+	storage_player_label.position = Vector2(24, 68)
+	storage_player_label.size = Vector2(300, 270)
+	storage_player_label.add_theme_font_size_override("font_size", 16)
+	storage_panel.add_child(storage_player_label)
+	storage_contents_label = Label.new()
+	storage_contents_label.position = Vector2(355, 68)
+	storage_contents_label.size = Vector2(300, 270)
+	storage_contents_label.add_theme_font_size_override("font_size", 16)
+	storage_panel.add_child(storage_contents_label)
+	storage_feedback_label = Label.new()
+	storage_feedback_label.position = Vector2(24, 340)
+	storage_feedback_label.size = Vector2(630, 36)
+	storage_feedback_label.add_theme_font_size_override("font_size", 16)
+	storage_panel.add_child(storage_feedback_label)
+	var controls := Label.new()
+	controls.position = Vector2(24, 382)
+	controls.text = "W/S: crate slot    E/A: deposit selected player stack    Space/X: withdraw    Esc/B: close"
+	controls.add_theme_font_size_override("font_size", 13)
+	storage_panel.add_child(controls)
 
 
 func set_crafting_open(value: bool) -> void:
@@ -327,6 +384,9 @@ func confirm_placement() -> bool:
 	assert(removed == 1, "Validated placement must consume exactly one item.")
 	next_placed_id += 1
 	_add_placed_collision(instance_id, result.cells)
+	_add_placed_target(instance_id, definition, placement_cursor, placement_rotation)
+	if definition.storage_slots > 0:
+		storage_by_entity_id[instance_id] = PlayerInventoryType.new(item_registry, definition.storage_slots)
 	cancel_placement()
 	_update_inventory_hud()
 	interaction_label.text = "Placed %s" % definition.label
@@ -378,6 +438,17 @@ func _add_placed_collision(instance_id: String, cells: Array[Vector2i]) -> void:
 	for index in range(cells.size()):
 		var cell := cells[index]
 		_add_static_rect(Vector2(cell * CELL_SIZE) + Vector2.ONE * 16.0, Vector2.ONE * CELL_SIZE, "%s-%d" % [instance_id, index])
+
+
+func _add_placed_target(instance_id: String, definition: Variant, origin: Vector2i, placed_rotation: int) -> void:
+	var ports: Dictionary = definition.spatial_footprint.transformed_ports(origin, placed_rotation)
+	var origin_position := Vector2(origin * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5)
+	var use_cell: Vector2i = ports.get("use", origin)
+	var use_position := Vector2(use_cell * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5)
+	var target := PlacedTargetType.new()
+	target.configure(instance_id, definition.label, origin_position, use_position)
+	add_child(target)
+	placed_targets[instance_id] = target
 
 
 func select_recipe(direction: int) -> void:
@@ -432,7 +503,7 @@ func _crafting_failure_text(result: Dictionary) -> String:
 
 
 func _update_interaction_target() -> void:
-	if placement_mode or crafting_open:
+	if placement_mode or crafting_open or storage_open:
 		if is_instance_valid(interaction_target):
 			interaction_target.set_targeted(false)
 		interaction_target = null
@@ -441,6 +512,9 @@ func _update_interaction_target() -> void:
 	for pickup: Variant in pickups:
 		if is_instance_valid(pickup) and pickup.amount > 0:
 			active.append(pickup)
+	for target: Variant in placed_targets.values():
+		if is_instance_valid(target):
+			active.append(target)
 	var selected: Variant = TargetingType.select_target(player.global_position, player.facing, active, INTERACTION_REACH_PX)
 	if selected != interaction_target:
 		if is_instance_valid(interaction_target):
@@ -449,16 +523,20 @@ func _update_interaction_target() -> void:
 		if interaction_target != null:
 			interaction_target.set_targeted(true)
 	if interaction_label != null:
-		interaction_label.text = (
-			"E  Pick up %s x%d" % [interaction_target.item_label, interaction_target.amount]
-			if interaction_target != null
-			else "Approach a resource stack"
-		)
+		if interaction_target == null:
+			interaction_label.text = "Approach a resource stack or placed object"
+		elif interaction_target.target_kind == "pickup":
+			interaction_label.text = "E  Pick up %s x%d" % [interaction_target.item_label, interaction_target.amount]
+		else:
+			interaction_label.text = "E  Open %s" % interaction_target.item_label
 
 
 func collect_target() -> int:
 	_update_interaction_target()
 	if interaction_target == null:
+		return 0
+	if interaction_target.target_kind == "storage":
+		open_storage(interaction_target.stable_id)
 		return 0
 	var accepted: int = inventory.add(interaction_target.item_id, interaction_target.amount)
 	if accepted <= 0:
@@ -471,6 +549,91 @@ func collect_target() -> int:
 		interaction_target = null
 	_update_inventory_hud()
 	return accepted
+
+
+func open_storage(instance_id: String) -> bool:
+	if not storage_by_entity_id.has(instance_id):
+		return false
+	storage_open = true
+	active_storage_id = instance_id
+	selected_storage_slot = 0
+	player.movement_enabled = false
+	player.velocity = Vector2.ZERO
+	storage_panel.visible = true
+	if is_instance_valid(interaction_target):
+		interaction_target.set_targeted(false)
+	interaction_target = null
+	_update_storage_ui("Storage opened.")
+	return true
+
+
+func close_storage() -> void:
+	storage_open = false
+	active_storage_id = ""
+	player.movement_enabled = true
+	storage_panel.visible = false
+	_update_inventory_hud()
+
+
+func select_storage_slot(direction: int) -> void:
+	var storage: Variant = storage_by_entity_id.get(active_storage_id)
+	if storage == null:
+		return
+	selected_storage_slot = posmod(selected_storage_slot + direction, storage.slots.size())
+	_update_storage_ui()
+
+
+func deposit_selected_stack() -> int:
+	var storage: Variant = storage_by_entity_id.get(active_storage_id)
+	if storage == null or inventory.slots[selected_slot].is_empty():
+		_update_storage_ui("Select a non-empty player slot.")
+		return 0
+	var slot: Dictionary = inventory.slots[selected_slot]
+	var accepted: int = storage.add(slot.item_id, int(slot.amount))
+	if accepted > 0:
+		inventory.remove(slot.item_id, accepted)
+		_update_inventory_hud()
+	_update_storage_ui("Deposited %d." % accepted if accepted > 0 else "Crate has no room.")
+	return accepted
+
+
+func withdraw_selected_stack() -> int:
+	var storage: Variant = storage_by_entity_id.get(active_storage_id)
+	if storage == null or storage.slots[selected_storage_slot].is_empty():
+		_update_storage_ui("Selected crate slot is empty.")
+		return 0
+	var slot: Dictionary = storage.slots[selected_storage_slot]
+	var accepted: int = inventory.add(slot.item_id, int(slot.amount))
+	if accepted > 0:
+		storage.remove(slot.item_id, accepted)
+		_update_inventory_hud()
+	_update_storage_ui("Withdrew %d." % accepted if accepted > 0 else "Player inventory has no room.")
+	return accepted
+
+
+func _update_storage_ui(feedback: String = "") -> void:
+	if storage_contents_label == null:
+		return
+	var storage: Variant = storage_by_entity_id.get(active_storage_id)
+	if storage == null:
+		return
+	var player_rows: Array[String] = ["PLAYER INVENTORY"]
+	for index in range(inventory.slots.size()):
+		var slot: Dictionary = inventory.slots[index]
+		player_rows.append("%s[%d] %s" % [">" if index == selected_slot else " ", index + 1, _slot_text(slot)])
+	storage_player_label.text = "\n".join(player_rows)
+	var storage_rows: Array[String] = ["CRATE INVENTORY"]
+	for index in range(storage.slots.size()):
+		storage_rows.append("%s[%d] %s" % [">" if index == selected_storage_slot else " ", index + 1, _slot_text(storage.slots[index])])
+	storage_contents_label.text = "\n".join(storage_rows)
+	storage_feedback_label.text = feedback
+
+
+func _slot_text(slot: Dictionary) -> String:
+	if slot.is_empty():
+		return "--"
+	var definition: Variant = item_registry.get_item(slot.item_id)
+	return "%s x%d" % [definition.label, int(slot.amount)]
 
 
 func _update_inventory_hud() -> void:

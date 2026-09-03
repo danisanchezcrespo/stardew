@@ -50,3 +50,9 @@ The complete craft, select, preview and place loop can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_gameplay_placement.gd
 ```
+
+Placed crate targeting, deposit and withdrawal can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_storage_interaction.gd
+```
