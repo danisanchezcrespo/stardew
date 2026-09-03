@@ -59,17 +59,18 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	game.set_crafting_open(true)
 	_expect(game.crafting_open and not game.player.movement_enabled and game.crafting_panel.visible, "Opening crafting should show the submenu and stop player movement.", failures)
 	_expect(game.crafting_recipe_buttons.size() == game.recipe_registry.recipe_order.size(), "Crafting should expose one clickable button per recipe.", failures)
+	_expect(game.crafting_resource_icons[0].visible and game.crafting_resource_icons[0].texture != null, "Crafting ingredients should display their resource icons.", failures)
 	_expect(game.crafting_panel.color == Color("#d8bd83"), "Crafting should use a readable parchment panel instead of an opaque black screen.", failures)
 	var interact_key := InputEventKey.new()
 	interact_key.physical_keycode = KEY_E
 	interact_key.pressed = true
 	game._unhandled_input(interact_key)
 	_expect(game.inventory.count("wood") == 10, "E should not craft while the crafting panel is open.", failures)
-	var enter_key := InputEventKey.new()
-	enter_key.physical_keycode = KEY_ENTER
-	enter_key.pressed = true
-	game._unhandled_input(enter_key)
-	_expect(game.inventory.count("storage_crate") == 1, "Enter should craft the selected recipe.", failures)
+	var space_key := InputEventKey.new()
+	space_key.physical_keycode = KEY_SPACE
+	space_key.pressed = true
+	game._unhandled_input(space_key)
+	_expect(game.inventory.count("storage_crate") == 1, "Space should craft the selected recipe.", failures)
 	_expect(game.inventory.count("wood") == 0 and game.inventory.count("storage_crate") == 1, "Scene crafting should update the shared player inventory.", failures)
 	game.select_recipe(1)
 	var before: Array[Dictionary] = game.inventory.snapshot()

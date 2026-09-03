@@ -10,9 +10,9 @@ Gameplay code consumes named actions, never hardware keys directly.
 | Action | Keyboard/mouse | Controller | Touch intent |
 | --- | --- | --- | --- |
 | Move | WASD / arrows | Left stick / D-pad | Virtual stick |
-| Interact/open | E | South face button | Context button |
+| Context action / open | Space | West face button | Context button |
 | Pick up / place | Space | West face button | Context action |
-| Craft selected recipe | Enter | South face button | Craft button |
+| Craft selected recipe | Space | West face button | Craft button |
 | Use selected item | Left mouse / Space | West face button | Use button |
 | Cancel / back | Escape / right mouse | East face button | Back button |
 | Inventory | Tab / I | North face button | Inventory icon |
@@ -24,7 +24,7 @@ Gameplay code consumes named actions, never hardware keys directly.
 | Camera zoom | Mouse wheel | — | Pinch/buttons |
 | Next villager | Tab | — | Community list |
 | Move selected villager | Left click empty ground | — | Tap ground |
-| Building details | Enter | South face button | Tap details |
+| Building details | Space | West face button | Tap details |
 | Toggle fullscreen | Alt+Enter / F11 | — | Display settings |
 
 Bindings must be remappable. Prompts display the active device and update when
@@ -68,9 +68,9 @@ Examples:
 - `Storage crate` / `Space to place`, displayed above the placement ghost
 - `Wood ×12` / `Space to place`, displayed above a construction blueprint
 - `Ready to build` / `Hold Space to build`, displayed above a ready blueprint
-- `E  Open brick kiln`
-- `E  Add materials (18/25)`
-- `Hold E  Repair`
+- `Brick kiln` / `Space to open`
+- `Materials 18/25` / `Space to place`
+- `Broken` / `Space to open`
 
 If an action fails, feedback appears near the action and names the cause:
 `Inventory full`, `Needs hammer`, `Output blocked`, or `Cannot reach port`.

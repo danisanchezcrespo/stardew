@@ -6,8 +6,8 @@ const ACTIONS := {
 	"move_right": [KEY_D, KEY_RIGHT],
 	"move_up": [KEY_W, KEY_UP],
 	"move_down": [KEY_S, KEY_DOWN],
-	"interact": [KEY_E],
-	"craft_confirm": [KEY_ENTER],
+	"interact": [],
+	"craft_confirm": [KEY_SPACE],
 	"use_selected": [KEY_SPACE],
 	"rotate_blueprint": [KEY_R],
 	"remove_placed": [KEY_X, KEY_DELETE],
@@ -26,7 +26,7 @@ const ACTIONS := {
 	"zoom_out": [],
 	"toggle_fullscreen": [KEY_F11],
 	"next_villager": [KEY_TAB],
-	"building_details": [KEY_ENTER],
+	"building_details": [],
 }
 
 
@@ -39,8 +39,7 @@ static func ensure_actions() -> void:
 				var event := InputEventKey.new()
 				event.physical_keycode = keycode
 				InputMap.action_add_event(action, event)
-	_add_joypad_button("interact", JOY_BUTTON_A)
-	_add_joypad_button("craft_confirm", JOY_BUTTON_A)
+	_add_joypad_button("craft_confirm", JOY_BUTTON_X)
 	_add_joypad_button("use_selected", JOY_BUTTON_X)
 	_add_joypad_button("rotate_blueprint", JOY_BUTTON_RIGHT_SHOULDER)
 	_add_joypad_button("remove_placed", JOY_BUTTON_X)

@@ -36,6 +36,7 @@ var position_label: Label
 var interaction_label: Label
 var inventory_label: Label
 var inventory_icons: Array[TextureRect] = []
+var inventory_slot_labels: Array[Label] = []
 var water_cells: Dictionary = {}
 var item_registry: Variant
 var inventory: Variant
@@ -49,6 +50,7 @@ var crafting_panel: Control
 var crafting_list_label: Label
 var crafting_detail_label: Label
 var crafting_recipe_buttons: Array[Button] = []
+var crafting_resource_icons: Array[TextureRect] = []
 var placement_registry: Variant
 var world_grid: Variant
 var selected_slot := 0
@@ -225,7 +227,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		cycle_villager_selection()
 		return
 	if building_details_open:
-		if event.is_action_pressed("cancel") or event.is_action_pressed("building_details"):
+		if event.is_action_pressed("cancel") or event.is_action_pressed("use_selected"):
 			close_building_details()
 		return
 	if scenario_select_open:
@@ -235,12 +237,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			select_scenario("res://scenarios/physical/mesopotamia.json")
 		return
 	if machine_open:
-		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting") or event.is_action_pressed("building_details"):
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
 			close_machine()
-		elif event.is_action_pressed("interact"):
-			deliver_selected_to_machine(active_machine_id)
 		elif event.is_action_pressed("use_selected"):
-			withdraw_machine_output(active_machine_id)
+			machine_context_action(active_machine_id)
 		return
 	if event.is_action_pressed("save_game"):
 		var result: Error = physical_save.save_to_path(self, "user://physical_save.json")
@@ -268,15 +268,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_pressed("use_selected"):
 			transfer_storage_selected()
 		return
-	if event.is_action_pressed("building_details") and interaction_target != null:
-		open_building_details(interaction_target.stable_id)
-		return
 	if placement_mode:
 		if event.is_action_pressed("cancel"):
 			cancel_placement()
 		elif event.is_action_pressed("rotate_blueprint"):
 			rotate_placement()
-		elif event.is_action_pressed("use_selected") or event.is_action_pressed("interact"):
+		elif event.is_action_pressed("use_selected"):
 			confirm_placement()
 		return
 	if event.is_action_pressed("open_crafting"):
@@ -287,11 +284,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		select_recipe(-1)
 	elif crafting_open and event.is_action_pressed("menu_down"):
 		select_recipe(1)
-	elif crafting_open and event.is_action_pressed("craft_confirm"):
+	elif crafting_open and (event.is_action_pressed("craft_confirm") or event.is_action_pressed("use_selected")):
 		craft_selected_recipe()
-	elif not crafting_open and event.is_action_pressed("interact"):
-		if interaction_target == null or interaction_target.target_kind != "pickup":
-			collect_target()
 	elif not crafting_open and event.is_action_pressed("use_selected"):
 		if interaction_target != null and interaction_target.target_kind == "pickup":
 			collect_target()
@@ -300,7 +294,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			if site != null and site.materials_complete(): apply_construction_work(interaction_target.stable_id, 0.1)
 			else: deliver_selected_to_construction(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
-			withdraw_machine_output(interaction_target.stable_id)
+			open_machine(interaction_target.stable_id)
+		elif interaction_target != null and interaction_target.target_kind == "storage":
+			open_storage(interaction_target.stable_id)
+		elif interaction_target != null and interaction_target.target_kind == "building":
+			open_building_details(interaction_target.stable_id)
 		else:
 			begin_placement()
 	elif not crafting_open and event.is_action_pressed("quick_previous"):
@@ -410,17 +408,20 @@ func _build_hud() -> void:
 	add_child(layer)
 	var background := ColorRect.new()
 	background.position = Vector2(18, 16)
-	background.size = Vector2(420, 104)
+	background.size = Vector2(420, 70)
 	background.color = Color(0.08, 0.09, 0.11, 0.86)
+	background.visible = false
 	layer.add_child(background)
 	var title := Label.new()
 	title.position = Vector2(34, 26)
 	title.text = "STARDew - Craft and place prototype"
 	title.add_theme_font_size_override("font_size", 18)
+	title.visible = false
 	layer.add_child(title)
 	position_label = Label.new()
 	position_label.position = Vector2(34, 58)
 	position_label.add_theme_font_size_override("font_size", 16)
+	position_label.visible = false
 	layer.add_child(position_label)
 	population_label = Label.new()
 	population_label.position = Vector2(500, 58)
@@ -434,26 +435,36 @@ func _build_hud() -> void:
 	interaction_label = Label.new()
 	interaction_label.position = Vector2(34, 82)
 	interaction_label.add_theme_font_size_override("font_size", 16)
+	interaction_label.visible = false
 	layer.add_child(interaction_label)
 
 	var inventory_background := ColorRect.new()
 	inventory_background.position = Vector2(16, 634)
-	inventory_background.size = Vector2(1248, 64)
+	inventory_background.size = Vector2(1248, 72)
 	inventory_background.color = Color(0.08, 0.09, 0.11, 0.9)
 	layer.add_child(inventory_background)
 	inventory_label = Label.new()
 	inventory_label.position = Vector2(28, 648)
 	inventory_label.size = Vector2(1224, 40)
 	inventory_label.add_theme_font_size_override("font_size", 15)
+	inventory_label.visible = false
 	layer.add_child(inventory_label)
-	for index in range(inventory.slot_count):
+	for index in range(mini(8, inventory.slot_count)):
 		var icon := TextureRect.new()
-		icon.position = Vector2(34 + index * 101, 639)
-		icon.size = Vector2(38, 38)
+		var slot_x := 28 + index * 153
+		icon.position = Vector2(slot_x, 644)
+		icon.size = Vector2(34, 34)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		layer.add_child(icon)
 		inventory_icons.append(icon)
+		var slot_label := Label.new()
+		slot_label.position = Vector2(slot_x + 38, 640)
+		slot_label.size = Vector2(110, 42)
+		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot_label.add_theme_font_size_override("font_size", 13)
+		layer.add_child(slot_label)
+		inventory_slot_labels.append(slot_label)
 	_update_inventory_hud()
 	_build_crafting_panel(layer)
 	_build_storage_panel(layer)
@@ -464,7 +475,7 @@ func _build_hud() -> void:
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move: WASD    Pick/place: Space    Interact: E    Details: Enter    Villagers: click/Tab    Craft: C"
+	help.text = "Move: WASD    Action: Space    Villagers: click/Tab    Crafting: C    Back: Esc"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
@@ -508,7 +519,7 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_panel.add_child(machine_status_label)
 	var controls := Label.new()
 	controls.position = Vector2(28, 318)
-	controls.text = "E: add selected stack    Space: collect output    Enter/Esc: close details"
+	controls.text = "Space: add compatible selected item, otherwise collect    Esc: close"
 	controls.add_theme_font_size_override("font_size", 14)
 	machine_panel.add_child(controls)
 
@@ -587,7 +598,7 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_panel.add_child(building_details_body)
 	var controls := Label.new()
 	controls.position = Vector2(24, 370)
-	controls.text = "Enter / Esc: close"
+	controls.text = "Space / Esc: close"
 	controls.add_theme_color_override("font_color", Color("#ffe27a"))
 	building_details_panel.add_child(controls)
 
@@ -601,6 +612,9 @@ func open_building_details(instance_id: String) -> bool:
 	building_details_panel.visible = true
 	player.movement_enabled = false
 	player.velocity = Vector2.ZERO
+	if is_instance_valid(interaction_target): interaction_target.set_targeted(false)
+	interaction_target = null
+	queue_redraw()
 	_update_building_details()
 	return true
 
@@ -865,15 +879,19 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 		crafting_recipe_buttons.append(button)
 	crafting_list_label.visible = false
 	crafting_detail_label = Label.new()
-	crafting_detail_label.position = Vector2(345, 78)
-	crafting_detail_label.size = Vector2(325, 300)
+	crafting_detail_label.position = Vector2(375, 78)
+	crafting_detail_label.size = Vector2(295, 300)
 	crafting_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	crafting_detail_label.add_theme_font_size_override("font_size", 17)
 	crafting_detail_label.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(crafting_detail_label)
+	for index in range(8):
+		var resource_icon := _make_item_icon(Vector2(345, 142 + index * 25), Vector2(23, 23))
+		crafting_panel.add_child(resource_icon)
+		crafting_resource_icons.append(resource_icon)
 	var controls := Label.new()
 	controls.position = Vector2(24, 405)
-	controls.text = "Click a recipe, or W/S + Enter to craft    C/Esc/B closes"
+	controls.text = "Click a recipe, or W/S + Space to craft    C/Esc/B closes"
 	controls.add_theme_font_size_override("font_size", 14)
 	controls.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(controls)
@@ -1105,13 +1123,25 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		crafting_recipe_buttons[index].modulate = Color("#fff0be") if index == selected_recipe_index else Color.WHITE
 	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
 	var ingredients: Array[String] = []
+	var icon_index := 0
+	for icon: TextureRect in crafting_resource_icons: icon.visible = false
 	for item_id: String in selected.inputs:
 		var definition: Variant = item_registry.get_item(item_id)
 		ingredients.append("%s: %d / %d" % [definition.label, inventory.count(item_id), int(selected.inputs[item_id])])
+		if icon_index < crafting_resource_icons.size():
+			crafting_resource_icons[icon_index].position.y = 139 + icon_index * 22
+			crafting_resource_icons[icon_index].texture = ItemIconAtlasType.icon(item_id)
+			crafting_resource_icons[icon_index].visible = true
+			icon_index += 1
 	var outputs: Array[String] = []
 	for item_id: String in selected.outputs:
 		var definition: Variant = item_registry.get_item(item_id)
 		outputs.append("%s x%d" % [definition.label, int(selected.outputs[item_id])])
+		if icon_index < crafting_resource_icons.size():
+			crafting_resource_icons[icon_index].position.y = 183 + selected.inputs.size() * 22 + (icon_index - selected.inputs.size()) * 22
+			crafting_resource_icons[icon_index].texture = ItemIconAtlasType.icon(item_id)
+			crafting_resource_icons[icon_index].visible = true
+			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
 	var status := "Ready to craft" if query.valid else _crafting_failure_text(query)
 	if not feedback.is_empty():
@@ -1157,11 +1187,11 @@ func _update_interaction_target() -> void:
 		elif interaction_target.target_kind == "pickup":
 			interaction_label.text = "%s x%d   Space = Pick up" % [interaction_target.item_label, interaction_target.amount]
 		elif interaction_target.target_kind == "construction":
-			interaction_label.text = _construction_prompt(interaction_target.stable_id) + " | Enter = Details"
+			interaction_label.text = _construction_prompt(interaction_target.stable_id)
 		elif interaction_target.target_kind == "machine":
-			interaction_label.text = _machine_prompt(interaction_target.stable_id) + " | Enter = Details | R route"
+			interaction_label.text = _machine_prompt(interaction_target.stable_id)
 		else:
-			interaction_label.text = "E  Open %s | Enter = Details | R route" % interaction_target.item_label
+			interaction_label.text = "Space to Open %s" % interaction_target.item_label
 		if not route_source_id.is_empty() and interaction_target != null:
 			interaction_label.text = "ROUTE SOURCE SET | Approach destination and press R | " + interaction_label.text
 
@@ -1193,6 +1223,7 @@ func collect_target() -> int:
 		interaction_target.queue_free()
 		interaction_target = null
 	_update_inventory_hud()
+	queue_redraw()
 	return accepted
 
 
@@ -1285,6 +1316,16 @@ func deliver_selected_to_machine(instance_id: String) -> int:
 	return accepted
 
 
+func machine_context_action(instance_id: String) -> int:
+	var machine: Variant = machines_by_entity_id.get(instance_id)
+	if machine == null: return 0
+	if not inventory.slots[selected_slot].is_empty():
+		var item_id: String = inventory.slots[selected_slot].item_id
+		if (machine.broken and item_id == "wood") or machine.accepts(item_id):
+			return deliver_selected_to_machine(instance_id)
+	return withdraw_machine_output(instance_id)
+
+
 func withdraw_machine_output(instance_id: String) -> int:
 	var machine: Variant = machines_by_entity_id.get(instance_id)
 	if machine == null:
@@ -1308,13 +1349,13 @@ func _machine_prompt(instance_id: String) -> String:
 	if machine == null:
 		return "Machine unavailable"
 	if machine.broken:
-		return "Kiln broken | Select Wood x2 and press E to repair"
+		return "Kiln broken | Space to open"
 	var output_count := 0
 	for item_id: String in machine.recipe_outputs:
 		output_count += machine.output_inventory.count(item_id)
 	if machine.is_running():
-		return "Kiln firing %d%% | E add clay | Space/X collect (%d)" % [roundi(machine.progress() * 100.0), output_count]
-	return "Kiln ready | E add clay | Space/X collect (%d)" % output_count
+		return "Kiln firing %d%% | Output %d | Space to open" % [roundi(machine.progress() * 100.0), output_count]
+	return "Kiln ready | Output %d | Space to open" % output_count
 
 
 func open_machine(instance_id: String) -> bool:
@@ -1325,6 +1366,7 @@ func open_machine(instance_id: String) -> bool:
 	player.velocity = Vector2.ZERO
 	machine_panel.visible = true
 	interaction_target = null
+	queue_redraw()
 	_update_machine_panel()
 	return true
 
@@ -1559,6 +1601,7 @@ func open_storage(instance_id: String) -> bool:
 	if is_instance_valid(interaction_target):
 		interaction_target.set_targeted(false)
 	interaction_target = null
+	queue_redraw()
 	_update_storage_ui("Storage opened.")
 	return true
 
@@ -1658,16 +1701,18 @@ func _slot_text(slot: Dictionary) -> String:
 func _update_inventory_hud() -> void:
 	if inventory_label == null:
 		return
-	var labels: Array[String] = []
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
 		if index < inventory_icons.size(): _sync_item_icon(inventory_icons[index], slot)
+		var selected_prefix := "> " if index == selected_slot else ""
 		if slot.is_empty():
-			labels.append("%s[%d] --" % [">" if index == selected_slot else " ", index + 1])
+			if index < inventory_slot_labels.size(): inventory_slot_labels[index].text = "%s%d\nEmpty" % [selected_prefix, index + 1]
 		else:
-			labels.append("%s[%d] x%d" % [">" if index == selected_slot else " ", index + 1, int(slot.amount)])
-	inventory_label.position.y = 676
-	inventory_label.text = "     ".join(labels)
+			var definition: Variant = item_registry.get_item(slot.item_id)
+			if index < inventory_slot_labels.size(): inventory_slot_labels[index].text = "%s%s\nx%d" % [selected_prefix, definition.label, int(slot.amount)]
+		if index < inventory_slot_labels.size():
+			inventory_slot_labels[index].add_theme_color_override("font_color", Color("#ffe27a") if index == selected_slot else Color.WHITE)
+		if index < inventory_icons.size(): inventory_icons[index].modulate = Color("#ffe27a") if index == selected_slot else Color.WHITE
 	_update_population_hud()
 
 
@@ -1730,6 +1775,14 @@ func _draw() -> void:
 				var slot: Dictionary = inventory.slots[selected_slot]
 				selected_text = "%s x%d" % [item_registry.get_item(slot.item_id).label, int(slot.amount)]
 			_draw_world_hint(interaction_target.global_position + Vector2(0, -34), [selected_text, "Space to Place"])
+	elif interaction_target != null and interaction_target.target_kind == "storage":
+		_draw_world_hint(interaction_target.global_position + Vector2(0, -38), [interaction_target.item_label, "Space to Open"])
+	elif interaction_target != null and interaction_target.target_kind == "machine":
+		var machine: Variant = machines_by_entity_id.get(interaction_target.stable_id)
+		var state := "Broken" if machine != null and machine.broken else ("Working %d%%" % roundi(machine.progress() * 100.0) if machine != null and machine.is_running() else "Ready")
+		_draw_world_hint(interaction_target.global_position + Vector2(0, -42), [interaction_target.item_label, state, "Space to Open"])
+	elif interaction_target != null:
+		_draw_world_hint(interaction_target.global_position + Vector2(0, -38), [interaction_target.item_label, "Space for Details"])
 	for route: Variant in logistics_routes:
 		var from_target: Variant = placed_targets.get(route.source_id)
 		var to_target: Variant = placed_targets.get(route.destination_id)

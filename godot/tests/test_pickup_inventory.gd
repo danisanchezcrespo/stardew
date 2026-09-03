@@ -66,7 +66,7 @@ func _test_gameplay_pickup(failures: Array[String]) -> void:
 	_expect(game.interaction_target != null and game.interaction_target.item_id == "wood", "Nearby wood should become the contextual target.", failures)
 	_expect(game.interaction_label.text.contains("Space = Pick up"), "Pickup hover should show the Space control.", failures)
 	_expect(game.interaction_target.ItemIconAtlasType.CELLS.has("wood"), "Pickups should use the shared item sprite atlas.", failures)
-	_expect(game.inventory_icons.size() == game.inventory.slot_count, "Every quick slot should expose an item icon.", failures)
+	_expect(game.inventory_icons.size() == 8 and game.inventory_slot_labels.size() == 8, "Every visible quick slot should align an item icon and label.", failures)
 	_expect(game.crafting_recipe_buttons[0].icon != null, "Crafting recipes should expose their output sprite.", failures)
 	var pickup_action := InputEventAction.new()
 	pickup_action.action = "use_selected"

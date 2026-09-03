@@ -32,7 +32,7 @@ func _test_kiln(failures: Array[String]) -> void:
 	var machine: Variant = game.machines_by_entity_id.get(instance_id)
 	_expect(machine != null, "Completed kiln should create a physical machine runtime.", failures)
 	game.interaction_target = game.placed_targets[instance_id]
-	game._unhandled_input(_action("building_details"))
+	game._unhandled_input(_action("use_selected"))
 	_expect(game.machine_open, "Enter details should open the nearby kiln status panel.", failures)
 	_expect(game.machine_status_label.text.contains("Health") and game.machine_status_label.text.contains("ACCUMULATED OUTPUT"), "Machine details should expose health and accumulated product.", failures)
 	game.close_machine()
