@@ -1,6 +1,6 @@
 # Milestone 2: physical world grid
 
-Status: in progress.
+Status: complete (validated in Godot on 2026-09-03).
 
 ## Progress
 
@@ -11,7 +11,7 @@ Status: in progress.
 - [x] Placement/removal commands and stable entity IDs.
 - [x] Save/load extension.
 - [x] Debug scene and overlays.
-- [ ] Full automated regression and acceptance walkthrough.
+- [x] Full automated regression and acceptance walkthrough.
 
 ## Outcome
 

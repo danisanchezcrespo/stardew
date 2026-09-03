@@ -26,3 +26,9 @@ The executable debug scene can be smoke-tested with:
 ```powershell
 godot --headless --path godot --script res://tests/test_world_debug_scene.gd
 ```
+
+Player movement, facing, camera and collision can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_player_movement.gd
+```

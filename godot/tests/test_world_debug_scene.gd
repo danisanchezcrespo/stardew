@@ -3,7 +3,7 @@ extends SceneTree
 
 func _initialize() -> void:
 	var failures: Array[String] = []
-	var scene: PackedScene = load("res://main.tscn")
+	var scene: PackedScene = load("res://world/debug/world_debug.tscn")
 	var lab: Node = scene.instantiate()
 	root.add_child(lab)
 	await process_frame
