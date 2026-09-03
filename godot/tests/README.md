@@ -20,3 +20,9 @@ Placement and occupancy can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_world_grid.gd
 ```
+
+The executable debug scene can be smoke-tested with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_world_debug_scene.gd
+```

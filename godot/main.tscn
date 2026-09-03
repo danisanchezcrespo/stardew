@@ -1,3 +1,6 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
 
-[node name="STARDew" type="Node"]
+[ext_resource path="res://world/debug/world_debug.gd" type="Script" id="1_debug"]
+
+[node name="STARDew" type="Node2D"]
+script = ExtResource("1_debug")

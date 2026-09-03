@@ -10,7 +10,7 @@ Status: in progress.
 - [x] Terrain and occupancy grid with placement queries.
 - [x] Placement/removal commands and stable entity IDs.
 - [x] Save/load extension.
-- [ ] Debug scene and overlays.
+- [x] Debug scene and overlays.
 - [ ] Full automated regression and acceptance walkthrough.
 
 ## Outcome
