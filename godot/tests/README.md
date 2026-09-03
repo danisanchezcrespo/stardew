@@ -80,3 +80,9 @@ Finite population, job priority and production staffing can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_physical_workforce.gd
 ```
+
+Machine wear, breakdown safety and local repair can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_machine_maintenance.gd
+```

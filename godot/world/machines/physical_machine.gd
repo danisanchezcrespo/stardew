@@ -10,6 +10,9 @@ var output_inventory: Variant
 var remaining_seconds := 0.0
 var batches_completed := 0
 var staffed := true
+var durability := 3
+var max_durability := 3
+var broken := false
 
 func _init(stable_id: String, inputs: Dictionary, outputs: Dictionary, duration: float, item_registry: Variant, inventory_slots: int = 4) -> void:
 	instance_id = stable_id
@@ -25,8 +28,15 @@ func accepts(item_id: String) -> bool:
 func add_input(item_id: String, amount: int) -> int:
 	return input_inventory.add(item_id, amount) if accepts(item_id) else 0
 
+func repair(item_id: String, amount: int) -> int:
+	if not broken or item_id != "wood" or amount < 2:
+		return 0
+	durability = max_durability
+	broken = false
+	return 2
+
 func process(delta: float) -> void:
-	if not staffed:
+	if not staffed or broken:
 		return
 	if remaining_seconds > 0.0:
 		remaining_seconds = maxf(0.0, remaining_seconds - maxf(delta, 0.0))
@@ -60,4 +70,6 @@ func _finish_batch() -> void:
 	for item_id: String in recipe_outputs:
 		output_inventory.add(item_id, int(recipe_outputs[item_id]))
 	batches_completed += 1
+	durability = maxi(0, durability - 1)
+	broken = durability == 0
 	remaining_seconds = 0.0

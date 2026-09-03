@@ -657,6 +657,13 @@ func deliver_selected_to_machine(instance_id: String) -> int:
 	if machine == null or inventory.slots[selected_slot].is_empty():
 		return 0
 	var slot: Dictionary = inventory.slots[selected_slot]
+	if machine.broken:
+		var repair_cost: int = machine.repair(slot.item_id, int(slot.amount))
+		if repair_cost > 0:
+			inventory.remove(slot.item_id, repair_cost)
+			_update_inventory_hud()
+		interaction_label.text = _machine_prompt(instance_id)
+		return repair_cost
 	var accepted: int = machine.add_input(slot.item_id, int(slot.amount))
 	if accepted > 0:
 		inventory.remove(slot.item_id, accepted)
@@ -686,6 +693,8 @@ func _machine_prompt(instance_id: String) -> String:
 	var machine: Variant = machines_by_entity_id.get(instance_id)
 	if machine == null:
 		return "Machine unavailable"
+	if machine.broken:
+		return "Kiln broken | Select Wood x2 and press E to repair"
 	var output_count := 0
 	for item_id: String in machine.recipe_outputs:
 		output_count += machine.output_inventory.count(item_id)
@@ -869,7 +878,7 @@ func _draw() -> void:
 		for placed: Variant in world_grid.entities_by_id.values():
 			var site: Variant = construction_by_entity_id.get(placed.instance_id)
 			var machine: Variant = machines_by_entity_id.get(placed.instance_id)
-			var placed_color := Color("#8c7a66") if site != null and not site.complete else (Color("#db6b35") if machine != null and machine.is_running() else Color("#71472b"))
+			var placed_color := Color("#8c7a66") if site != null and not site.complete else (Color("#8f302b") if machine != null and machine.broken else (Color("#db6b35") if machine != null and machine.is_running() else Color("#71472b")))
 			for cell: Vector2i in placed.cells:
 				var placed_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE * 2.0, Vector2.ONE * (CELL_SIZE - 4))
 				draw_rect(placed_rect, placed_color)
