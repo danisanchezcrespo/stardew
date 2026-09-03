@@ -67,7 +67,7 @@ Examples:
 - `Wood ×12` / `Space to pick up`, displayed above the resource
 - `Storage crate` / `Space to place`, displayed above the placement ghost
 - `Wood ×12` / `Space to place`, displayed above a construction blueprint
-- `Ready to build` / `Hold Space to build`, displayed above a ready blueprint
+- `Space to build` plus a timed progress bar, displayed above a ready blueprint
 - `Brick kiln` / `Space to open`
 - `Materials 18/25` / `Space to place`
 - `Broken` / `Space to open`
@@ -91,6 +91,10 @@ Population, global stock totals and production graphs are not permanently
 displayed unless a scenario specifically requires them.
 
 ### Local panel
+
+Clicking either a villager or a placed building opens the same parchment-style
+inspector on the right. Its contents change with the selected subject while its
+position, spacing, colours and close behaviour remain consistent.
 
 Opened by interacting with a building. It occupies part of the screen and keeps
 the world visible. It contains:

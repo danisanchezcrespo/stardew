@@ -47,10 +47,15 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	_expect(game.deliver_selected_to_construction(instance_id) == 8, "Site should accept exactly its required mud bricks.", failures)
 	_expect(site.materials_complete(), "All delivered construction materials should unlock work.", failures)
 	_expect(game.inventory.count("mud_bricks") == 2, "Excess bricks should remain with the player.", failures)
-
-	_expect(is_equal_approx(game.apply_construction_work(instance_id, 1.25), 1.25), "Local work should advance by applied duration.", failures)
+	_expect(game.world_overlay.z_index > game.player.z_index and not game.world_overlay.z_as_relative, "Context overlays should render above characters in absolute Z.", failures)
+	var build_action := InputEventAction.new()
+	build_action.action = "use_selected"
+	build_action.pressed = true
+	game._unhandled_input(build_action)
+	_expect(game.active_player_build_id == instance_id, "One Space press should start timed construction.", failures)
+	game._process(1.25)
 	_expect(not site.complete and site.work_progress() > 0.4, "Partial work should keep the site incomplete.", failures)
-	game.apply_construction_work(instance_id, 5.0)
+	game._process(5.0)
 	_expect(site.complete and is_equal_approx(site.work_progress(), 1.0), "Enough local work should complete the building.", failures)
 	_expect(game.placed_targets[instance_id].target_kind == "machine", "Completed site should become a machine target.", failures)
 	_expect(game.world_grid.occupant_at(origin) == instance_id, "Completion must not replace the spatial entity ID.", failures)

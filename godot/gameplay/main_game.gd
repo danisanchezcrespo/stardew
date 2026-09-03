@@ -21,6 +21,7 @@ const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
 const VillagerType = preload("res://world/population/villager.gd")
 const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
+const WorldOverlayType = preload("res://world/interaction/world_overlay.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -106,6 +107,8 @@ var building_details_id := ""
 var building_details_panel: Control
 var building_details_title: Label
 var building_details_body: Label
+var world_overlay: Node2D
+var active_player_build_id := ""
 var day_time_seconds := 60.0
 const DAY_LENGTH_SECONDS := 240.0
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
@@ -127,6 +130,9 @@ func _ready() -> void:
 	_build_player()
 	_build_items()
 	_build_hud()
+	world_overlay = WorldOverlayType.new()
+	world_overlay.configure(self)
+	add_child(world_overlay)
 	if DisplayServer.get_name() != "headless":
 		set_scenario_select_open(true)
 	if PhysicalSaveCodecType.pending_reload:
@@ -151,13 +157,13 @@ func _process(delta: float) -> void:
 			_update_placement_feedback()
 			queue_redraw()
 	_update_interaction_target()
-	if (
-		interaction_target != null
-		and interaction_target.target_kind == "construction"
-		and Input.is_action_pressed("use_selected")
-		and construction_by_entity_id[interaction_target.stable_id].materials_complete()
-	):
-		apply_construction_work(interaction_target.stable_id, delta)
+	if not active_player_build_id.is_empty():
+		var build_target: Variant = placed_targets.get(active_player_build_id)
+		var build_site: Variant = construction_by_entity_id.get(active_player_build_id)
+		if build_target == null or build_site == null or build_site.complete or player.position.distance_to(build_target.interaction_position_for(player.position)) > INTERACTION_REACH_PX + 8.0:
+			active_player_build_id = ""
+		else:
+			apply_construction_work(active_player_build_id, delta)
 	for machine: Variant in machines_by_entity_id.values():
 		machine.staffed = assigned_villagers_to(machine.instance_id) > 0
 		machine.process(delta)
@@ -172,6 +178,7 @@ func _process(delta: float) -> void:
 		_update_building_details()
 	if not machines_by_entity_id.is_empty():
 		queue_redraw()
+	if world_overlay != null: world_overlay.queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
@@ -291,7 +298,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			collect_target()
 		elif interaction_target != null and interaction_target.target_kind == "construction":
 			var site: Variant = construction_by_entity_id.get(interaction_target.stable_id)
-			if site != null and site.materials_complete(): apply_construction_work(interaction_target.stable_id, 0.1)
+			if site != null and site.materials_complete(): active_player_build_id = interaction_target.stable_id
 			else: deliver_selected_to_construction(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
 			open_machine(interaction_target.stable_id)
@@ -528,13 +535,14 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_panel = ColorRect.new()
 	villager_panel.position = Vector2(915, 120)
 	villager_panel.size = Vector2(340, 480)
-	villager_panel.color = Color("#17212b")
+	villager_panel.color = Color("#d8bd83")
 	villager_panel.visible = false
 	layer.add_child(villager_panel)
 	var title := Label.new()
 	title.position = Vector2(22, 18)
 	title.text = "VILLAGER"
 	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color("#3b281b"))
 	villager_panel.add_child(title)
 	villager_name_edit = LineEdit.new()
 	villager_name_edit.position = Vector2(22, 60)
@@ -547,6 +555,7 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_status_label.position = Vector2(22, 112)
 	villager_status_label.size = Vector2(296, 190)
 	villager_status_label.add_theme_font_size_override("font_size", 16)
+	villager_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	villager_panel.add_child(villager_status_label)
 	villager_resource_option = OptionButton.new()
 	villager_resource_option.position = Vector2(22, 286)
@@ -575,38 +584,39 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_order_feedback.position = Vector2(22, 385)
 	villager_order_feedback.size = Vector2(296, 62)
 	villager_order_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	villager_order_feedback.add_theme_color_override("font_color", Color("#ffe27a"))
+	villager_order_feedback.add_theme_color_override("font_color", Color("#6b3e20"))
 	villager_panel.add_child(villager_order_feedback)
 
 
 func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_panel = ColorRect.new()
-	building_details_panel.position = Vector2(820, 145)
-	building_details_panel.size = Vector2(420, 410)
-	building_details_panel.color = Color("#17212b")
+	building_details_panel.position = Vector2(915, 120)
+	building_details_panel.size = Vector2(340, 480)
+	building_details_panel.color = Color("#d8bd83")
 	building_details_panel.visible = false
 	layer.add_child(building_details_panel)
 	building_details_title = Label.new()
 	building_details_title.position = Vector2(24, 20)
 	building_details_title.add_theme_font_size_override("font_size", 25)
+	building_details_title.add_theme_color_override("font_color", Color("#3b281b"))
 	building_details_panel.add_child(building_details_title)
 	building_details_body = Label.new()
 	building_details_body.position = Vector2(24, 70)
-	building_details_body.size = Vector2(372, 275)
+	building_details_body.size = Vector2(292, 330)
 	building_details_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	building_details_body.add_theme_font_size_override("font_size", 17)
+	building_details_body.add_theme_color_override("font_color", Color("#3b281b"))
 	building_details_panel.add_child(building_details_body)
 	var controls := Label.new()
-	controls.position = Vector2(24, 370)
+	controls.position = Vector2(24, 438)
 	controls.text = "Space / Esc: close"
-	controls.add_theme_color_override("font_color", Color("#ffe27a"))
+	controls.add_theme_color_override("font_color", Color("#6b3e20"))
 	building_details_panel.add_child(controls)
 
 
 func open_building_details(instance_id: String) -> bool:
-	if storage_by_entity_id.has(instance_id): return open_storage(instance_id)
-	if machines_by_entity_id.has(instance_id): return open_machine(instance_id)
 	if not placed_targets.has(instance_id): return false
+	if not selected_villager_id.is_empty(): close_villager_panel()
 	building_details_id = instance_id
 	building_details_open = true
 	building_details_panel.visible = true
@@ -638,6 +648,20 @@ func _update_building_details() -> void:
 			materials.append("%s: %d / %d" % [item_registry.get_item(item_id).label, int(site.delivered.get(item_id, 0)), int(site.requirements[item_id])])
 		building_details_body.text = "UNDER CONSTRUCTION\n\nMaterials\n%s\n\nWork: %d%%\nHealth: stable" % ["\n".join(materials), roundi(site.work_progress() * 100.0)]
 		return
+	if storage_by_entity_id.has(building_details_id):
+		var rows: Array[String] = []
+		for slot: Dictionary in storage_by_entity_id[building_details_id].slots:
+			if not slot.is_empty(): rows.append("%s x%d" % [item_registry.get_item(slot.item_id).label, int(slot.amount)])
+		building_details_body.text = "STORAGE\n\nContents\n%s\n\nHealth: good\n\nSpace opens inventory." % ("\n".join(rows) if not rows.is_empty() else "Empty")
+		return
+	if machines_by_entity_id.has(building_details_id):
+		var machine: Variant = machines_by_entity_id[building_details_id]
+		var inputs: Array[String] = []
+		var outputs: Array[String] = []
+		for item_id: String in machine.recipe_inputs: inputs.append("%s x%d" % [item_registry.get_item(item_id).label, machine.input_inventory.count(item_id)])
+		for item_id: String in machine.recipe_outputs: outputs.append("%s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
+		building_details_body.text = "KILN\n\nState: %s\nHealth: %d / %d\nProgress: %d%%\n\nInput\n%s\n\nOutput\n%s" % ["broken" if machine.broken else ("working" if machine.is_running() else "ready"), machine.durability, machine.max_durability, roundi(machine.progress() * 100.0), "\n".join(inputs), "\n".join(outputs)]
+		return
 	if definition.entity_id == "DWELLING":
 		var resident_rows: Array[String] = []
 		for villager: Variant in villagers.values():
@@ -650,6 +674,7 @@ func _update_building_details() -> void:
 
 func select_villager(villager_id: String) -> bool:
 	if not villagers.has(villager_id): return false
+	if building_details_open: close_building_details()
 	if villagers.has(selected_villager_id): villagers[selected_villager_id].selected = false; villagers[selected_villager_id].queue_redraw()
 	selected_villager_id = villager_id
 	villagers[villager_id].selected = true
@@ -742,6 +767,9 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 			villager_order_feedback.text = "Select a completed crate or machine."
 			return true
 		return _handle_order_endpoint(endpoint.stable_id)
+	var clicked_object: Variant = _any_placed_target_at(world_position)
+	if clicked_object != null:
+		return open_building_details(clicked_object.stable_id)
 	var nearest: Variant = null
 	var distance := 28.0
 	for villager: Variant in villagers.values():
@@ -754,6 +782,13 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 		villager_order_feedback.text = "Moving to selected point."
 		return true
 	return false
+
+
+func _any_placed_target_at(world_position: Vector2) -> Variant:
+	for target: Variant in placed_targets.values():
+		for point: Vector2 in target.interaction_points:
+			if point.distance_to(world_position) <= CELL_SIZE * 0.7: return target
+	return null
 
 
 func _make_item_icon(at: Vector2, dimensions: Vector2) -> TextureRect:
@@ -1261,6 +1296,7 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		return 0.0
 	var applied: float = site.apply_work(seconds)
 	if site.complete:
+		if active_player_build_id == instance_id: active_player_build_id = ""
 		var target: Variant = placed_targets.get(instance_id)
 		var placed: Variant = world_grid.entities_by_id.get(instance_id)
 		var definition: Variant = placement_registry.get_entity(placed.definition_id) if placed != null else null
@@ -1706,10 +1742,10 @@ func _update_inventory_hud() -> void:
 		if index < inventory_icons.size(): _sync_item_icon(inventory_icons[index], slot)
 		var selected_prefix := "> " if index == selected_slot else ""
 		if slot.is_empty():
-			if index < inventory_slot_labels.size(): inventory_slot_labels[index].text = "%s%d\nEmpty" % [selected_prefix, index + 1]
+			if index < inventory_slot_labels.size(): inventory_slot_labels[index].text = "%s%d  Empty" % [selected_prefix, index + 1]
 		else:
 			var definition: Variant = item_registry.get_item(slot.item_id)
-			if index < inventory_slot_labels.size(): inventory_slot_labels[index].text = "%s%s\nx%d" % [selected_prefix, definition.label, int(slot.amount)]
+			if index < inventory_slot_labels.size(): inventory_slot_labels[index].text = "%s%d  %s\nx%d" % [selected_prefix, index + 1, definition.label, int(slot.amount)]
 		if index < inventory_slot_labels.size():
 			inventory_slot_labels[index].add_theme_color_override("font_color", Color("#ffe27a") if index == selected_slot else Color.WHITE)
 		if index < inventory_icons.size(): inventory_icons[index].modulate = Color("#ffe27a") if index == selected_slot else Color.WHITE
@@ -1761,28 +1797,6 @@ func _draw() -> void:
 				draw_rect(preview_rect, Color(0.2, 0.9, 0.4, 0.58) if validation.valid else Color(0.95, 0.2, 0.2, 0.62))
 				draw_rect(preview_rect, Color.WHITE, false, 2.0)
 			_draw_structure_sprite(definition.entity_id, validation.cells, true, validation.valid)
-			var selected_item: Variant = item_registry.get_item(inventory.slots[selected_slot].item_id)
-			_draw_world_hint(Vector2(placement_cursor * CELL_SIZE) + Vector2(16, -22), [selected_item.label, "Space to Place"])
-	if interaction_target != null and interaction_target.target_kind == "pickup":
-		_draw_world_hint(interaction_target.global_position + Vector2(0, -30), ["%s x%d" % [interaction_target.item_label, interaction_target.amount], "Space to Pick up"])
-	elif interaction_target != null and interaction_target.target_kind == "construction":
-		var site: Variant = construction_by_entity_id.get(interaction_target.stable_id)
-		if site != null and site.materials_complete():
-			_draw_world_hint(interaction_target.global_position + Vector2(0, -34), ["Ready to build", "Hold Space to Build"])
-		elif site != null:
-			var selected_text := "Select a required resource"
-			if not inventory.slots[selected_slot].is_empty():
-				var slot: Dictionary = inventory.slots[selected_slot]
-				selected_text = "%s x%d" % [item_registry.get_item(slot.item_id).label, int(slot.amount)]
-			_draw_world_hint(interaction_target.global_position + Vector2(0, -34), [selected_text, "Space to Place"])
-	elif interaction_target != null and interaction_target.target_kind == "storage":
-		_draw_world_hint(interaction_target.global_position + Vector2(0, -38), [interaction_target.item_label, "Space to Open"])
-	elif interaction_target != null and interaction_target.target_kind == "machine":
-		var machine: Variant = machines_by_entity_id.get(interaction_target.stable_id)
-		var state := "Broken" if machine != null and machine.broken else ("Working %d%%" % roundi(machine.progress() * 100.0) if machine != null and machine.is_running() else "Ready")
-		_draw_world_hint(interaction_target.global_position + Vector2(0, -42), [interaction_target.item_label, state, "Space to Open"])
-	elif interaction_target != null:
-		_draw_world_hint(interaction_target.global_position + Vector2(0, -38), [interaction_target.item_label, "Space for Details"])
 	for route: Variant in logistics_routes:
 		var from_target: Variant = placed_targets.get(route.source_id)
 		var to_target: Variant = placed_targets.get(route.destination_id)
@@ -1797,19 +1811,6 @@ func _draw() -> void:
 		var source_target: Variant = placed_targets.get(route_source_id)
 		if source_target != null:
 			draw_circle(source_target.global_position, 23.0, Color("#ffe27a"), false, 4.0)
-
-
-func _draw_world_hint(anchor: Vector2, lines: Array[String]) -> void:
-	var font := ThemeDB.fallback_font
-	var width := 0.0
-	for line: String in lines:
-		width = maxf(width, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x)
-	var size := Vector2(width + 16.0, lines.size() * 16.0 + 10.0)
-	var rect := Rect2(anchor - Vector2(size.x * 0.5, size.y), size)
-	draw_rect(rect, Color(0.04, 0.035, 0.025, 0.92))
-	draw_rect(rect, Color("#f0cc72"), false, 1.0)
-	for index in range(lines.size()):
-		draw_string(font, rect.position + Vector2(8, 17 + index * 16), lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 
 
 func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost: bool = false, valid: bool = true) -> void:
