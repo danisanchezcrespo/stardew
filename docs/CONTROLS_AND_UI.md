@@ -23,6 +23,7 @@ Gameplay code consumes named actions, never hardware keys directly.
 | Quick save / load | K / L | Menu flow | Save/load buttons |
 | Camera zoom | Mouse wheel | — | Pinch/buttons |
 | Next villager | Tab | — | Community list |
+| Move selected villager | Left click empty ground | — | Tap ground |
 | Building details | Enter | South face button | Tap details |
 | Toggle fullscreen | Alt+Enter / F11 | — | Display settings |
 
@@ -63,7 +64,10 @@ The primary target displays:
 
 Examples:
 
-- `E  Take wood ×12`
+- `Wood ×12` / `Space to pick up`, displayed above the resource
+- `Storage crate` / `Space to place`, displayed above the placement ghost
+- `Wood ×12` / `Space to place`, displayed above a construction blueprint
+- `Ready to build` / `Hold Space to build`, displayed above a ready blueprint
 - `E  Open brick kiln`
 - `E  Add materials (18/25)`
 - `Hold E  Repair`

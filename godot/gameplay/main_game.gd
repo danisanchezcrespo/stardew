@@ -20,6 +20,7 @@ const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
 const VillagerType = preload("res://world/population/villager.gd")
+const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -34,6 +35,7 @@ var camera: Camera2D
 var position_label: Label
 var interaction_label: Label
 var inventory_label: Label
+var inventory_icons: Array[TextureRect] = []
 var water_cells: Dictionary = {}
 var item_registry: Variant
 var inventory: Variant
@@ -65,6 +67,8 @@ var storage_panel: Control
 var storage_player_label: Label
 var storage_contents_label: Label
 var storage_feedback_label: Label
+var storage_player_icons: Array[TextureRect] = []
+var storage_crate_icons: Array[TextureRect] = []
 var construction_by_entity_id: Dictionary = {}
 var machines_by_entity_id: Dictionary = {}
 var logistics_routes: Array = []
@@ -149,6 +153,7 @@ func _process(delta: float) -> void:
 		interaction_target != null
 		and interaction_target.target_kind == "construction"
 		and Input.is_action_pressed("use_selected")
+		and construction_by_entity_id[interaction_target.stable_id].materials_complete()
 	):
 		apply_construction_work(interaction_target.stable_id, delta)
 	for machine: Variant in machines_by_entity_id.values():
@@ -291,7 +296,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if interaction_target != null and interaction_target.target_kind == "pickup":
 			collect_target()
 		elif interaction_target != null and interaction_target.target_kind == "construction":
-			apply_construction_work(interaction_target.stable_id, 0.1)
+			var site: Variant = construction_by_entity_id.get(interaction_target.stable_id)
+			if site != null and site.materials_complete(): apply_construction_work(interaction_target.stable_id, 0.1)
+			else: deliver_selected_to_construction(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
 			withdraw_machine_output(interaction_target.stable_id)
 		else:
@@ -439,6 +446,14 @@ func _build_hud() -> void:
 	inventory_label.size = Vector2(1224, 40)
 	inventory_label.add_theme_font_size_override("font_size", 15)
 	layer.add_child(inventory_label)
+	for index in range(inventory.slot_count):
+		var icon := TextureRect.new()
+		icon.position = Vector2(34 + index * 101, 639)
+		icon.size = Vector2(38, 38)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		layer.add_child(icon)
+		inventory_icons.append(icon)
 	_update_inventory_hud()
 	_build_crafting_panel(layer)
 	_build_storage_panel(layer)
@@ -667,6 +682,8 @@ func _update_villager_panel() -> void:
 	if not villager.task.is_empty() and str(villager.task.get("type", "transport")) == "work":
 		var work_target: Variant = placed_targets.get(str(villager.task.target))
 		task_text = "Work at %s" % (work_target.item_label if work_target != null else str(villager.task.target))
+	elif not villager.task.is_empty() and str(villager.task.get("type", "transport")) == "move":
+		task_text = "Move to selected point"
 	elif not villager.task.is_empty():
 		var resource: Variant = item_registry.get_item(str(villager.task.item))
 		var source_target: Variant = placed_targets.get(str(villager.task.source))
@@ -718,7 +735,26 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 		if candidate < distance: nearest = villager; distance = candidate
 	if nearest != null:
 		return select_villager(nearest.stable_id)
+	if villagers.has(selected_villager_id):
+		villagers[selected_villager_id].assign_move(world_position)
+		villager_order_feedback.text = "Moving to selected point."
+		return true
 	return false
+
+
+func _make_item_icon(at: Vector2, dimensions: Vector2) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.position = at
+	icon.size = dimensions
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
+
+
+func _sync_item_icon(icon: TextureRect, slot: Dictionary) -> void:
+	icon.visible = not slot.is_empty()
+	icon.texture = null if slot.is_empty() else ItemIconAtlasType.icon(str(slot.item_id))
 
 
 func _placed_target_at(world_position: Vector2) -> Variant:
@@ -821,6 +857,8 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 		button.position = Vector2(22, 74 + index * 43)
 		button.size = Vector2(292, 38)
 		button.text = "%d.  %s" % [index + 1, recipe.label]
+		if not recipe.outputs.is_empty(): button.icon = ItemIconAtlasType.icon(str(recipe.outputs.keys()[0]))
+		button.add_theme_constant_override("icon_max_width", 30)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.pressed.connect(_on_recipe_button_pressed.bind(index))
 		crafting_panel.add_child(button)
@@ -859,11 +897,19 @@ func _build_storage_panel(layer: CanvasLayer) -> void:
 	storage_player_label.size = Vector2(300, 270)
 	storage_player_label.add_theme_font_size_override("font_size", 16)
 	storage_panel.add_child(storage_player_label)
+	for index in range(inventory.slot_count):
+		var player_icon := _make_item_icon(Vector2(42, 96 + index * 21), Vector2(20, 20))
+		storage_panel.add_child(player_icon)
+		storage_player_icons.append(player_icon)
 	storage_contents_label = Label.new()
 	storage_contents_label.position = Vector2(355, 68)
 	storage_contents_label.size = Vector2(300, 270)
 	storage_contents_label.add_theme_font_size_override("font_size", 16)
 	storage_panel.add_child(storage_contents_label)
+	for index in range(12):
+		var crate_icon := _make_item_icon(Vector2(373, 96 + index * 21), Vector2(20, 20))
+		storage_panel.add_child(crate_icon)
+		storage_crate_icons.append(crate_icon)
 	storage_feedback_label = Label.new()
 	storage_feedback_label.position = Vector2(24, 340)
 	storage_feedback_label.size = Vector2(630, 36)
@@ -1104,6 +1150,7 @@ func _update_interaction_target() -> void:
 		interaction_target = selected
 		if interaction_target != null:
 			interaction_target.set_targeted(true)
+		queue_redraw()
 	if interaction_label != null:
 		if interaction_target == null:
 			interaction_label.text = "ROUTE: approach destination and press R" if not route_source_id.is_empty() else "Approach a resource stack or placed object"
@@ -1213,8 +1260,8 @@ func _construction_prompt(instance_id: String) -> String:
 			var amount: int = site.receivable(item_id)
 			if amount > 0:
 				missing.append("%s %d" % [item_registry.get_item(item_id).label, amount])
-		return "E  Deliver selected | Missing: %s" % ", ".join(missing)
-	return "Hold Space/X  Build %d%%" % roundi(site.work_progress() * 100.0)
+		return "Space  Place selected | Missing: %s" % ", ".join(missing)
+	return "Hold Space to build  %d%%" % roundi(site.work_progress() * 100.0)
 
 
 func deliver_selected_to_machine(instance_id: String) -> int:
@@ -1587,12 +1634,15 @@ func _update_storage_ui(feedback: String = "") -> void:
 	var player_rows: Array[String] = ["▶ PLAYER INVENTORY" if storage_focus_side == 0 else "  PLAYER INVENTORY"]
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
-		player_rows.append("%s[%d] %s" % [">" if storage_focus_side == 0 and index == selected_slot else " ", index + 1, _slot_text(slot)])
+		player_rows.append("%s      [%d] %s" % [">" if storage_focus_side == 0 and index == selected_slot else " ", index + 1, _slot_text(slot)])
+		if index < storage_player_icons.size(): _sync_item_icon(storage_player_icons[index], slot)
 	storage_player_label.text = "\n".join(player_rows)
 	storage_player_label.add_theme_color_override("font_color", Color("#ffe27a") if storage_focus_side == 0 else Color("#b9b3a7"))
 	var storage_rows: Array[String] = ["▶ CRATE INVENTORY" if storage_focus_side == 1 else "  CRATE INVENTORY"]
 	for index in range(storage.slots.size()):
-		storage_rows.append("%s[%d] %s" % [">" if storage_focus_side == 1 and index == selected_storage_slot else " ", index + 1, _slot_text(storage.slots[index])])
+		storage_rows.append("%s      [%d] %s" % [">" if storage_focus_side == 1 and index == selected_storage_slot else " ", index + 1, _slot_text(storage.slots[index])])
+		if index < storage_crate_icons.size(): _sync_item_icon(storage_crate_icons[index], storage.slots[index])
+	for index in range(storage.slots.size(), storage_crate_icons.size()): storage_crate_icons[index].visible = false
 	storage_contents_label.text = "\n".join(storage_rows)
 	storage_contents_label.add_theme_color_override("font_color", Color("#ffe27a") if storage_focus_side == 1 else Color("#b9b3a7"))
 	storage_feedback_label.text = feedback
@@ -1611,12 +1661,13 @@ func _update_inventory_hud() -> void:
 	var labels: Array[String] = []
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
+		if index < inventory_icons.size(): _sync_item_icon(inventory_icons[index], slot)
 		if slot.is_empty():
 			labels.append("%s[%d] --" % [">" if index == selected_slot else " ", index + 1])
 		else:
-			var definition: Variant = item_registry.get_item(slot.item_id)
-			labels.append("%s[%d] %s x%d" % [">" if index == selected_slot else " ", index + 1, definition.label, int(slot.amount)])
-	inventory_label.text = "   ".join(labels)
+			labels.append("%s[%d] x%d" % [">" if index == selected_slot else " ", index + 1, int(slot.amount)])
+	inventory_label.position.y = 676
+	inventory_label.text = "     ".join(labels)
 	_update_population_hud()
 
 
@@ -1665,6 +1716,20 @@ func _draw() -> void:
 				draw_rect(preview_rect, Color(0.2, 0.9, 0.4, 0.58) if validation.valid else Color(0.95, 0.2, 0.2, 0.62))
 				draw_rect(preview_rect, Color.WHITE, false, 2.0)
 			_draw_structure_sprite(definition.entity_id, validation.cells, true, validation.valid)
+			var selected_item: Variant = item_registry.get_item(inventory.slots[selected_slot].item_id)
+			_draw_world_hint(Vector2(placement_cursor * CELL_SIZE) + Vector2(16, -22), [selected_item.label, "Space to Place"])
+	if interaction_target != null and interaction_target.target_kind == "pickup":
+		_draw_world_hint(interaction_target.global_position + Vector2(0, -30), ["%s x%d" % [interaction_target.item_label, interaction_target.amount], "Space to Pick up"])
+	elif interaction_target != null and interaction_target.target_kind == "construction":
+		var site: Variant = construction_by_entity_id.get(interaction_target.stable_id)
+		if site != null and site.materials_complete():
+			_draw_world_hint(interaction_target.global_position + Vector2(0, -34), ["Ready to build", "Hold Space to Build"])
+		elif site != null:
+			var selected_text := "Select a required resource"
+			if not inventory.slots[selected_slot].is_empty():
+				var slot: Dictionary = inventory.slots[selected_slot]
+				selected_text = "%s x%d" % [item_registry.get_item(slot.item_id).label, int(slot.amount)]
+			_draw_world_hint(interaction_target.global_position + Vector2(0, -34), [selected_text, "Space to Place"])
 	for route: Variant in logistics_routes:
 		var from_target: Variant = placed_targets.get(route.source_id)
 		var to_target: Variant = placed_targets.get(route.destination_id)
@@ -1679,6 +1744,19 @@ func _draw() -> void:
 		var source_target: Variant = placed_targets.get(route_source_id)
 		if source_target != null:
 			draw_circle(source_target.global_position, 23.0, Color("#ffe27a"), false, 4.0)
+
+
+func _draw_world_hint(anchor: Vector2, lines: Array[String]) -> void:
+	var font := ThemeDB.fallback_font
+	var width := 0.0
+	for line: String in lines:
+		width = maxf(width, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x)
+	var size := Vector2(width + 16.0, lines.size() * 16.0 + 10.0)
+	var rect := Rect2(anchor - Vector2(size.x * 0.5, size.y), size)
+	draw_rect(rect, Color(0.04, 0.035, 0.025, 0.92))
+	draw_rect(rect, Color("#f0cc72"), false, 1.0)
+	for index in range(lines.size()):
+		draw_string(font, rect.position + Vector2(8, 17 + index * 16), lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 
 
 func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost: bool = false, valid: bool = true) -> void:

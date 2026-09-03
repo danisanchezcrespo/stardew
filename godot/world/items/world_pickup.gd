@@ -1,6 +1,8 @@
 class_name WorldPickup
 extends Node2D
 
+const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
+
 var stable_id := ""
 var item_id := ""
 var amount := 0
@@ -43,7 +45,5 @@ func take(maximum: int) -> int:
 
 func _draw() -> void:
 	draw_circle(Vector2(0, 7), 11.0, Color(0, 0, 0, 0.22))
-	draw_circle(Vector2.ZERO, 10.0, item_color)
-	draw_circle(Vector2.ZERO, 13.0, Color.WHITE if targeted else Color(0, 0, 0, 0), false, 3.0)
-	if targeted:
-		draw_line(Vector2(0, -18), Vector2(0, -12), Color.WHITE, 2.0)
+	draw_texture_rect_region(ItemIconAtlasType.TEXTURE, Rect2(Vector2(-16, -18), Vector2(32, 32)), ItemIconAtlasType.region(item_id))
+	draw_circle(Vector2(0, -2), 19.0, Color.WHITE if targeted else Color(0, 0, 0, 0), false, 3.0)

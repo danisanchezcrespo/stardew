@@ -28,6 +28,11 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	game.select_villager(villager.stable_id)
 	game._rename_selected_villager("Merit")
 	_expect(villager.villager_name == "Merit", "The characteristics panel should rename a villager.", failures)
+	var move_destination := Vector2(760, 180)
+	var screen_destination: Vector2 = game.get_canvas_transform() * move_destination
+	_expect(game._handle_villager_world_click(screen_destination), "Clicking empty ground with a selected villager should issue a move order.", failures)
+	for _step in range(160): game._process(0.1)
+	_expect(villager.position.distance_to(move_destination) < 6.0 and villager.task.is_empty(), "A direct move order should walk to its point and finish.", failures)
 
 	var source_id := _place(game, "storage_crate", Vector2i(15, 12))
 	var destination_id := _place(game, "storage_crate", Vector2i(18, 12))

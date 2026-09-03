@@ -42,6 +42,10 @@ func assign_work(target_id: String) -> void:
 	task = {"type": "work", "target": target_id}
 	state = "to_work"
 
+func assign_move(destination: Vector2) -> void:
+	task = {"type": "move", "position": [destination.x, destination.y]}
+	state = "moving"
+
 
 func clear_task() -> void:
 	task.clear()
@@ -77,6 +81,11 @@ func process_life(game: Node2D, delta: float) -> void:
 			if game.consume_food_from_storage(food_target.stable_id):
 				hunger = minf(100.0, hunger + 70.0)
 			state = _resume_state()
+	elif not task.is_empty() and str(task.get("type", "transport")) == "move":
+		var destination: Array = task.get("position", [position.x, position.y])
+		if _move_to(Vector2(float(destination[0]), float(destination[1])), delta):
+			task = {}
+			state = "available"
 	elif not task.is_empty() and str(task.get("type", "transport")) == "work":
 		_process_work(game, delta)
 	elif not task.is_empty():
@@ -114,6 +123,7 @@ func _process_work(game: Node2D, delta: float) -> void:
 
 func _resume_state() -> String:
 	if task.is_empty(): return "available"
+	if str(task.get("type", "transport")) == "move": return "moving"
 	return "to_work" if str(task.get("type", "transport")) == "work" else ("to_destination" if carrying_amount > 0 else "to_source")
 
 
