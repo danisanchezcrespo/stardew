@@ -13,6 +13,7 @@ const WorldGridType = preload("res://world/placement/world_grid.gd")
 const PlacedTargetType = preload("res://world/placement/placed_object_target.gd")
 const ConstructionSiteType = preload("res://world/construction/construction_site.gd")
 const EgyptCampaignType = preload("res://world/progression/egypt_campaign.gd")
+const PhysicalSaveCodecType = preload("res://world/persistence/physical_save_codec.gd")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
@@ -68,16 +69,21 @@ var workforce: Variant
 var population_label: Label
 var campaign: Variant
 var objective_label: Label
+var physical_save: Variant
 
 
 func _ready() -> void:
 	workforce = PhysicalWorkforceType.new()
 	campaign = EgyptCampaignType.new()
+	physical_save = PhysicalSaveCodecType.new()
 	_build_terrain()
 	_build_boundaries()
 	_build_player()
 	_build_items()
 	_build_hud()
+	if PhysicalSaveCodecType.pending_reload:
+		PhysicalSaveCodecType.pending_reload = false
+		physical_save.load_from_path(self, "user://physical_save.json")
 	queue_redraw()
 
 
@@ -105,6 +111,18 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("save_game"):
+		var result: Error = physical_save.save_to_path(self, "user://physical_save.json")
+		interaction_label.text = "Game saved" if result == OK else "Save failed"
+		return
+	if event.is_action_pressed("load_game"):
+		if world_grid.entities_by_id.is_empty():
+			var result: Error = physical_save.load_from_path(self, "user://physical_save.json")
+			interaction_label.text = "Game loaded" if result == OK else "Load failed"
+		else:
+			PhysicalSaveCodecType.pending_reload = true
+			get_tree().reload_current_scene()
+		return
 	if storage_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
 			close_storage()
@@ -292,7 +310,7 @@ func _build_hud() -> void:
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move/Pick up: WASD + E/A    Craft: C/Y    Select: 1-8 or Q/F    Use/place: Space/X/click"
+	help.text = "Move/Pick up: WASD + E/A    Craft: C/Y    Use: Space/X    Routes: R    Save/Load: F5/F9"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)

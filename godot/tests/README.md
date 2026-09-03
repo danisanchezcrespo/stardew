@@ -92,3 +92,9 @@ Egypt vertical-slice objective progression can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_egypt_campaign.gd
 ```
+
+Physical-world JSON save and fresh-session restoration can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_physical_save.gd
+```
