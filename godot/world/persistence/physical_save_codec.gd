@@ -10,7 +10,7 @@ func capture(game: Node2D) -> Dictionary:
 		var row := {"id": placed.instance_id, "definition_id": placed.definition_id, "origin": [placed.origin.x, placed.origin.y], "rotation": placed.rotation}
 		var site: Variant = game.construction_by_entity_id.get(placed.instance_id)
 		if site != null:
-			row.construction = {"delivered": site.delivered.duplicate(true), "work_done": site.work_done, "complete": site.complete}
+			row.construction = {"delivered": site.delivered.duplicate(true), "work_done_seconds": site.work_done_seconds, "complete": site.complete}
 		var storage: Variant = game.storage_by_entity_id.get(placed.instance_id)
 		if storage != null: row.storage = storage.snapshot()
 		var machine: Variant = game.machines_by_entity_id.get(placed.instance_id)
@@ -71,7 +71,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		if row.has("construction"):
 			var site := ConstructionSite.new(str(row.id), definition.construction_cost, definition.construction_work_seconds)
 			site.delivered = row.construction.delivered.duplicate(true)
-			site.work_done = float(row.construction.work_done)
+			site.work_done_seconds = float(row.construction.get("work_done_seconds", row.construction.get("work_done", 0.0)))
 			site.complete = bool(row.construction.complete)
 			game.construction_by_entity_id[str(row.id)] = site
 		game._add_placed_target(str(row.id), definition, origin, int(row.rotation))

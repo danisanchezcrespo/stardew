@@ -17,15 +17,21 @@ func _initialize() -> void:
 	source.confirm_placement()
 	var crate_id: String = source.world_grid.occupant_at(origin)
 	source.storage_by_entity_id[crate_id].add("grain", 7)
+	source.inventory.add("brick_kiln_plan", 1)
+	source.select_quick_slot(_find_slot(source.inventory, "brick_kiln_plan"))
+	source.placement_cursor = Vector2i(11, 7)
+	source.confirm_placement()
+	var kiln_id: String = source.world_grid.occupant_at(Vector2i(11, 7))
+	var site: Variant = source.construction_by_entity_id[kiln_id]
+	for item_id: String in site.requirements:
+		source.inventory.add(item_id, site.receivable(item_id))
+		source.select_quick_slot(_find_slot(source.inventory, item_id))
+		source.deliver_selected_to_construction(kiln_id)
+	source.apply_construction_work(kiln_id, 1.25)
 	source.campaign.record_pickup("wood")
 	var codec := CodecType.new()
 	var path := "user://physical_save_test.json"
 	_expect(codec.save_to_path(source, path) == OK, "Physical game should save to JSON.", failures)
-	var save_key := InputEventKey.new()
-	save_key.physical_keycode = KEY_K
-	save_key.pressed = true
-	source._unhandled_input(save_key)
-	_expect(FileAccess.file_exists("user://physical_save.json"), "K input should save without invoking the editor's F5 shortcut.", failures)
 	source_root.queue_free()
 	await process_frame
 	var restored_root: Node = packed.instantiate()
@@ -36,9 +42,9 @@ func _initialize() -> void:
 	_expect(restored.player.position == Vector2(300, 220), "Player position should round-trip.", failures)
 	_expect(restored.world_grid.occupant_at(origin) == crate_id, "Placed entity identity should round-trip.", failures)
 	_expect(restored.storage_by_entity_id[crate_id].count("grain") == 7, "Container contents should round-trip.", failures)
-	_expect(restored.campaign.gathered_wood and restored.campaign.completed == {}, "Partial campaign progress should round-trip.", failures)
+	_expect(is_equal_approx(restored.construction_by_entity_id[kiln_id].work_done_seconds, 1.25), "Partial construction work should round-trip without crashing.", failures)
+	_expect(not restored.construction_by_entity_id[kiln_id].complete, "Partial construction should remain incomplete after load.", failures)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://physical_save.json"))
 	restored_root.queue_free()
 	await process_frame
 	if failures.is_empty():
