@@ -8,7 +8,7 @@ const OBJECTIVES := [
 	{"id": "build_kiln", "label": "Supply and build the Brick Kiln"},
 	{"id": "fire_bricks", "label": "Fire a batch of mud bricks"},
 	{"id": "build_home", "label": "Build a Reed Dwelling"},
-	{"id": "automate", "label": "Create a porter route"},
+	{"id": "automate", "label": "Assign a villager transport route"},
 	{"id": "monument", "label": "Complete the River Shrine"}
 ]
 var completed: Dictionary = {}

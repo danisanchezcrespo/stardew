@@ -20,6 +20,10 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	var input_crate := _place(game, "storage_crate", Vector2i(7, 7))
 	var output_crate := _place(game, "storage_crate", Vector2i(7, 9))
 	var kiln_id := _place(game, "brick_kiln_plan", Vector2i(9, 7))
+	game.spawn_villagers_for_home(input_crate, 2)
+	var inbound_villager: Variant = game.villagers.values()[0]
+	var outbound_villager: Variant = game.villagers.values()[1]
+	game.select_villager(inbound_villager.stable_id)
 	game.player.position = Vector2(7.5, 6.5) * game.CELL_SIZE
 	game.player.facing = "south"
 	game._update_interaction_target()
@@ -46,14 +50,15 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	game.player.facing = "east"
 	game._input(route_key)
 	_expect(game.logistics_routes.size() == 1 and game.route_source_id.is_empty(), "Second R input should create the storage-to-kiln route.", failures)
-	_expect(not game.create_logistics_route(input_crate, kiln_id), "Duplicate route should be rejected.", failures)
+	_expect(not game.create_logistics_route(input_crate, kiln_id, inbound_villager.stable_id, "clay"), "Duplicate route should be rejected.", failures)
 	var inbound: Variant = game.logistics_routes[0]
-	game._process_logistics_route(inbound, 2.1)
-	game._process_logistics_route(inbound, 2.1)
+	for _step in range(120): inbound_villager.process_life(game, 0.1)
 	_expect(game.storage_by_entity_id[input_crate].count("clay") == 0, "Porter should remove delivered clay from source.", failures)
 	_expect(game.machines_by_entity_id[kiln_id].input_inventory.count("clay") == 2, "Porter should deliver compatible clay to kiln.", failures)
+	game.machines_by_entity_id[kiln_id].staffed = true
 	game.machines_by_entity_id[kiln_id].process(0.1)
 	game.machines_by_entity_id[kiln_id].process(4.0)
+	game.select_villager(outbound_villager.stable_id)
 	game._input(route_key)
 	_expect(game.route_source_id == kiln_id, "R should select kiln as output route source.", failures)
 	game.player.position = Vector2(7.5, 8.5) * game.CELL_SIZE
@@ -61,7 +66,7 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	game._input(route_key)
 	_expect(game.logistics_routes.size() == 2, "Second R should connect kiln output to storage.", failures)
 	var outbound: Variant = game.logistics_routes[1]
-	game._process_logistics_route(outbound, 2.1)
+	for _step in range(120): outbound_villager.process_life(game, 0.1)
 	_expect(game.storage_by_entity_id[output_crate].count("mud_bricks") == 1, "Porter should carry finished bricks to destination storage.", failures)
 	_expect(outbound.trips_completed == 1, "Successful delivery should count one physical trip.", failures)
 	game_root.queue_free()

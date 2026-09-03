@@ -25,6 +25,8 @@ const ACTIONS := {
 	"zoom_in": [],
 	"zoom_out": [],
 	"toggle_fullscreen": [KEY_F11],
+	"next_villager": [KEY_TAB],
+	"building_details": [KEY_ENTER],
 }
 
 

@@ -17,6 +17,12 @@ func _initialize() -> void:
 	source.confirm_placement()
 	var crate_id: String = source.world_grid.occupant_at(origin)
 	source.storage_by_entity_id[crate_id].add("grain", 7)
+	source.spawn_villagers_for_home(crate_id, 1)
+	var source_villager: Variant = source.villagers.values()[0]
+	source_villager.villager_name = "Kiya"
+	source_villager.hunger = 63.0
+	source_villager.energy = 47.0
+	source.day_time_seconds = 173.0
 	source.inventory.add("brick_kiln_plan", 1)
 	source.select_quick_slot(_find_slot(source.inventory, "brick_kiln_plan"))
 	source.placement_cursor = Vector2i(11, 7)
@@ -42,6 +48,11 @@ func _initialize() -> void:
 	_expect(restored.player.position == Vector2(300, 220), "Player position should round-trip.", failures)
 	_expect(restored.world_grid.occupant_at(origin) == crate_id, "Placed entity identity should round-trip.", failures)
 	_expect(restored.storage_by_entity_id[crate_id].count("grain") == 7, "Container contents should round-trip.", failures)
+	_expect(restored.placed_targets.has(crate_id), "Restored storage should remain a clickable world target.", failures)
+	_expect(restored.villagers.size() == 1, "Physical villagers should round-trip.", failures)
+	var restored_villager: Variant = restored.villagers.values()[0]
+	_expect(restored_villager.villager_name == "Kiya" and is_equal_approx(restored_villager.hunger, 63.0), "Villager name and hunger should round-trip.", failures)
+	_expect(is_equal_approx(restored_villager.energy, 47.0) and is_equal_approx(restored.day_time_seconds, 173.0), "Villager energy and world time should round-trip.", failures)
 	_expect(is_equal_approx(restored.construction_by_entity_id[kiln_id].work_done_seconds, 1.25), "Partial construction work should round-trip without crashing.", failures)
 	_expect(not restored.construction_by_entity_id[kiln_id].complete, "Partial construction should remain incomplete after load.", failures)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

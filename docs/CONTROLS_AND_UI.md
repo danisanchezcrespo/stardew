@@ -22,6 +22,8 @@ Gameplay code consumes named actions, never hardware keys directly.
 | Strategic map | M | View button | Map icon |
 | Quick save / load | K / L | Menu flow | Save/load buttons |
 | Camera zoom | Mouse wheel | — | Pinch/buttons |
+| Next villager | Tab | — | Community list |
+| Building details | Enter | South face button | Tap details |
 | Toggle fullscreen | Alt+Enter / F11 | — | Display settings |
 
 Bindings must be remappable. Prompts display the active device and update when

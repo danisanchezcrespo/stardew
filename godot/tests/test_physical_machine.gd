@@ -31,9 +31,17 @@ func _test_kiln(failures: Array[String]) -> void:
 	game.apply_construction_work(instance_id, 10.0)
 	var machine: Variant = game.machines_by_entity_id.get(instance_id)
 	_expect(machine != null, "Completed kiln should create a physical machine runtime.", failures)
-	_expect(game.open_machine(instance_id), "Completed kiln should open its local status panel.", failures)
-	_expect(game.machine_status_label.text.contains("Durability"), "Machine panel should expose diagnostic state.", failures)
+	game.interaction_target = game.placed_targets[instance_id]
+	game._unhandled_input(_action("building_details"))
+	_expect(game.machine_open, "Enter details should open the nearby kiln status panel.", failures)
+	_expect(game.machine_status_label.text.contains("Health") and game.machine_status_label.text.contains("ACCUMULATED OUTPUT"), "Machine details should expose health and accumulated product.", failures)
 	game.close_machine()
+	game.spawn_villagers_for_home(instance_id, 1)
+	var worker: Variant = game.villagers.values()[0]
+	worker.assign_work(instance_id)
+	worker.position = game.placed_targets[instance_id].interaction_position_for(worker.position)
+	worker.process_life(game, 0.1)
+	machine.staffed = game.assigned_villagers_to(instance_id) > 0
 	game.inventory.add("grain", 3)
 	game.select_quick_slot(_find_slot(game.inventory, "grain"))
 	_expect(game.deliver_selected_to_machine(instance_id) == 0, "Kiln should reject unrelated input.", failures)
@@ -56,6 +64,13 @@ func _find_slot(inventory: Variant, item_id: String) -> int:
 		if inventory.slots[index].get("item_id") == item_id:
 			return index
 	return -1
+
+
+func _action(name: String) -> InputEventAction:
+	var event := InputEventAction.new()
+	event.action = name
+	event.pressed = true
+	return event
 
 func _expect(condition: bool, message: String, failures: Array[String]) -> void:
 	if not condition:

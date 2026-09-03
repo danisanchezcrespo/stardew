@@ -4,16 +4,20 @@ extends RefCounted
 var route_id: String
 var source_id: String
 var destination_id: String
+var villager_id := ""
+var item_id := ""
 var travel_seconds: float
 var progress_seconds := 0.0
 var trips_completed := 0
 var last_item_id := ""
 
-func _init(id: String, from_id: String, to_id: String, duration: float = 2.0) -> void:
+func _init(id: String, from_id: String, to_id: String, duration: float = 2.0, worker_id: String = "", resource_id: String = "") -> void:
 	route_id = id
 	source_id = from_id
 	destination_id = to_id
 	travel_seconds = maxf(duration, 0.1)
+	villager_id = worker_id
+	item_id = resource_id
 
 func process(delta: float, source_inventory: Variant, destination: Variant) -> int:
 	progress_seconds += maxf(delta, 0.0)
