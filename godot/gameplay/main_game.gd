@@ -12,6 +12,7 @@ const DefinitionRegistryType = preload("res://simulation/definitions/simulation_
 const WorldGridType = preload("res://world/placement/world_grid.gd")
 const PlacedTargetType = preload("res://world/placement/placed_object_target.gd")
 const ConstructionSiteType = preload("res://world/construction/construction_site.gd")
+const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -56,6 +57,7 @@ var storage_player_label: Label
 var storage_contents_label: Label
 var storage_feedback_label: Label
 var construction_by_entity_id: Dictionary = {}
+var machines_by_entity_id: Dictionary = {}
 
 
 func _ready() -> void:
@@ -78,6 +80,10 @@ func _process(delta: float) -> void:
 		and Input.is_action_pressed("use_selected")
 	):
 		apply_construction_work(interaction_target.stable_id, delta)
+	for machine: Variant in machines_by_entity_id.values():
+		machine.process(delta)
+	if not machines_by_entity_id.is_empty():
+		queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -131,6 +137,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif not crafting_open and event.is_action_pressed("use_selected"):
 		if interaction_target != null and interaction_target.target_kind == "construction":
 			apply_construction_work(interaction_target.stable_id, 0.1)
+		elif interaction_target != null and interaction_target.target_kind == "machine":
+			withdraw_machine_output(interaction_target.stable_id)
 		else:
 			begin_placement()
 	elif not crafting_open and event.is_action_pressed("quick_previous"):
@@ -547,6 +555,8 @@ func _update_interaction_target() -> void:
 			interaction_label.text = "E  Pick up %s x%d" % [interaction_target.item_label, interaction_target.amount]
 		elif interaction_target.target_kind == "construction":
 			interaction_label.text = _construction_prompt(interaction_target.stable_id)
+		elif interaction_target.target_kind == "machine":
+			interaction_label.text = _machine_prompt(interaction_target.stable_id)
 		else:
 			interaction_label.text = "E  Open %s" % interaction_target.item_label
 
@@ -561,8 +571,7 @@ func collect_target() -> int:
 	if interaction_target.target_kind == "construction":
 		return deliver_selected_to_construction(interaction_target.stable_id)
 	if interaction_target.target_kind == "machine":
-		interaction_label.text = "%s is complete" % interaction_target.item_label
-		return 0
+		return deliver_selected_to_machine(interaction_target.stable_id)
 	var accepted: int = inventory.add(interaction_target.item_id, interaction_target.amount)
 	if accepted <= 0:
 		interaction_label.text = "Inventory full"
@@ -599,7 +608,11 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		var target: Variant = placed_targets.get(instance_id)
 		if target != null:
 			target.target_kind = "machine"
-		interaction_label.text = "%s completed" % target.item_label
+		var placed: Variant = world_grid.entities_by_id.get(instance_id)
+		var definition: Variant = placement_registry.get_entity(placed.definition_id) if placed != null else null
+		if definition != null and not definition.recipe_outputs.is_empty():
+			machines_by_entity_id[instance_id] = PhysicalMachineType.new(instance_id, definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, item_registry)
+		interaction_label.text = "%s completed" % (target.item_label if target != null else "Building")
 	else:
 		interaction_label.text = _construction_prompt(instance_id)
 	queue_redraw()
@@ -618,6 +631,48 @@ func _construction_prompt(instance_id: String) -> String:
 				missing.append("%s %d" % [item_registry.get_item(item_id).label, amount])
 		return "E  Deliver selected | Missing: %s" % ", ".join(missing)
 	return "Hold Space/X  Build %d%%" % roundi(site.work_progress() * 100.0)
+
+
+func deliver_selected_to_machine(instance_id: String) -> int:
+	var machine: Variant = machines_by_entity_id.get(instance_id)
+	if machine == null or inventory.slots[selected_slot].is_empty():
+		return 0
+	var slot: Dictionary = inventory.slots[selected_slot]
+	var accepted: int = machine.add_input(slot.item_id, int(slot.amount))
+	if accepted > 0:
+		inventory.remove(slot.item_id, accepted)
+		_update_inventory_hud()
+	interaction_label.text = _machine_prompt(instance_id)
+	return accepted
+
+
+func withdraw_machine_output(instance_id: String) -> int:
+	var machine: Variant = machines_by_entity_id.get(instance_id)
+	if machine == null:
+		return 0
+	for slot: Dictionary in machine.output_inventory.slots:
+		if slot.is_empty():
+			continue
+		var accepted: int = inventory.add(slot.item_id, int(slot.amount))
+		if accepted > 0:
+			machine.output_inventory.remove(slot.item_id, accepted)
+			_update_inventory_hud()
+		interaction_label.text = _machine_prompt(instance_id)
+		return accepted
+	interaction_label.text = _machine_prompt(instance_id)
+	return 0
+
+
+func _machine_prompt(instance_id: String) -> String:
+	var machine: Variant = machines_by_entity_id.get(instance_id)
+	if machine == null:
+		return "Machine unavailable"
+	var output_count := 0
+	for item_id: String in machine.recipe_outputs:
+		output_count += machine.output_inventory.count(item_id)
+	if machine.is_running():
+		return "Kiln firing %d%% | E add clay | Space/X collect (%d)" % [roundi(machine.progress() * 100.0), output_count]
+	return "Kiln ready | E add clay | Space/X collect (%d)" % output_count
 
 
 func open_storage(instance_id: String) -> bool:
@@ -729,7 +784,8 @@ func _draw() -> void:
 	if world_grid != null:
 		for placed: Variant in world_grid.entities_by_id.values():
 			var site: Variant = construction_by_entity_id.get(placed.instance_id)
-			var placed_color := Color("#8c7a66") if site != null and not site.complete else Color("#71472b")
+			var machine: Variant = machines_by_entity_id.get(placed.instance_id)
+			var placed_color := Color("#8c7a66") if site != null and not site.complete else (Color("#db6b35") if machine != null and machine.is_running() else Color("#71472b"))
 			for cell: Vector2i in placed.cells:
 				var placed_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE * 2.0, Vector2.ONE * (CELL_SIZE - 4))
 				draw_rect(placed_rect, placed_color)

@@ -62,3 +62,9 @@ Physical construction supply, work and completion can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_physical_construction.gd
 ```
+
+Physical machine input, timed production and output collection can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_physical_machine.gd
+```
