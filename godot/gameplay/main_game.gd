@@ -13,6 +13,7 @@ const WorldGridType = preload("res://world/placement/world_grid.gd")
 const PlacedTargetType = preload("res://world/placement/placed_object_target.gd")
 const ConstructionSiteType = preload("res://world/construction/construction_site.gd")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
+const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -58,6 +59,9 @@ var storage_contents_label: Label
 var storage_feedback_label: Label
 var construction_by_entity_id: Dictionary = {}
 var machines_by_entity_id: Dictionary = {}
+var logistics_routes: Array = []
+var route_source_id := ""
+var next_route_id := 1
 
 
 func _ready() -> void:
@@ -82,6 +86,8 @@ func _process(delta: float) -> void:
 		apply_construction_work(interaction_target.stable_id, delta)
 	for machine: Variant in machines_by_entity_id.values():
 		machine.process(delta)
+	for route: Variant in logistics_routes:
+		_process_logistics_route(route, delta)
 	if not machines_by_entity_id.is_empty():
 		queue_redraw()
 
@@ -145,6 +151,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		select_quick_slot(selected_slot - 1)
 	elif not crafting_open and event.is_action_pressed("quick_next"):
 		select_quick_slot(selected_slot + 1)
+	elif not crafting_open and event.is_action_pressed("rotate_blueprint"):
+		select_route_endpoint(interaction_target.stable_id if interaction_target != null else "")
 	elif not crafting_open:
 		for index in range(8):
 			if event.is_action_pressed("quick_slot_%d" % (index + 1)):
@@ -556,9 +564,9 @@ func _update_interaction_target() -> void:
 		elif interaction_target.target_kind == "construction":
 			interaction_label.text = _construction_prompt(interaction_target.stable_id)
 		elif interaction_target.target_kind == "machine":
-			interaction_label.text = _machine_prompt(interaction_target.stable_id)
+			interaction_label.text = _machine_prompt(interaction_target.stable_id) + " | R route"
 		else:
-			interaction_label.text = "E  Open %s" % interaction_target.item_label
+			interaction_label.text = "E  Open %s | R route" % interaction_target.item_label
 
 
 func collect_target() -> int:
@@ -673,6 +681,51 @@ func _machine_prompt(instance_id: String) -> String:
 	if machine.is_running():
 		return "Kiln firing %d%% | E add clay | Space/X collect (%d)" % [roundi(machine.progress() * 100.0), output_count]
 	return "Kiln ready | E add clay | Space/X collect (%d)" % output_count
+
+
+func select_route_endpoint(instance_id: String) -> bool:
+	if instance_id.is_empty() or not placed_targets.has(instance_id):
+		return false
+	if route_source_id.is_empty():
+		route_source_id = instance_id
+		interaction_label.text = "Route source selected; approach destination and press R"
+		return true
+	if route_source_id == instance_id:
+		route_source_id = ""
+		interaction_label.text = "Route cancelled"
+		return false
+	var created := create_logistics_route(route_source_id, instance_id)
+	route_source_id = ""
+	return created
+
+
+func create_logistics_route(source_id: String, destination_id: String) -> bool:
+	if not placed_targets.has(source_id) or not placed_targets.has(destination_id):
+		return false
+	var source_valid := storage_by_entity_id.has(source_id) or machines_by_entity_id.has(source_id)
+	var destination_valid := storage_by_entity_id.has(destination_id) or machines_by_entity_id.has(destination_id)
+	if not source_valid or not destination_valid:
+		return false
+	for route: Variant in logistics_routes:
+		if route.source_id == source_id and route.destination_id == destination_id:
+			return false
+	logistics_routes.append(PhysicalRouteType.new("route-%04d" % next_route_id, source_id, destination_id))
+	next_route_id += 1
+	interaction_label.text = "Porter route created"
+	queue_redraw()
+	return true
+
+
+func _process_logistics_route(route: Variant, delta: float) -> int:
+	var source_inventory: Variant = storage_by_entity_id.get(route.source_id)
+	if source_inventory == null and machines_by_entity_id.has(route.source_id):
+		source_inventory = machines_by_entity_id[route.source_id].output_inventory
+	var destination: Variant = machines_by_entity_id.get(route.destination_id)
+	if destination == null:
+		destination = storage_by_entity_id.get(route.destination_id)
+	if source_inventory == null or destination == null:
+		return 0
+	return route.process(delta, source_inventory, destination)
 
 
 func open_storage(instance_id: String) -> bool:
@@ -800,3 +853,14 @@ func _draw() -> void:
 				var preview_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE, Vector2.ONE * (CELL_SIZE - 2))
 				draw_rect(preview_rect, Color(0.2, 0.9, 0.4, 0.58) if validation.valid else Color(0.95, 0.2, 0.2, 0.62))
 				draw_rect(preview_rect, Color.WHITE, false, 2.0)
+	for route: Variant in logistics_routes:
+		var from_target: Variant = placed_targets.get(route.source_id)
+		var to_target: Variant = placed_targets.get(route.destination_id)
+		if from_target == null or to_target == null:
+			continue
+		var start: Vector2 = from_target.global_position
+		var finish: Vector2 = to_target.global_position
+		draw_line(start, finish, Color("#e1bd62"), 3.0)
+		var porter_position := start.lerp(finish, route.progress())
+		draw_circle(porter_position, 7.0, Color("#315b70"))
+		draw_circle(porter_position, 7.0, Color.WHITE, false, 1.5)

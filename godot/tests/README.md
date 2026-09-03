@@ -68,3 +68,9 @@ Physical machine input, timed production and output collection can be checked wi
 ```powershell
 godot --headless --path godot --script res://tests/test_physical_machine.gd
 ```
+
+Directed routes, visible porter trips and safe transfers can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_physical_logistics.gd
+```
