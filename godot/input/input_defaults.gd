@@ -22,6 +22,9 @@ const ACTIONS := {
 	# Function keys are reserved by the Godot editor while testing the game.
 	"save_game": [KEY_K],
 	"load_game": [KEY_L],
+	"zoom_in": [],
+	"zoom_out": [],
+	"toggle_fullscreen": [KEY_F11],
 }
 
 
@@ -56,6 +59,9 @@ static func ensure_actions() -> void:
 	_add_joypad_axis("move_up", JOY_AXIS_LEFT_Y, -1.0)
 	_add_joypad_axis("move_down", JOY_AXIS_LEFT_Y, 1.0)
 	_add_mouse_button("use_selected", MOUSE_BUTTON_LEFT)
+	_add_mouse_button("zoom_in", MOUSE_BUTTON_WHEEL_UP)
+	_add_mouse_button("zoom_out", MOUSE_BUTTON_WHEEL_DOWN)
+	_add_modified_key("toggle_fullscreen", KEY_ENTER, true)
 	for index in range(8):
 		var action := "quick_slot_%d" % (index + 1)
 		if not InputMap.has_action(action):
@@ -91,4 +97,14 @@ static func _add_mouse_button(action: String, button: MouseButton) -> void:
 			return
 	var event := InputEventMouseButton.new()
 	event.button_index = button
+	InputMap.action_add_event(action, event)
+
+
+static func _add_modified_key(action: String, keycode: Key, alt_pressed: bool = false) -> void:
+	for existing: InputEvent in InputMap.action_get_events(action):
+		if existing is InputEventKey and existing.keycode == keycode and existing.alt_pressed == alt_pressed:
+			return
+	var event := InputEventKey.new()
+	event.keycode = keycode
+	event.alt_pressed = alt_pressed
 	InputMap.action_add_event(action, event)

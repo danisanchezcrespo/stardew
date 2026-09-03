@@ -111,6 +111,12 @@ Ten-thousand-tick physical production stability can be checked with:
 godot --headless --path godot --script res://tests/test_long_session.gd
 ```
 
+Discrete camera zoom and fullscreen bindings can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_display_controls.gd
+```
+
 Fresh-save critical-path resource balance can be checked with:
 
 ```powershell

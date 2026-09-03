@@ -20,6 +20,8 @@ Gameplay code consumes named actions, never hardware keys directly.
 | Pause | Escape / P | Menu button | Pause icon |
 | Strategic map | M | View button | Map icon |
 | Quick save / load | K / L | Menu flow | Save/load buttons |
+| Camera zoom | Mouse wheel | — | Pinch/buttons |
+| Toggle fullscreen | Alt+Enter / F11 | — | Display settings |
 
 Bindings must be remappable. Prompts display the active device and update when
 the last-used device changes.

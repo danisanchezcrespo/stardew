@@ -26,8 +26,10 @@ const WORLD_PIXELS := Vector2(WORLD_SIZE * CELL_SIZE)
 const GRID_LINE := Color(0.16, 0.14, 0.10, 0.18)
 const INTERACTION_REACH_PX := 40.0
 const PLACEMENT_RANGE_CELLS := 4.0
+const CAMERA_ZOOM_LEVELS: Array[float] = [0.75, 1.0, 1.25, 1.5, 2.0]
 
 var player: CharacterBody2D
+var camera: Camera2D
 var position_label: Label
 var interaction_label: Label
 var inventory_label: Label
@@ -169,6 +171,15 @@ func _update_route_interaction_target() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("zoom_in"):
+		adjust_camera_zoom(1)
+		return
+	if event.is_action_pressed("zoom_out"):
+		adjust_camera_zoom(-1)
+		return
+	if event.is_action_pressed("toggle_fullscreen"):
+		toggle_fullscreen()
+		return
 	if scenario_select_open:
 		if event.is_action_pressed("quick_slot_1"):
 			select_scenario("res://scenarios/physical/ancient_egypt.json")
@@ -281,11 +292,32 @@ func _build_player() -> void:
 	player = PlayerScene.instantiate()
 	player.position = Vector2(6.5, 6.5) * CELL_SIZE
 	add_child(player)
-	var camera: Camera2D = player.get_node("Camera2D")
+	camera = player.get_node("Camera2D")
 	camera.limit_left = 0
 	camera.limit_top = 0
 	camera.limit_right = int(WORLD_PIXELS.x)
 	camera.limit_bottom = int(WORLD_PIXELS.y)
+
+
+func adjust_camera_zoom(direction: int) -> float:
+	var current := camera.zoom.x
+	var nearest_index := 0
+	var nearest_distance := INF
+	for index in range(CAMERA_ZOOM_LEVELS.size()):
+		var distance := absf(CAMERA_ZOOM_LEVELS[index] - current)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_index = index
+	var next_index := clampi(nearest_index + direction, 0, CAMERA_ZOOM_LEVELS.size() - 1)
+	var value := CAMERA_ZOOM_LEVELS[next_index]
+	camera.zoom = Vector2.ONE * value
+	return value
+
+
+func toggle_fullscreen() -> void:
+	var mode := DisplayServer.window_get_mode()
+	var is_fullscreen := mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if is_fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 func _build_items() -> void:
@@ -364,7 +396,7 @@ func _build_hud() -> void:
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move/Pick up: WASD + E/A    Craft: C/Y    Use: Space/X    Routes: R    Save/Load: K/L"
+	help.text = "Move: WASD    Use: E/Space    Craft: C+Enter    Route: R    Zoom: wheel    Fullscreen: Alt+Enter/F11    Save: K"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
