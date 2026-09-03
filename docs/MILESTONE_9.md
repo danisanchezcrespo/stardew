@@ -16,5 +16,6 @@ the player collect the result locally.
 - [x] Timed batches with capacity checks.
 - [x] Running-state world feedback and contextual progress text.
 - [x] Local output collection into player inventory.
+- [x] Local diagnostic panel for recipe, inventory, staffing and durability.
 - [x] Automated build, supply, process and collect test.
 - [ ] Visual acceptance walkthrough.

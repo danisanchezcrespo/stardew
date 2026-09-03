@@ -75,6 +75,10 @@ var sand_color := Color("#cdbb7d")
 var water_color := Color("#4d8fbd")
 var scenario_panel: Control
 var scenario_select_open := false
+var machine_open := false
+var active_machine_id := ""
+var machine_panel: Control
+var machine_status_label: Label
 
 
 func _ready() -> void:
@@ -122,6 +126,8 @@ func _process(delta: float) -> void:
 	campaign.refresh(machines_by_entity_id, logistics_routes)
 	if objective_label != null:
 		objective_label.text = campaign.current_text()
+	if machine_open:
+		_update_machine_panel()
 	if not machines_by_entity_id.is_empty():
 		queue_redraw()
 
@@ -132,6 +138,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			select_scenario("res://scenarios/physical/ancient_egypt.json")
 		elif event.is_action_pressed("quick_slot_2"):
 			select_scenario("res://scenarios/physical/mesopotamia.json")
+		return
+	if machine_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
+			close_machine()
+		elif event.is_action_pressed("interact"):
+			deliver_selected_to_machine(active_machine_id)
+		elif event.is_action_pressed("use_selected"):
+			withdraw_machine_output(active_machine_id)
 		return
 	if event.is_action_pressed("save_game"):
 		var result: Error = physical_save.save_to_path(self, "user://physical_save.json")
@@ -326,6 +340,7 @@ func _build_hud() -> void:
 	_update_inventory_hud()
 	_build_crafting_panel(layer)
 	_build_storage_panel(layer)
+	_build_machine_panel(layer)
 	_build_scenario_panel(layer)
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -353,6 +368,30 @@ func _build_scenario_panel(layer: CanvasLayer) -> void:
 	options.text = "[1]  Settlement on the Nile\n\n[2]  Settlement between the Rivers"
 	options.add_theme_font_size_override("font_size", 22)
 	scenario_panel.add_child(options)
+
+
+func _build_machine_panel(layer: CanvasLayer) -> void:
+	machine_panel = ColorRect.new()
+	machine_panel.position = Vector2(350, 160)
+	machine_panel.size = Vector2(580, 360)
+	machine_panel.color = Color(0.06, 0.07, 0.09, 0.96)
+	machine_panel.visible = false
+	layer.add_child(machine_panel)
+	var title := Label.new()
+	title.position = Vector2(26, 22)
+	title.text = "BRICK KILN"
+	title.add_theme_font_size_override("font_size", 25)
+	machine_panel.add_child(title)
+	machine_status_label = Label.new()
+	machine_status_label.position = Vector2(28, 72)
+	machine_status_label.size = Vector2(520, 220)
+	machine_status_label.add_theme_font_size_override("font_size", 18)
+	machine_panel.add_child(machine_status_label)
+	var controls := Label.new()
+	controls.position = Vector2(28, 318)
+	controls.text = "E/A: add selected stack    Space/X: collect output    Esc/B: close"
+	controls.add_theme_font_size_override("font_size", 14)
+	machine_panel.add_child(controls)
 
 
 func set_scenario_select_open(value: bool) -> void:
@@ -633,7 +672,7 @@ func _crafting_failure_text(result: Dictionary) -> String:
 
 
 func _update_interaction_target() -> void:
-	if placement_mode or crafting_open or storage_open:
+	if placement_mode or crafting_open or storage_open or machine_open:
 		if is_instance_valid(interaction_target):
 			interaction_target.set_targeted(false)
 		interaction_target = null
@@ -677,7 +716,10 @@ func collect_target() -> int:
 	if interaction_target.target_kind == "building":
 		return feed_settlement()
 	if interaction_target.target_kind == "machine":
-		return deliver_selected_to_machine(interaction_target.stable_id)
+		var machine_id: String = interaction_target.stable_id
+		var delivered := deliver_selected_to_machine(machine_id)
+		if delivered == 0: open_machine(machine_id)
+		return delivered
 	var accepted: int = inventory.add(interaction_target.item_id, interaction_target.amount)
 	if accepted <= 0:
 		interaction_label.text = "Inventory full"
@@ -775,6 +817,7 @@ func deliver_selected_to_machine(instance_id: String) -> int:
 		inventory.remove(slot.item_id, accepted)
 		_update_inventory_hud()
 	interaction_label.text = _machine_prompt(instance_id)
+	if machine_open: _update_machine_panel()
 	return accepted
 
 
@@ -790,6 +833,7 @@ func withdraw_machine_output(instance_id: String) -> int:
 			machine.output_inventory.remove(slot.item_id, accepted)
 			_update_inventory_hud()
 		interaction_label.text = _machine_prompt(instance_id)
+		if machine_open: _update_machine_panel()
 		return accepted
 	interaction_label.text = _machine_prompt(instance_id)
 	return 0
@@ -807,6 +851,39 @@ func _machine_prompt(instance_id: String) -> String:
 	if machine.is_running():
 		return "Kiln firing %d%% | E add clay | Space/X collect (%d)" % [roundi(machine.progress() * 100.0), output_count]
 	return "Kiln ready | E add clay | Space/X collect (%d)" % output_count
+
+
+func open_machine(instance_id: String) -> bool:
+	if not machines_by_entity_id.has(instance_id): return false
+	machine_open = true
+	active_machine_id = instance_id
+	player.movement_enabled = false
+	player.velocity = Vector2.ZERO
+	machine_panel.visible = true
+	interaction_target = null
+	_update_machine_panel()
+	return true
+
+
+func close_machine() -> void:
+	machine_open = false
+	active_machine_id = ""
+	player.movement_enabled = true
+	machine_panel.visible = false
+
+
+func _update_machine_panel() -> void:
+	if machine_status_label == null: return
+	var machine: Variant = machines_by_entity_id.get(active_machine_id)
+	if machine == null: return
+	var input_rows: Array[String] = []
+	for item_id: String in machine.recipe_inputs:
+		input_rows.append("%s: %d / %d" % [item_registry.get_item(item_id).label, machine.input_inventory.count(item_id), int(machine.recipe_inputs[item_id])])
+	var output_rows: Array[String] = []
+	for item_id: String in machine.recipe_outputs:
+		output_rows.append("%s: %d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
+	var state := "BROKEN - needs Wood x2" if machine.broken else ("UNSTAFFED" if not machine.staffed else ("FIRING %d%%" % roundi(machine.progress() * 100.0) if machine.is_running() else "READY / WAITING FOR INPUT"))
+	machine_status_label.text = "State: %s\nWorker: %s\nDurability: %d / %d\n\nINPUT\n%s\n\nOUTPUT\n%s" % [state, "assigned" if machine.staffed else "missing", machine.durability, machine.max_durability, "\n".join(input_rows), "\n".join(output_rows)]
 
 
 func select_route_endpoint(instance_id: String) -> bool:
