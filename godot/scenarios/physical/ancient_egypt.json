@@ -6,7 +6,7 @@
   "water_gaps": [[13, 10], [14, 10]],
   "pickups": [
     {"id": "pickup-wood-1", "item": "wood", "amount": 18, "cell": [7.5, 6.5]},
-    {"id": "pickup-clay-1", "item": "clay", "amount": 12, "cell": [9.5, 7.5]},
+    {"id": "pickup-clay-1", "item": "clay", "amount": 32, "cell": [9.5, 7.5]},
     {"id": "pickup-grain-1", "item": "grain", "amount": 25, "cell": [12.5, 5.5]},
     {"id": "pickup-wood-2", "item": "wood", "amount": 42, "cell": [15.5, 8.5]}
   ]

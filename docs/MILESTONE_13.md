@@ -14,5 +14,5 @@ event-based, so experimentation outside the suggested order is retained.
 - [x] Event-based progress that tolerates out-of-order play.
 - [x] Clear settlement-established completion state.
 - [x] Automated campaign progression test.
-- [ ] Balance pass with a fresh save.
+- [x] Fresh-save critical-path balance with recovery margin.
 - [ ] Visual acceptance walkthrough.

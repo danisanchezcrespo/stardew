@@ -110,3 +110,9 @@ Ten-thousand-tick physical production stability can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_long_session.gd
 ```
+
+Fresh-save critical-path resource balance can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_vertical_slice_balance.gd
+```
