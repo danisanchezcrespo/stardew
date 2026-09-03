@@ -1,0 +1,12 @@
+{
+  "id": "mesopotamia",
+  "label": "Settlement between the Rivers",
+  "palette": {"ground": "#bfa36a", "water": "#3f83a6"},
+  "water_rects": [[5, 3, 4, 24], [39, 2, 4, 25]],
+  "water_gaps": [[6, 12], [7, 12], [40, 18], [41, 18]],
+  "pickups": [
+    {"id": "meso-reeds", "item": "wood", "amount": 30, "cell": [11.5, 6.5]},
+    {"id": "meso-clay", "item": "clay", "amount": 24, "cell": [14.5, 9.5]},
+    {"id": "meso-grain", "item": "grain", "amount": 20, "cell": [18.5, 7.5]}
+  ]
+}

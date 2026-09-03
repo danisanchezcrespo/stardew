@@ -98,3 +98,15 @@ Physical-world JSON save and fresh-session restoration can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_physical_save.gd
 ```
+
+Data-driven Egypt and Mesopotamia physical scenarios can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_physical_scenarios.gd
+```
+
+Ten-thousand-tick physical production stability can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_long_session.gd
+```

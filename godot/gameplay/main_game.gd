@@ -14,6 +14,7 @@ const PlacedTargetType = preload("res://world/placement/placed_object_target.gd"
 const ConstructionSiteType = preload("res://world/construction/construction_site.gd")
 const EgyptCampaignType = preload("res://world/progression/egypt_campaign.gd")
 const PhysicalSaveCodecType = preload("res://world/persistence/physical_save_codec.gd")
+const PhysicalScenarioType = preload("res://world/scenario/physical_scenario.gd")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
@@ -21,8 +22,6 @@ const PhysicalWorkforceType = preload("res://world/population/physical_workforce
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
 const WORLD_PIXELS := Vector2(WORLD_SIZE * CELL_SIZE)
-const SAND := Color("#cdbb7d")
-const WATER := Color("#4d8fbd")
 const GRID_LINE := Color(0.16, 0.14, 0.10, 0.18)
 const INTERACTION_REACH_PX := 40.0
 const PLACEMENT_RANGE_CELLS := 4.0
@@ -70,9 +69,22 @@ var population_label: Label
 var campaign: Variant
 var objective_label: Label
 var physical_save: Variant
+@export_file("*.json") var scenario_path := "res://scenarios/physical/ancient_egypt.json"
+var scenario: Variant
+var sand_color := Color("#cdbb7d")
+var water_color := Color("#4d8fbd")
+var scenario_panel: Control
+var scenario_select_open := false
 
 
 func _ready() -> void:
+	scenario = PhysicalScenarioType.new()
+	if not PhysicalScenarioType.requested_path.is_empty():
+		scenario_path = PhysicalScenarioType.requested_path
+		PhysicalScenarioType.requested_path = ""
+	assert(scenario.load_from_path(scenario_path) == OK, "Physical scenario must load")
+	sand_color = scenario.sand_color
+	water_color = scenario.water_color
 	workforce = PhysicalWorkforceType.new()
 	campaign = EgyptCampaignType.new()
 	physical_save = PhysicalSaveCodecType.new()
@@ -81,6 +93,8 @@ func _ready() -> void:
 	_build_player()
 	_build_items()
 	_build_hud()
+	if DisplayServer.get_name() != "headless":
+		set_scenario_select_open(true)
 	if PhysicalSaveCodecType.pending_reload:
 		PhysicalSaveCodecType.pending_reload = false
 		physical_save.load_from_path(self, "user://physical_save.json")
@@ -111,6 +125,12 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if scenario_select_open:
+		if event.is_action_pressed("quick_slot_1"):
+			select_scenario("res://scenarios/physical/ancient_egypt.json")
+		elif event.is_action_pressed("quick_slot_2"):
+			select_scenario("res://scenarios/physical/mesopotamia.json")
+		return
 	if event.is_action_pressed("save_game"):
 		var result: Error = physical_save.save_to_path(self, "user://physical_save.json")
 		interaction_label.text = "Game saved" if result == OK else "Save failed"
@@ -192,13 +212,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _build_terrain() -> void:
 	world_grid = WorldGridType.new(WORLD_SIZE, "sand")
-	for y in range(4, 26):
-		for x in range(34, 40):
-			water_cells[Vector2i(x, y)] = true
-	for x in range(8, 18):
-		water_cells[Vector2i(x, 10)] = true
-	water_cells.erase(Vector2i(13, 10))
-	water_cells.erase(Vector2i(14, 10))
+	for values: Array in scenario.water_rects:
+		for y in range(int(values[1]), int(values[1]) + int(values[3])):
+			for x in range(int(values[0]), int(values[0]) + int(values[2])):
+				water_cells[Vector2i(x, y)] = true
+	for gap: Vector2i in scenario.water_gaps:
+		water_cells.erase(gap)
 	for cell: Vector2i in water_cells:
 		world_grid.set_terrain(cell, "water")
 		_add_static_rect(Vector2(cell * CELL_SIZE) + Vector2.ONE * 16.0, Vector2.ONE * CELL_SIZE, "Water")
@@ -246,10 +265,8 @@ func _build_items() -> void:
 	placement_registry = DefinitionRegistryType.new()
 	result = placement_registry.load_from_path("res://world/placeables.json")
 	assert(result == OK, "Placeable definitions must load: %s" % str(placement_registry.errors))
-	_spawn_pickup("pickup-wood-1", "wood", 18, Vector2(7.5, 6.5) * CELL_SIZE)
-	_spawn_pickup("pickup-clay-1", "clay", 12, Vector2(9.5, 7.5) * CELL_SIZE)
-	_spawn_pickup("pickup-grain-1", "grain", 25, Vector2(12.5, 5.5) * CELL_SIZE)
-	_spawn_pickup("pickup-wood-2", "wood", 42, Vector2(15.5, 8.5) * CELL_SIZE)
+	for pickup: Dictionary in scenario.pickups:
+		_spawn_pickup(str(pickup.id), str(pickup.item), int(pickup.amount), Vector2(float(pickup.cell[0]), float(pickup.cell[1])) * CELL_SIZE)
 
 
 func _spawn_pickup(stable_id: String, item_id: String, amount: int, world_position: Vector2) -> Variant:
@@ -307,6 +324,7 @@ func _build_hud() -> void:
 	_update_inventory_hud()
 	_build_crafting_panel(layer)
 	_build_storage_panel(layer)
+	_build_scenario_panel(layer)
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
@@ -314,6 +332,41 @@ func _build_hud() -> void:
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
+
+
+func _build_scenario_panel(layer: CanvasLayer) -> void:
+	scenario_panel = ColorRect.new()
+	scenario_panel.position = Vector2(330, 190)
+	scenario_panel.size = Vector2(620, 300)
+	scenario_panel.color = Color(0.05, 0.06, 0.08, 0.97)
+	scenario_panel.visible = false
+	layer.add_child(scenario_panel)
+	var title := Label.new()
+	title.position = Vector2(44, 36)
+	title.text = "CHOOSE A SETTLEMENT"
+	title.add_theme_font_size_override("font_size", 28)
+	scenario_panel.add_child(title)
+	var options := Label.new()
+	options.position = Vector2(44, 105)
+	options.text = "[1]  Settlement on the Nile\n\n[2]  Settlement between the Rivers"
+	options.add_theme_font_size_override("font_size", 22)
+	scenario_panel.add_child(options)
+
+
+func set_scenario_select_open(value: bool) -> void:
+	scenario_select_open = value
+	if scenario_panel != null: scenario_panel.visible = value
+	if player != null:
+		player.movement_enabled = not value
+		player.velocity = Vector2.ZERO
+
+
+func select_scenario(path: String) -> void:
+	if path == scenario_path:
+		set_scenario_select_open(false)
+		return
+	PhysicalScenarioType.requested_path = path
+	get_tree().reload_current_scene()
 
 
 func _build_crafting_panel(layer: CanvasLayer) -> void:
@@ -907,7 +960,7 @@ func _draw() -> void:
 		for x in range(WORLD_SIZE.x):
 			var cell := Vector2i(x, y)
 			var rect := Rect2(Vector2(cell * CELL_SIZE), Vector2.ONE * CELL_SIZE)
-			draw_rect(rect, WATER if water_cells.has(cell) else SAND)
+			draw_rect(rect, water_color if water_cells.has(cell) else sand_color)
 			draw_rect(rect, GRID_LINE, false, 1.0)
 	if world_grid != null:
 		for placed: Variant in world_grid.entities_by_id.values():
