@@ -14,22 +14,38 @@ OUTPUT_ROWS = 2
 FRAME_WIDTH = 64
 FRAME_HEIGHT = 80
 ART_SIZE = 64
+HORIZONTAL_PADDING = 4
 FOOT_BASELINE = 72
 
 
 def main() -> None:
     source = Image.open(SOURCE).convert("RGBA")
     output = Image.new("RGBA", (COLUMNS * FRAME_WIDTH, OUTPUT_ROWS * FRAME_HEIGHT))
+    alpha = source.getchannel("A")
+    occupied_columns = [
+        x for x in range(source.width) if alpha.crop((x, 0, x + 1, source.height)).getbbox()
+    ]
+    sprite_runs: list[tuple[int, int]] = []
+    run_start = previous = occupied_columns[0]
+    for x in occupied_columns[1:]:
+        if x > previous + 1:
+            sprite_runs.append((run_start, previous + 1))
+            run_start = x
+        previous = x
+    sprite_runs.append((run_start, previous + 1))
+    if len(sprite_runs) != COLUMNS:
+        raise ValueError(f"Expected {COLUMNS} isolated sprites, found {len(sprite_runs)}")
 
-    for column in range(COLUMNS):
-        left = round(column * source.width / COLUMNS)
-        right = round((column + 1) * source.width / COLUMNS)
+    for column, (left, right) in enumerate(sprite_runs):
         cell = source.crop((left, 0, right, source.height // SOURCE_ROWS))
         bounds = cell.getbbox()
         if bounds is None:
             continue
         sprite = cell.crop(bounds)
-        scale = min(ART_SIZE / sprite.width, ART_SIZE / sprite.height)
+        scale = min(
+            (FRAME_WIDTH - HORIZONTAL_PADDING) / sprite.width,
+            ART_SIZE / sprite.height,
+        )
         size = (round(sprite.width * scale), round(sprite.height * scale))
         sprite = sprite.resize(size, Image.Resampling.LANCZOS)
         for row, directional_sprite in enumerate(
