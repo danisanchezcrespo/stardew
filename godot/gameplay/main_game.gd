@@ -49,7 +49,7 @@ var crafting_open := false
 var selected_recipe_index := 0
 var crafting_panel: Control
 var crafting_list_label: Label
-var crafting_detail_label: Label
+var crafting_detail_label: RichTextLabel
 var crafting_recipe_buttons: Array[Button] = []
 var crafting_resource_icons: Array[TextureRect] = []
 var placement_registry: Variant
@@ -927,15 +927,18 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 		button.add_theme_constant_override("icon_max_width", 30)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.pressed.connect(_on_recipe_button_pressed.bind(index))
+		button.mouse_entered.connect(_on_recipe_button_hovered.bind(index))
 		crafting_panel.add_child(button)
 		crafting_recipe_buttons.append(button)
 	crafting_list_label.visible = false
-	crafting_detail_label = Label.new()
+	crafting_detail_label = RichTextLabel.new()
 	crafting_detail_label.position = Vector2(375, 78)
 	crafting_detail_label.size = Vector2(295, 300)
 	crafting_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	crafting_detail_label.add_theme_font_size_override("font_size", 17)
-	crafting_detail_label.add_theme_color_override("font_color", Color("#3b281b"))
+	crafting_detail_label.bbcode_enabled = true
+	crafting_detail_label.scroll_active = false
+	crafting_detail_label.add_theme_font_size_override("normal_font_size", 17)
+	crafting_detail_label.add_theme_color_override("default_color", Color("#3b281b"))
 	crafting_panel.add_child(crafting_detail_label)
 	for index in range(8):
 		var resource_icon := _make_item_icon(Vector2(345, 142 + index * 25), Vector2(23, 23))
@@ -1151,6 +1154,11 @@ func _on_recipe_button_pressed(index: int) -> void:
 	craft_selected_recipe()
 
 
+func _on_recipe_button_hovered(index: int) -> void:
+	selected_recipe_index = index
+	_update_crafting_ui()
+
+
 func craft_selected_recipe() -> bool:
 	var recipe_id: String = recipe_registry.recipe_order[selected_recipe_index]
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
@@ -1172,17 +1180,30 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		rows.append("%s %s" % [">" if index == selected_recipe_index else " ", recipe.label])
 	crafting_list_label.text = "\n".join(rows)
 	for index in range(crafting_recipe_buttons.size()):
-		crafting_recipe_buttons[index].modulate = Color("#fff0be") if index == selected_recipe_index else Color.WHITE
+		var button := crafting_recipe_buttons[index]
+		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
+		var available: bool = crafting.query(inventory, recipe.recipe_id).valid
+		var text_color := Color("#fffaf0") if available else Color("#777777")
+		button.text = "%s%d.  %s" % ["▶ " if index == selected_recipe_index else "   ", index + 1, recipe.label]
+		button.modulate = Color.WHITE
+		button.add_theme_color_override("font_color", text_color)
+		button.add_theme_color_override("font_hover_color", text_color)
+		button.add_theme_color_override("font_pressed_color", text_color)
+		button.add_theme_color_override("font_focus_color", text_color)
 	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
 	var ingredients: Array[String] = []
 	var icon_index := 0
 	for icon: TextureRect in crafting_resource_icons: icon.visible = false
 	for item_id: String in selected.inputs:
 		var definition: Variant = item_registry.get_item(item_id)
-		ingredients.append("%s: %d / %d" % [definition.label, inventory.count(item_id), int(selected.inputs[item_id])])
+		var owned: int = inventory.count(item_id)
+		var required: int = int(selected.inputs[item_id])
+		var ingredient_color := "#fffaf0" if owned >= required else "#d83232"
+		ingredients.append("[color=%s]%s: %d / %d[/color]" % [ingredient_color, definition.label, owned, required])
 		if icon_index < crafting_resource_icons.size():
 			crafting_resource_icons[icon_index].position.y = 139 + icon_index * 22
 			crafting_resource_icons[icon_index].texture = ItemIconAtlasType.icon(item_id)
+			crafting_resource_icons[icon_index].modulate = Color("#fffaf0") if owned >= required else Color("#d83232")
 			crafting_resource_icons[icon_index].visible = true
 			icon_index += 1
 	var outputs: Array[String] = []
@@ -1198,7 +1219,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 	var status := "Ready to craft" if query.valid else _crafting_failure_text(query)
 	if not feedback.is_empty():
 		status = feedback
-	crafting_detail_label.text = "%s\n\nNeeds:\n%s\n\nProduces:\n%s\n\n%s" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
+	crafting_detail_label.text = "[color=#3b281b]%s\n\nNeeds:\n[/color]%s[color=#3b281b]\n\nProduces:\n%s\n\n%s[/color]" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
 
 
 func _crafting_failure_text(result: Dictionary) -> String:

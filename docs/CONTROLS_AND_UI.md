@@ -52,6 +52,11 @@ Storage uses a two-column transfer layout. Left/right selects Player Inventory
 or Crate Inventory, up/down selects a slot in that column, and Space transfers
 the complete selected stack to the opposite side.
 
+The crafting list previews availability before confirmation. Craftable recipes
+use bright white text and unavailable recipes use grey. Hovering previews a
+recipe without crafting it; sufficient ingredients remain white in the detail
+pane while missing or insufficient ingredients turn red.
+
 ## Interaction feedback
 
 At most one target is primary at a time.

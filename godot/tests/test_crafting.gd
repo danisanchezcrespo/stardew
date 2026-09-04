@@ -60,6 +60,12 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	_expect(game.crafting_open and not game.player.movement_enabled and game.crafting_panel.visible, "Opening crafting should show the submenu and stop player movement.", failures)
 	_expect(game.crafting_recipe_buttons.size() == game.recipe_registry.recipe_order.size(), "Crafting should expose one clickable button per recipe.", failures)
 	_expect(game.crafting_resource_icons[0].visible and game.crafting_resource_icons[0].texture != null, "Crafting ingredients should display their resource icons.", failures)
+	_expect(game.crafting_recipe_buttons[0].get_theme_color("font_color") == Color("#fffaf0"), "Craftable recipes should appear bright white.", failures)
+	_expect(game.crafting_recipe_buttons[1].get_theme_color("font_color") == Color("#777777"), "Unavailable recipes should appear grey.", failures)
+	game.crafting_recipe_buttons[1].mouse_entered.emit()
+	_expect(game.selected_recipe_index == 1, "Hovering a recipe should preview it without crafting.", failures)
+	_expect(game.crafting_detail_label.text.contains("#d83232") and game.crafting_detail_label.text.contains("Clay: 0 / 2"), "Missing hovered ingredients should appear red in the detail panel.", failures)
+	game.crafting_recipe_buttons[0].mouse_entered.emit()
 	_expect(game.crafting_panel.color == Color("#d8bd83"), "Crafting should use a readable parchment panel instead of an opaque black screen.", failures)
 	var interact_key := InputEventKey.new()
 	interact_key.physical_keycode = KEY_E
