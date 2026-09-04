@@ -17,6 +17,7 @@ const EgyptCampaignType = preload("res://world/progression/egypt_campaign.gd")
 const PhysicalSaveCodecType = preload("res://world/persistence/physical_save_codec.gd")
 const PhysicalScenarioType = preload("res://world/scenario/physical_scenario.gd")
 const BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_buildings_sheet.png")
+const ECONOMY_BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_economy_buildings_sheet.png")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
@@ -74,6 +75,10 @@ var storage_contents_label: Label
 var storage_feedback_label: Label
 var storage_player_icons: Array[TextureRect] = []
 var storage_crate_icons: Array[TextureRect] = []
+var storage_player_rows: Array[ColorRect] = []
+var storage_crate_rows: Array[ColorRect] = []
+var storage_player_slot_labels: Array[Label] = []
+var storage_crate_slot_labels: Array[Label] = []
 var construction_by_entity_id: Dictionary = {}
 var machines_by_entity_id: Dictionary = {}
 var logistics_routes: Array = []
@@ -94,6 +99,7 @@ var machine_open := false
 var active_machine_id := ""
 var machine_panel: Control
 var machine_status_label: Label
+var machine_title_label: Label
 var villagers: Dictionary = {}
 var next_villager_id := 1
 var selected_villager_id := ""
@@ -542,12 +548,12 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_panel.color = Color("#d8bd83")
 	machine_panel.visible = false
 	layer.add_child(machine_panel)
-	var title := Label.new()
-	title.position = Vector2(26, 22)
-	title.text = "BRICK KILN"
-	title.add_theme_font_size_override("font_size", 25)
-	title.add_theme_color_override("font_color", Color("#3b281b"))
-	machine_panel.add_child(title)
+	machine_title_label = Label.new()
+	machine_title_label.position = Vector2(26, 22)
+	machine_title_label.text = "MACHINE"
+	machine_title_label.add_theme_font_size_override("font_size", 25)
+	machine_title_label.add_theme_color_override("font_color", Color("#3b281b"))
+	machine_panel.add_child(machine_title_label)
 	machine_status_label = Label.new()
 	machine_status_label.position = Vector2(28, 72)
 	machine_status_label.size = Vector2(364, 320)
@@ -1050,25 +1056,49 @@ func _build_storage_panel(layer: CanvasLayer) -> void:
 	title.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(title)
 	storage_player_label = Label.new()
-	storage_player_label.position = Vector2(24, 68)
-	storage_player_label.size = Vector2(190, 300)
-	storage_player_label.add_theme_font_size_override("font_size", 13)
+	storage_player_label.position = Vector2(18, 58)
+	storage_player_label.size = Vector2(188, 26)
+	storage_player_label.add_theme_font_size_override("font_size", 15)
 	storage_player_label.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(storage_player_label)
 	for index in range(inventory.slot_count):
-		var player_icon := _make_item_icon(Vector2(42, 96 + index * 21), Vector2(18, 18))
+		var row := ColorRect.new()
+		row.position = Vector2(18, 86 + index * 23)
+		row.size = Vector2(188, 21)
+		storage_panel.add_child(row)
+		storage_player_rows.append(row)
+		var player_icon := _make_item_icon(Vector2(22, 87 + index * 23), Vector2(19, 19))
 		storage_panel.add_child(player_icon)
 		storage_player_icons.append(player_icon)
+		var slot_label := Label.new()
+		slot_label.position = Vector2(45, 86 + index * 23)
+		slot_label.size = Vector2(157, 21)
+		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot_label.add_theme_font_size_override("font_size", 12)
+		storage_panel.add_child(slot_label)
+		storage_player_slot_labels.append(slot_label)
 	storage_contents_label = Label.new()
-	storage_contents_label.position = Vector2(215, 68)
-	storage_contents_label.size = Vector2(190, 300)
-	storage_contents_label.add_theme_font_size_override("font_size", 13)
+	storage_contents_label.position = Vector2(214, 58)
+	storage_contents_label.size = Vector2(188, 26)
+	storage_contents_label.add_theme_font_size_override("font_size", 15)
 	storage_contents_label.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(storage_contents_label)
 	for index in range(12):
-		var crate_icon := _make_item_icon(Vector2(233, 96 + index * 21), Vector2(18, 18))
+		var row := ColorRect.new()
+		row.position = Vector2(214, 86 + index * 23)
+		row.size = Vector2(188, 21)
+		storage_panel.add_child(row)
+		storage_crate_rows.append(row)
+		var crate_icon := _make_item_icon(Vector2(218, 87 + index * 23), Vector2(19, 19))
 		storage_panel.add_child(crate_icon)
 		storage_crate_icons.append(crate_icon)
+		var slot_label := Label.new()
+		slot_label.position = Vector2(241, 86 + index * 23)
+		slot_label.size = Vector2(157, 21)
+		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		slot_label.add_theme_font_size_override("font_size", 12)
+		storage_panel.add_child(slot_label)
+		storage_crate_slot_labels.append(slot_label)
 	storage_feedback_label = Label.new()
 	storage_feedback_label.position = Vector2(24, 370)
 	storage_feedback_label.size = Vector2(372, 36)
@@ -1534,14 +1564,22 @@ func _machine_prompt(instance_id: String) -> String:
 	var machine: Variant = machines_by_entity_id.get(instance_id)
 	if machine == null:
 		return "Machine unavailable"
+	var machine_name := _placed_definition_label(instance_id)
 	if machine.broken:
-		return "Kiln broken | Space to open"
+		return "%s broken | Space to open" % machine_name
 	var output_count := 0
 	for item_id: String in machine.recipe_outputs:
 		output_count += machine.output_inventory.count(item_id)
 	if machine.is_running():
-		return "Kiln firing %d%% | Output %d | Space to open" % [roundi(machine.progress() * 100.0), output_count]
-	return "Kiln ready | Output %d | Space to open" % output_count
+		return "%s working %d%% | Output %d | Space to open" % [machine_name, roundi(machine.progress() * 100.0), output_count]
+	return "%s ready | Output %d | Space to open" % [machine_name, output_count]
+
+
+func _placed_definition_label(instance_id: String) -> String:
+	var placed: Variant = world_grid.entities_by_id.get(instance_id)
+	if placed == null: return "Machine"
+	var definition: Variant = placement_registry.get_entity(placed.definition_id)
+	return definition.label if definition != null else "Machine"
 
 
 func open_machine(instance_id: String) -> bool:
@@ -1569,6 +1607,7 @@ func _update_machine_panel() -> void:
 	if machine_status_label == null: return
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine == null: return
+	machine_title_label.text = _placed_definition_label(active_machine_id).to_upper()
 	var input_rows: Array[String] = []
 	for item_id: String in machine.recipe_inputs:
 		input_rows.append("%s: %d / %d" % [item_registry.get_item(item_id).label, machine.input_inventory.count(item_id), int(machine.recipe_inputs[item_id])])
@@ -1864,19 +1903,28 @@ func _update_storage_ui(feedback: String = "") -> void:
 	var storage: Variant = storage_by_entity_id.get(active_storage_id)
 	if storage == null:
 		return
-	var player_rows: Array[String] = ["▶ PLAYER INVENTORY" if storage_focus_side == 0 else "  PLAYER INVENTORY"]
+	storage_player_label.text = "▶  PLAYER" if storage_focus_side == 0 else "PLAYER"
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
-		player_rows.append("%s      [%d] %s" % [">" if storage_focus_side == 0 and index == selected_slot else " ", index + 1, _slot_text(slot)])
+		var selected := storage_focus_side == 0 and index == selected_slot
+		storage_player_rows[index].color = Color("#6b3e20") if selected else Color("#ead39f")
+		storage_player_slot_labels[index].text = "%d   %s" % [index + 1, _slot_text(slot)]
+		storage_player_slot_labels[index].add_theme_color_override("font_color", Color.WHITE if selected else Color("#3b281b"))
 		if index < storage_player_icons.size(): _sync_item_icon(storage_player_icons[index], slot)
-	storage_player_label.text = "\n".join(player_rows)
 	storage_player_label.add_theme_color_override("font_color", Color("#6b3e20") if storage_focus_side == 0 else Color("#3b281b"))
-	var storage_rows: Array[String] = ["▶ CRATE INVENTORY" if storage_focus_side == 1 else "  CRATE INVENTORY"]
+	storage_contents_label.text = "▶  CRATE" if storage_focus_side == 1 else "CRATE"
 	for index in range(storage.slots.size()):
-		storage_rows.append("%s      [%d] %s" % [">" if storage_focus_side == 1 and index == selected_storage_slot else " ", index + 1, _slot_text(storage.slots[index])])
+		var selected := storage_focus_side == 1 and index == selected_storage_slot
+		storage_crate_rows[index].visible = true
+		storage_crate_rows[index].color = Color("#6b3e20") if selected else Color("#ead39f")
+		storage_crate_slot_labels[index].visible = true
+		storage_crate_slot_labels[index].text = "%d   %s" % [index + 1, _slot_text(storage.slots[index])]
+		storage_crate_slot_labels[index].add_theme_color_override("font_color", Color.WHITE if selected else Color("#3b281b"))
 		if index < storage_crate_icons.size(): _sync_item_icon(storage_crate_icons[index], storage.slots[index])
-	for index in range(storage.slots.size(), storage_crate_icons.size()): storage_crate_icons[index].visible = false
-	storage_contents_label.text = "\n".join(storage_rows)
+	for index in range(storage.slots.size(), storage_crate_icons.size()):
+		storage_crate_icons[index].visible = false
+		storage_crate_rows[index].visible = false
+		storage_crate_slot_labels[index].visible = false
 	storage_contents_label.add_theme_color_override("font_color", Color("#6b3e20") if storage_focus_side == 1 else Color("#3b281b"))
 	storage_feedback_label.text = feedback
 
@@ -1969,7 +2017,8 @@ func _draw() -> void:
 
 func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost: bool = false, valid: bool = true) -> void:
 	var columns := {"STORAGE_CRATE": 0, "BRICK_KILN": 1, "DWELLING": 2, "SHRINE": 3}
-	if not columns.has(definition_id) or cells.is_empty(): return
+	var economy_columns := {"GRAIN_FARM": 0, "BAKERY": 1, "BREWERY": 2, "KITCHEN": 3, "SAWMILL": 4}
+	if (not columns.has(definition_id) and not economy_columns.has(definition_id)) or cells.is_empty(): return
 	var minimum := cells[0]
 	var maximum := cells[0]
 	for cell: Vector2i in cells:
@@ -1981,4 +2030,8 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 	var bottom_center := Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
 	var destination := Rect2(bottom_center - Vector2(sprite_size.x * 0.5, sprite_size.y), sprite_size)
 	var tint := Color(0.45, 1.0, 0.55, 0.62) if valid else Color(1.0, 0.35, 0.35, 0.62)
-	draw_texture_rect_region(BUILDING_TEXTURE, destination, Rect2(int(columns[definition_id]) * 256, 0, 256, 256), tint if ghost else Color.WHITE)
+	if economy_columns.has(definition_id):
+		var cell_width := ECONOMY_BUILDING_TEXTURE.get_width() / 5.0
+		draw_texture_rect_region(ECONOMY_BUILDING_TEXTURE, destination, Rect2(int(economy_columns[definition_id]) * cell_width, 0, cell_width, ECONOMY_BUILDING_TEXTURE.get_height()), tint if ghost else Color.WHITE)
+	else:
+		draw_texture_rect_region(BUILDING_TEXTURE, destination, Rect2(int(columns[definition_id]) * 256, 0, 256, 256), tint if ghost else Color.WHITE)

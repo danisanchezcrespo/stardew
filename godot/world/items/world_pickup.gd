@@ -45,5 +45,5 @@ func take(maximum: int) -> int:
 
 func _draw() -> void:
 	draw_circle(Vector2(0, 7), 11.0, Color(0, 0, 0, 0.22))
-	draw_texture_rect_region(ItemIconAtlasType.TEXTURE, Rect2(Vector2(-16, -18), Vector2(32, 32)), ItemIconAtlasType.region(item_id))
+	draw_texture_rect_region(ItemIconAtlasType.texture(item_id), Rect2(Vector2(-16, -18), Vector2(32, 32)), ItemIconAtlasType.region(item_id))
 	draw_circle(Vector2(0, -2), 19.0, Color.WHITE if targeted else Color(0, 0, 0, 0), false, 3.0)

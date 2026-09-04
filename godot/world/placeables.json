@@ -56,6 +56,36 @@
         "allowed_terrain": ["sand"],
         "ports": {"use": [0, 3]}
       }
+    },
+    {
+      "id": "GRAIN_FARM", "label": "Irrigated Grain Farm", "color": "#d5ad3c",
+      "construction_cost": {"wood": 8, "mud_bricks": 4}, "construction_work_seconds": 4.0,
+      "recipe_inputs": {"water": 2}, "recipe_outputs": {"grain": 5}, "process_time_sec": 7.0, "workers_required": 1, "worker_priority": 40,
+      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+    },
+    {
+      "id": "BAKERY", "label": "Bakery", "color": "#c77a42",
+      "construction_cost": {"wood": 4, "mud_bricks": 10}, "construction_work_seconds": 4.0,
+      "recipe_inputs": {"grain": 3, "water": 1}, "recipe_outputs": {"bread": 4}, "process_time_sec": 7.0, "workers_required": 1, "worker_priority": 45,
+      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+    },
+    {
+      "id": "BREWERY", "label": "Brewery", "color": "#b97038",
+      "construction_cost": {"wood": 4, "mud_bricks": 10}, "construction_work_seconds": 4.0,
+      "recipe_inputs": {"grain": 2, "water": 1}, "recipe_outputs": {"beer": 3}, "process_time_sec": 8.0, "workers_required": 1, "worker_priority": 45,
+      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+    },
+    {
+      "id": "KITCHEN", "label": "Communal Kitchen", "color": "#a85a35",
+      "construction_cost": {"wood": 5, "mud_bricks": 10}, "construction_work_seconds": 5.0,
+      "recipe_inputs": {"bread": 2, "beer": 1}, "recipe_outputs": {"food_ration": 5}, "process_time_sec": 3.0, "workers_required": 1, "worker_priority": 60,
+      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+    },
+    {
+      "id": "SAWMILL", "label": "Sawmill", "color": "#916037",
+      "construction_cost": {"wood": 10, "mud_bricks": 4}, "construction_work_seconds": 5.0,
+      "recipe_inputs": {"wood": 2}, "recipe_outputs": {"planks": 3}, "process_time_sec": 6.0, "workers_required": 1, "worker_priority": 35,
+      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
     }
   ],
   "edges": []

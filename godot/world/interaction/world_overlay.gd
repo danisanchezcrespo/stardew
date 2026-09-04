@@ -74,7 +74,7 @@ func _draw_requirement_hint(anchor: Vector2, title: String, needs: Array[Diction
 	for index in range(needs.size()):
 		var row: Dictionary = needs[index]
 		var pos := rect.position + Vector2(12, 38 + index * 28)
-		draw_texture_rect_region(ItemIconAtlasType.TEXTURE, Rect2(pos, Vector2(22, 22)), ItemIconAtlasType.region(str(row.item)))
+		draw_texture_rect_region(ItemIconAtlasType.texture(str(row.item)), Rect2(pos, Vector2(22, 22)), ItemIconAtlasType.region(str(row.item)))
 		var definition: Variant = game.item_registry.get_item(str(row.item))
 		draw_string(ThemeDB.fallback_font, pos + Vector2(29, 16), "%s  x%d" % [definition.label, int(row.amount)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, height - 8), "Space to open", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)

@@ -53,7 +53,7 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 	_expect(not game.building_details_open and not game.storage_open, "World objects should open only through Space, never click.", failures)
 	_expect(game.open_storage(instance_id), "Placed crate should reopen with its contents intact.", failures)
 	game.set_storage_focus(1)
-	_expect(game.storage_contents_label.text.begins_with("▶"), "Right-side focus should be visible on the crate column.", failures)
+	_expect(game.storage_contents_label.text.begins_with("▶") and game.storage_crate_rows[game.selected_storage_slot].color == Color("#6b3e20"), "Right-side focus should be visible on the crate column and selected row.", failures)
 	game._unhandled_input(_action("use_selected"))
 	_expect(game.inventory.count("clay") == 37, "Space should return the selected crate stack to player inventory.", failures)
 	_expect(game.storage_by_entity_id[instance_id].count("clay") == 0, "Withdrawal should remove items from the crate.", failures)

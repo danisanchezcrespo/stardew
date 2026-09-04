@@ -53,5 +53,5 @@ func _draw() -> void:
 	draw_circle(Vector2(0, 7), 18.0, Color(0, 0, 0, 0.25))
 	draw_circle(Vector2.ZERO, 19.0, Color("#4d8fbd"))
 	draw_circle(Vector2.ZERO, 15.0, Color("#d8bd83"))
-	draw_texture_rect_region(ItemIconAtlasType.TEXTURE, Rect2(Vector2(-14, -16), Vector2(28, 28)), ItemIconAtlasType.region(item_id))
+	draw_texture_rect_region(ItemIconAtlasType.texture(item_id), Rect2(Vector2(-14, -16), Vector2(28, 28)), ItemIconAtlasType.region(item_id))
 	if targeted: draw_circle(Vector2.ZERO, 23.0, Color.WHITE, false, 3.0)
