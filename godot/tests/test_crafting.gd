@@ -57,8 +57,10 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	var game: Node2D = game_root.get_node("MainGame")
 	game.inventory.add("wood", 10)
 	game.set_crafting_open(true)
+	await process_frame
 	_expect(game.crafting_open and not game.player.movement_enabled and game.crafting_panel.visible, "Opening crafting should show the submenu and stop player movement.", failures)
 	_expect(game.crafting_recipe_buttons.size() == game.recipe_registry.recipe_order.size(), "Crafting should expose one clickable button per recipe.", failures)
+	_expect(game.crafting_recipe_scroll != null and game.crafting_recipe_scroll.get_v_scroll_bar().visible, "Long crafting lists should stay inside a vertical scroll area.", failures)
 	_expect(game.crafting_resource_icons[0].visible and game.crafting_resource_icons[0].texture != null, "Crafting ingredients should display their resource icons.", failures)
 	_expect(game.crafting_recipe_buttons[0].get_theme_color("font_color") == Color("#fffaf0"), "Craftable recipes should appear bright white.", failures)
 	_expect(game.crafting_recipe_buttons[1].get_theme_color("font_color") == Color("#777777"), "Unavailable recipes should appear grey.", failures)
@@ -82,6 +84,10 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	var before: Array[Dictionary] = game.inventory.snapshot()
 	_expect(not game.craft_selected_recipe(), "Unavailable mud brick recipe should fail.", failures)
 	_expect(game.inventory.snapshot() == before, "Failed scene craft should not change slots.", failures)
+	game.selected_recipe_index = game.crafting_recipe_buttons.size() - 1
+	game._scroll_selected_recipe_into_view()
+	await process_frame
+	_expect(game.crafting_recipe_scroll.scroll_vertical > 0, "Keyboard selection should slide the recipe list to keep the active row visible.", failures)
 	game.set_crafting_open(false)
 	_expect(game.player.movement_enabled and not game.crafting_panel.visible, "Closing crafting should restore movement.", failures)
 	game_root.queue_free()

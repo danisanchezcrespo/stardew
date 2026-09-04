@@ -55,6 +55,7 @@ var crafting_list_label: Label
 var crafting_detail_label: RichTextLabel
 var crafting_recipe_buttons: Array[Button] = []
 var crafting_resource_icons: Array[TextureRect] = []
+var crafting_recipe_scroll: ScrollContainer
 var placement_registry: Variant
 var world_grid: Variant
 var selected_slot := 0
@@ -1008,18 +1009,28 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_list_label.add_theme_font_size_override("font_size", 18)
 	crafting_list_label.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(crafting_list_label)
+	crafting_recipe_scroll = ScrollContainer.new()
+	crafting_recipe_scroll.position = Vector2(22, 74)
+	crafting_recipe_scroll.size = Vector2(320, 304)
+	crafting_recipe_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	crafting_recipe_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	crafting_panel.add_child(crafting_recipe_scroll)
+	var recipe_list := VBoxContainer.new()
+	recipe_list.custom_minimum_size = Vector2(296, maxi(304, recipe_registry.recipe_order.size() * 43 - 5))
+	recipe_list.add_theme_constant_override("separation", 5)
+	crafting_recipe_scroll.add_child(recipe_list)
 	for index in range(recipe_registry.recipe_order.size()):
 		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
 		var button := Button.new()
-		button.position = Vector2(22, 74 + index * 43)
-		button.size = Vector2(292, 38)
+		button.custom_minimum_size = Vector2(292, 38)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.text = "%d.  %s" % [index + 1, recipe.label]
 		if not recipe.outputs.is_empty(): button.icon = ItemIconAtlasType.icon(str(recipe.outputs.keys()[0]))
 		button.add_theme_constant_override("icon_max_width", 30)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.pressed.connect(_on_recipe_button_pressed.bind(index))
 		button.mouse_entered.connect(_on_recipe_button_hovered.bind(index))
-		crafting_panel.add_child(button)
+		recipe_list.add_child(button)
 		crafting_recipe_buttons.append(button)
 	crafting_list_label.visible = false
 	crafting_detail_label = RichTextLabel.new()
@@ -1269,10 +1280,17 @@ func _add_placed_target(instance_id: String, definition: Variant, origin: Vector
 func select_recipe(direction: int) -> void:
 	selected_recipe_index = posmod(selected_recipe_index + direction, recipe_registry.recipe_order.size())
 	_update_crafting_ui()
+	_scroll_selected_recipe_into_view()
+
+
+func _scroll_selected_recipe_into_view() -> void:
+	if crafting_recipe_scroll == null or selected_recipe_index < 0 or selected_recipe_index >= crafting_recipe_buttons.size(): return
+	crafting_recipe_scroll.ensure_control_visible(crafting_recipe_buttons[selected_recipe_index])
 
 
 func _on_recipe_button_pressed(index: int) -> void:
 	selected_recipe_index = index
+	_scroll_selected_recipe_into_view()
 	craft_selected_recipe()
 
 
