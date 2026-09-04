@@ -24,14 +24,16 @@ func _draw() -> void:
 		_draw_hint(anchor, ["%s x%d" % [target.item_label, target.amount], "Space to pick up"])
 	elif target.target_kind == "construction":
 		_draw_construction(anchor, target)
+	elif target.target_kind == "villager":
+		_draw_hint(anchor + Vector2(0, -18), [target.villager_name, target.status_text(), "Space to open"])
 	elif target.target_kind == "storage":
-		_draw_hint(anchor, [target.item_label, "Space to open", "Click for details"])
+		_draw_hint(anchor, [target.item_label, "Space to open"])
 	elif target.target_kind == "machine":
 		var machine: Variant = game.machines_by_entity_id.get(target.stable_id)
 		var state := "Broken" if machine != null and machine.broken else ("Working %d%%" % roundi(machine.progress() * 100.0) if machine != null and machine.is_running() else "Ready")
-		_draw_hint(anchor, [target.item_label, state, "Space to open · Click for details"])
+		_draw_hint(anchor, [target.item_label, state, "Space to open"])
 	else:
-		_draw_hint(anchor, [target.item_label, "Click for details"])
+		_draw_hint(anchor, [target.item_label, "Space to open"])
 
 func _draw_construction(anchor: Vector2, target: Variant) -> void:
 	var site: Variant = game.construction_by_entity_id.get(target.stable_id)

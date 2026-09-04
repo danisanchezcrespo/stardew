@@ -59,7 +59,6 @@ static func ensure_actions() -> void:
 	_add_joypad_axis("move_right", JOY_AXIS_LEFT_X, 1.0)
 	_add_joypad_axis("move_up", JOY_AXIS_LEFT_Y, -1.0)
 	_add_joypad_axis("move_down", JOY_AXIS_LEFT_Y, 1.0)
-	_add_mouse_button("use_selected", MOUSE_BUTTON_LEFT)
 	_add_mouse_button("zoom_in", MOUSE_BUTTON_WHEEL_UP)
 	_add_mouse_button("zoom_out", MOUSE_BUTTON_WHEEL_DOWN)
 	_add_modified_key("toggle_fullscreen", KEY_ENTER, true)

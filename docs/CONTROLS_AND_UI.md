@@ -97,10 +97,10 @@ displayed unless a scenario specifically requires them.
 
 ### Local panel
 
-Clicking either a villager or a placed building opens the same parchment-style
-inspector on the right. Its contents change with the selected subject while its
-position, spacing, colours and close behaviour remain consistent.
-Space beside an unfinished building opens this same inspector. Space inside it
+Space beside a villager or any placed building opens a single parchment-style
+inspector on the right. Clicking world subjects never opens an alternative
+panel. Its contents change with the selected subject while its position,
+spacing, colours and close behaviour remain consistent. Space inside it
 delivers the selected compatible material or starts construction. Once started,
 construction continues for the definition's configured duration even if the
 player leaves; beginning to walk closes the inspector without cancelling work.

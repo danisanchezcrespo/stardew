@@ -20,6 +20,8 @@ var task: Dictionary = {}
 var carrying_item := ""
 var carrying_amount := 0
 var selected := false
+var targeted := false
+var target_kind := "villager"
 var color_tint := Color.WHITE
 
 
@@ -52,6 +54,16 @@ func clear_task() -> void:
 	carrying_item = ""
 	carrying_amount = 0
 	state = "available"
+
+func interaction_position() -> Vector2:
+	return global_position
+
+func is_interactable() -> bool:
+	return true
+
+func set_targeted(value: bool) -> void:
+	targeted = value
+	queue_redraw()
 
 
 func process_life(game: Node2D, delta: float) -> void:
@@ -155,7 +167,7 @@ func _draw() -> void:
 	var moving := state in ["to_source", "to_destination", "to_work", "going_home", "seeking_food"]
 	var frame := int(animation_time * FRAME_RATE) % 10 if moving else 0
 	draw_texture_rect_region(texture, Rect2(-32, -64, 64, 80), Rect2(frame * 64, row * 80, 64, 80), color_tint)
-	if selected:
+	if selected or targeted:
 		draw_circle(Vector2(0, 11), 18.0, Color("#ffe27a"), false, 3.0)
 	if carrying_amount > 0:
 		draw_circle(Vector2(19, -24), 7.0, Color("#dca763"))

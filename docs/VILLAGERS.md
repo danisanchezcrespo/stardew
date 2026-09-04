@@ -6,7 +6,7 @@ number of residents specified by its bed capacity (currently two).
 
 ## Selecting and naming
 
-- Click a villager in the world, or press `Tab` to cycle through villagers.
+- Approach a villager and press `Space`, or press `Tab` to cycle through villagers.
 - The characteristics panel shows home, current state, hunger, energy, task,
   and carried item.
 - Edit the name field and press `Enter` (or click elsewhere) to rename them.

@@ -221,6 +221,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not selected_villager_id.is_empty() and event.is_action_pressed("cancel"):
 		close_villager_panel()
 		return
+	if not selected_villager_id.is_empty() and (event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down")):
+		close_villager_panel()
 	if event.is_action_pressed("zoom_in"):
 		adjust_camera_zoom(1)
 		return
@@ -309,6 +311,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			open_storage(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "building":
 			open_building_details(interaction_target.stable_id)
+		elif interaction_target != null and interaction_target.target_kind == "villager":
+			select_villager(interaction_target.stable_id)
 		else:
 			begin_placement()
 	elif not crafting_open and event.is_action_pressed("quick_previous"):
@@ -512,32 +516,37 @@ func _build_scenario_panel(layer: CanvasLayer) -> void:
 
 func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_panel = ColorRect.new()
-	machine_panel.position = Vector2(350, 160)
-	machine_panel.size = Vector2(580, 360)
-	machine_panel.color = Color(0.06, 0.07, 0.09, 0.96)
+	machine_panel.position = Vector2(835, 120)
+	machine_panel.size = Vector2(420, 480)
+	machine_panel.color = Color("#d8bd83")
 	machine_panel.visible = false
 	layer.add_child(machine_panel)
 	var title := Label.new()
 	title.position = Vector2(26, 22)
 	title.text = "BRICK KILN"
 	title.add_theme_font_size_override("font_size", 25)
+	title.add_theme_color_override("font_color", Color("#3b281b"))
 	machine_panel.add_child(title)
 	machine_status_label = Label.new()
 	machine_status_label.position = Vector2(28, 72)
-	machine_status_label.size = Vector2(520, 220)
+	machine_status_label.size = Vector2(364, 320)
 	machine_status_label.add_theme_font_size_override("font_size", 18)
+	machine_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	machine_panel.add_child(machine_status_label)
 	var controls := Label.new()
-	controls.position = Vector2(28, 318)
+	controls.position = Vector2(28, 430)
+	controls.size = Vector2(364, 40)
+	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.text = "Space: add compatible selected item, otherwise collect    Esc: close"
 	controls.add_theme_font_size_override("font_size", 14)
+	controls.add_theme_color_override("font_color", Color("#6b3e20"))
 	machine_panel.add_child(controls)
 
 
 func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_panel = ColorRect.new()
-	villager_panel.position = Vector2(915, 120)
-	villager_panel.size = Vector2(340, 480)
+	villager_panel.position = Vector2(835, 120)
+	villager_panel.size = Vector2(420, 480)
 	villager_panel.color = Color("#d8bd83")
 	villager_panel.visible = false
 	layer.add_child(villager_panel)
@@ -549,20 +558,20 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_panel.add_child(title)
 	villager_name_edit = LineEdit.new()
 	villager_name_edit.position = Vector2(22, 60)
-	villager_name_edit.size = Vector2(296, 38)
+	villager_name_edit.size = Vector2(376, 38)
 	villager_name_edit.placeholder_text = "Name"
 	villager_name_edit.text_submitted.connect(_rename_selected_villager)
 	villager_name_edit.focus_exited.connect(_commit_villager_name)
 	villager_panel.add_child(villager_name_edit)
 	villager_status_label = Label.new()
 	villager_status_label.position = Vector2(22, 112)
-	villager_status_label.size = Vector2(296, 190)
+	villager_status_label.size = Vector2(376, 190)
 	villager_status_label.add_theme_font_size_override("font_size", 16)
 	villager_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	villager_panel.add_child(villager_status_label)
 	villager_resource_option = OptionButton.new()
 	villager_resource_option.position = Vector2(22, 286)
-	villager_resource_option.size = Vector2(296, 36)
+	villager_resource_option.size = Vector2(376, 36)
 	villager_resource_option.visible = false
 	villager_panel.add_child(villager_resource_option)
 	var assign := Button.new()
@@ -572,20 +581,20 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	assign.pressed.connect(begin_villager_transport_order)
 	villager_panel.add_child(assign)
 	var work := Button.new()
-	work.position = Vector2(123, 330)
+	work.position = Vector2(143, 330)
 	work.size = Vector2(94, 42)
 	work.text = "Assign work"
 	work.pressed.connect(begin_villager_work_order)
 	villager_panel.add_child(work)
 	var stop := Button.new()
-	stop.position = Vector2(224, 330)
+	stop.position = Vector2(264, 330)
 	stop.size = Vector2(94, 42)
 	stop.text = "Stop task"
 	stop.pressed.connect(stop_selected_villager_task)
 	villager_panel.add_child(stop)
 	villager_order_feedback = Label.new()
 	villager_order_feedback.position = Vector2(22, 385)
-	villager_order_feedback.size = Vector2(296, 62)
+	villager_order_feedback.size = Vector2(376, 62)
 	villager_order_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	villager_order_feedback.add_theme_color_override("font_color", Color("#6b3e20"))
 	villager_panel.add_child(villager_order_feedback)
@@ -593,8 +602,8 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 
 func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_panel = ColorRect.new()
-	building_details_panel.position = Vector2(915, 120)
-	building_details_panel.size = Vector2(340, 480)
+	building_details_panel.position = Vector2(835, 120)
+	building_details_panel.size = Vector2(420, 480)
 	building_details_panel.color = Color("#d8bd83")
 	building_details_panel.visible = false
 	layer.add_child(building_details_panel)
@@ -605,7 +614,7 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_panel.add_child(building_details_title)
 	building_details_body = Label.new()
 	building_details_body.position = Vector2(24, 70)
-	building_details_body.size = Vector2(292, 330)
+	building_details_body.size = Vector2(372, 330)
 	building_details_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	building_details_body.add_theme_font_size_override("font_size", 17)
 	building_details_body.add_theme_color_override("font_color", Color("#3b281b"))
@@ -617,9 +626,28 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_panel.add_child(building_details_controls)
 
 
+func _hide_subject_panels() -> void:
+	if villagers.has(selected_villager_id):
+		villagers[selected_villager_id].selected = false
+		villagers[selected_villager_id].queue_redraw()
+	selected_villager_id = ""
+	villager_order_mode = ""
+	pending_order_source_id = ""
+	building_details_open = false
+	building_details_id = ""
+	storage_open = false
+	active_storage_id = ""
+	machine_open = false
+	active_machine_id = ""
+	if villager_panel != null: villager_panel.visible = false
+	if building_details_panel != null: building_details_panel.visible = false
+	if storage_panel != null: storage_panel.visible = false
+	if machine_panel != null: machine_panel.visible = false
+
+
 func open_building_details(instance_id: String) -> bool:
 	if not placed_targets.has(instance_id): return false
-	if not selected_villager_id.is_empty(): close_villager_panel()
+	_hide_subject_panels()
 	building_details_id = instance_id
 	building_details_open = true
 	building_details_panel.visible = true
@@ -691,7 +719,7 @@ func _update_building_details() -> void:
 
 func select_villager(villager_id: String) -> bool:
 	if not villagers.has(villager_id): return false
-	if building_details_open: close_building_details()
+	_hide_subject_panels()
 	if villagers.has(selected_villager_id): villagers[selected_villager_id].selected = false; villagers[selected_villager_id].queue_redraw()
 	selected_villager_id = villager_id
 	villagers[villager_id].selected = true
@@ -786,14 +814,14 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 		return _handle_order_endpoint(endpoint.stable_id)
 	var clicked_object: Variant = _any_placed_target_at(world_position)
 	if clicked_object != null:
-		return open_building_details(clicked_object.stable_id)
+		return true
 	var nearest: Variant = null
 	var distance := 28.0
 	for villager: Variant in villagers.values():
 		var candidate: float = villager.global_position.distance_to(world_position)
 		if candidate < distance: nearest = villager; distance = candidate
 	if nearest != null:
-		return select_villager(nearest.stable_id)
+		return true
 	if villagers.has(selected_villager_id):
 		villagers[selected_villager_id].assign_move(world_position)
 		villager_order_feedback.text = "Moving to selected point."
@@ -946,7 +974,7 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 		crafting_resource_icons.append(resource_icon)
 	var controls := Label.new()
 	controls.position = Vector2(24, 405)
-	controls.text = "Click a recipe, or W/S + Space to craft    C/Esc/B closes"
+	controls.text = "SPACE to craft"
 	controls.add_theme_font_size_override("font_size", 14)
 	controls.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(controls)
@@ -955,43 +983,50 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 
 func _build_storage_panel(layer: CanvasLayer) -> void:
 	storage_panel = ColorRect.new()
-	storage_panel.position = Vector2(300, 140)
-	storage_panel.size = Vector2(680, 420)
-	storage_panel.color = Color(0.06, 0.07, 0.09, 0.96)
+	storage_panel.position = Vector2(835, 120)
+	storage_panel.size = Vector2(420, 480)
+	storage_panel.color = Color("#d8bd83")
 	storage_panel.visible = false
 	layer.add_child(storage_panel)
 	var title := Label.new()
 	title.position = Vector2(24, 18)
 	title.text = "STORAGE CRATE"
 	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(title)
 	storage_player_label = Label.new()
 	storage_player_label.position = Vector2(24, 68)
-	storage_player_label.size = Vector2(300, 270)
-	storage_player_label.add_theme_font_size_override("font_size", 16)
+	storage_player_label.size = Vector2(190, 300)
+	storage_player_label.add_theme_font_size_override("font_size", 13)
+	storage_player_label.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(storage_player_label)
 	for index in range(inventory.slot_count):
-		var player_icon := _make_item_icon(Vector2(42, 96 + index * 21), Vector2(20, 20))
+		var player_icon := _make_item_icon(Vector2(42, 96 + index * 21), Vector2(18, 18))
 		storage_panel.add_child(player_icon)
 		storage_player_icons.append(player_icon)
 	storage_contents_label = Label.new()
-	storage_contents_label.position = Vector2(355, 68)
-	storage_contents_label.size = Vector2(300, 270)
-	storage_contents_label.add_theme_font_size_override("font_size", 16)
+	storage_contents_label.position = Vector2(215, 68)
+	storage_contents_label.size = Vector2(190, 300)
+	storage_contents_label.add_theme_font_size_override("font_size", 13)
+	storage_contents_label.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(storage_contents_label)
 	for index in range(12):
-		var crate_icon := _make_item_icon(Vector2(373, 96 + index * 21), Vector2(20, 20))
+		var crate_icon := _make_item_icon(Vector2(233, 96 + index * 21), Vector2(18, 18))
 		storage_panel.add_child(crate_icon)
 		storage_crate_icons.append(crate_icon)
 	storage_feedback_label = Label.new()
-	storage_feedback_label.position = Vector2(24, 340)
-	storage_feedback_label.size = Vector2(630, 36)
+	storage_feedback_label.position = Vector2(24, 370)
+	storage_feedback_label.size = Vector2(372, 36)
 	storage_feedback_label.add_theme_font_size_override("font_size", 16)
+	storage_feedback_label.add_theme_color_override("font_color", Color("#6b3e20"))
 	storage_panel.add_child(storage_feedback_label)
 	var controls := Label.new()
-	controls.position = Vector2(24, 382)
+	controls.position = Vector2(24, 420)
+	controls.size = Vector2(372, 48)
+	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.text = "Left/Right: choose inventory    Up/Down: choose item    Space: move stack    Esc: close"
 	controls.add_theme_font_size_override("font_size", 13)
+	controls.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(controls)
 
 
@@ -1246,6 +1281,8 @@ func _update_interaction_target() -> void:
 	for target: Variant in placed_targets.values():
 		if is_instance_valid(target):
 			active.append(target)
+	for villager: Variant in villagers.values():
+		if is_instance_valid(villager): active.append(villager)
 	var selected: Variant = TargetingType.select_target(player.global_position, player.facing, active, INTERACTION_REACH_PX)
 	if selected != interaction_target:
 		if is_instance_valid(interaction_target):
@@ -1263,6 +1300,8 @@ func _update_interaction_target() -> void:
 			interaction_label.text = _construction_prompt(interaction_target.stable_id)
 		elif interaction_target.target_kind == "machine":
 			interaction_label.text = _machine_prompt(interaction_target.stable_id)
+		elif interaction_target.target_kind == "villager":
+			interaction_label.text = "%s | Space to open" % interaction_target.villager_name
 		else:
 			interaction_label.text = "Space to Open %s" % interaction_target.item_label
 		if not route_source_id.is_empty() and interaction_target != null:
@@ -1435,6 +1474,7 @@ func _machine_prompt(instance_id: String) -> String:
 
 func open_machine(instance_id: String) -> bool:
 	if not machines_by_entity_id.has(instance_id): return false
+	_hide_subject_panels()
 	machine_open = true
 	active_machine_id = instance_id
 	player.movement_enabled = false
@@ -1668,6 +1708,7 @@ func _process_logistics_route(route: Variant, delta: float) -> int:
 func open_storage(instance_id: String) -> bool:
 	if not storage_by_entity_id.has(instance_id):
 		return false
+	_hide_subject_panels()
 	storage_open = true
 	active_storage_id = instance_id
 	selected_storage_slot = 0
@@ -1757,14 +1798,14 @@ func _update_storage_ui(feedback: String = "") -> void:
 		player_rows.append("%s      [%d] %s" % [">" if storage_focus_side == 0 and index == selected_slot else " ", index + 1, _slot_text(slot)])
 		if index < storage_player_icons.size(): _sync_item_icon(storage_player_icons[index], slot)
 	storage_player_label.text = "\n".join(player_rows)
-	storage_player_label.add_theme_color_override("font_color", Color("#ffe27a") if storage_focus_side == 0 else Color("#b9b3a7"))
+	storage_player_label.add_theme_color_override("font_color", Color("#6b3e20") if storage_focus_side == 0 else Color("#3b281b"))
 	var storage_rows: Array[String] = ["▶ CRATE INVENTORY" if storage_focus_side == 1 else "  CRATE INVENTORY"]
 	for index in range(storage.slots.size()):
 		storage_rows.append("%s      [%d] %s" % [">" if storage_focus_side == 1 and index == selected_storage_slot else " ", index + 1, _slot_text(storage.slots[index])])
 		if index < storage_crate_icons.size(): _sync_item_icon(storage_crate_icons[index], storage.slots[index])
 	for index in range(storage.slots.size(), storage_crate_icons.size()): storage_crate_icons[index].visible = false
 	storage_contents_label.text = "\n".join(storage_rows)
-	storage_contents_label.add_theme_color_override("font_color", Color("#ffe27a") if storage_focus_side == 1 else Color("#b9b3a7"))
+	storage_contents_label.add_theme_color_override("font_color", Color("#6b3e20") if storage_focus_side == 1 else Color("#3b281b"))
 	storage_feedback_label.text = feedback
 
 

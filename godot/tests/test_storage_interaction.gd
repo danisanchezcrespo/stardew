@@ -49,9 +49,8 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 	game.close_storage()
 	_expect(not game.storage_open and game.player.movement_enabled, "Closing storage should restore player movement.", failures)
 	var crate_screen_position: Vector2 = game.get_canvas_transform() * game.placed_targets[instance_id].global_position
-	_expect(game._handle_villager_world_click(crate_screen_position), "Clicking a placed object should open its shared inspector.", failures)
-	_expect(game.building_details_open and game.building_details_panel.color == Color("#d8bd83") and game.building_details_body.text.contains("Contents"), "Object details should use the parchment right-side panel.", failures)
-	game.close_building_details()
+	_expect(game._handle_villager_world_click(crate_screen_position), "Clicking a placed object should be consumed without opening a second interaction path.", failures)
+	_expect(not game.building_details_open and not game.storage_open, "World objects should open only through Space, never click.", failures)
 	_expect(game.open_storage(instance_id), "Placed crate should reopen with its contents intact.", failures)
 	game.set_storage_focus(1)
 	_expect(game.storage_contents_label.text.begins_with("▶"), "Right-side focus should be visible on the crate column.", failures)

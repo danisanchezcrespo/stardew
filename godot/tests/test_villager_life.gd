@@ -25,6 +25,17 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	_expect(game.open_building_details(home_id), "A completed home should expose building details.", failures)
 	_expect(game.building_details_body.text.contains(villager.villager_name), "Home details should list its residents and needs.", failures)
 	game.close_building_details()
+	villager.position = Vector2(600, 300)
+	game.player.position = Vector2(568, 300)
+	game.player.facing = "east"
+	game._update_interaction_target()
+	_expect(game.interaction_target == villager, "A nearby villager should become the Space interaction target.", failures)
+	var open_action := InputEventAction.new()
+	open_action.action = "use_selected"
+	open_action.pressed = true
+	game._unhandled_input(open_action)
+	_expect(game.selected_villager_id == villager.stable_id and game.villager_panel.visible, "Space should open the villager in the shared right-side panel.", failures)
+	game.close_villager_panel()
 	game.select_villager(villager.stable_id)
 	game._rename_selected_villager("Merit")
 	_expect(villager.villager_name == "Merit", "The characteristics panel should rename a villager.", failures)
