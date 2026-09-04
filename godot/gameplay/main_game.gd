@@ -194,6 +194,11 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# Window shortcuts must be handled before any focused UI Control consumes them.
+	if event.is_action_pressed("toggle_fullscreen"):
+		toggle_fullscreen()
+		get_viewport().set_input_as_handled()
+		return
 	if not event.is_action_pressed("rotate_blueprint") or placement_mode:
 		return
 	if scenario_select_open or machine_open or storage_open or crafting_open:
@@ -240,9 +245,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("zoom_out"):
 		adjust_camera_zoom(-1)
-		return
-	if event.is_action_pressed("toggle_fullscreen"):
-		toggle_fullscreen()
 		return
 	if event.is_action_pressed("next_villager") and not villagers.is_empty():
 		cycle_villager_selection()
