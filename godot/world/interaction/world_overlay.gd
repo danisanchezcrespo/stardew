@@ -11,6 +11,11 @@ func configure(owner_game: Node2D) -> void:
 
 func _draw() -> void:
 	if game == null or game.player == null: return
+	for instance_id: String in game.machines_by_entity_id:
+		var machine: Variant = game.machines_by_entity_id[instance_id]
+		var machine_target: Variant = game.placed_targets.get(instance_id)
+		if machine_target != null and machine.is_running():
+			_draw_machine_progress(machine_target.global_position + Vector2(0, -98), machine.progress())
 	if game.placement_mode:
 		var definition: Variant = game._selected_placeable_definition()
 		if definition != null:
@@ -22,6 +27,9 @@ func _draw() -> void:
 	var anchor: Vector2 = target.global_position + Vector2(0, -34)
 	if target.target_kind == "pickup":
 		_draw_hint(anchor, ["%s x%d" % [target.item_label, target.amount], "Space to pick up"])
+	elif target.target_kind == "resource_source":
+		var status := "%d / %d available" % [target.current_amount, target.max_amount]
+		_draw_hint(anchor, ["%s source" % target.item_label, status, "Space: take up to %d" % target.grant_amount])
 	elif target.target_kind == "construction":
 		_draw_construction(anchor, target)
 	elif target.target_kind == "villager":
@@ -78,6 +86,14 @@ func _draw_progress_hint(anchor: Vector2, progress: float) -> void:
 	var bar := Rect2(rect.position + Vector2(9, 27), Vector2(152, 12))
 	draw_rect(bar, Color("#2b211b"))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(progress, 0.0, 1.0), bar.size.y)), Color("#e5b84b"))
+	draw_rect(bar, Color.WHITE, false, 1.0)
+
+func _draw_machine_progress(anchor: Vector2, progress: float) -> void:
+	var rect := Rect2(anchor - Vector2(54, 18), Vector2(108, 18))
+	_panel(rect)
+	var bar := Rect2(rect.position + Vector2(5, 5), Vector2(98, 8))
+	draw_rect(bar, Color("#2b211b"))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(progress, 0.0, 1.0), bar.size.y)), Color("#e56f35"))
 	draw_rect(bar, Color.WHITE, false, 1.0)
 
 func _panel(rect: Rect2) -> void:

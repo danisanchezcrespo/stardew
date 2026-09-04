@@ -104,6 +104,17 @@ spacing, colours and close behaviour remain consistent. Space inside it
 delivers the selected compatible material or starts construction. Once started,
 construction continues for the definition's configured duration even if the
 player leaves; beginning to walk closes the inspector without cancelling work.
+If the inventory contains materials accepted by an unfinished plan, its
+inspector presents a `DELIVER?` confirmation with the exact stacks; Space
+delivers every compatible amount shown.
+
+Running machines keep a compact progress bar above their world sprite whether
+their inspector is open or closed. Once supplied with compatible input, they
+continue processing when the player leaves.
+
+Scenarios may define renewable `resource_sources` alongside one-shot pickups.
+Each source specifies its item, initial and maximum reserve, amount granted per
+visit, regeneration amount, and regeneration interval in seconds.
 
 Opened by interacting with a building. It occupies part of the screen and keeps
 the world visible. It contains:

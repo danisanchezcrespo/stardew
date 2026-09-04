@@ -26,7 +26,10 @@ func capture(game: Node2D) -> Dictionary:
 	var pickup_amounts: Dictionary = {}
 	for pickup: Variant in game.pickups:
 		if is_instance_valid(pickup): pickup_amounts[pickup.stable_id] = pickup.amount
-	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "campaign": {"completed": game.campaign.completed.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
+	var source_states: Dictionary = {}
+	for source: Variant in game.resource_sources:
+		if is_instance_valid(source): source_states[source.stable_id] = {"amount": source.current_amount, "regen_elapsed": source.regen_elapsed}
+	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
 	var absolute_path := ProjectSettings.globalize_path(path)
@@ -64,6 +67,12 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		if is_instance_valid(pickup) and data.get("pickups", {}).has(pickup.stable_id):
 			pickup.amount = int(data.pickups[pickup.stable_id])
 			pickup.visible = pickup.amount > 0
+	for source: Variant in game.resource_sources:
+		var state: Dictionary = data.get("resource_sources", {}).get(source.stable_id, {})
+		if not state.is_empty():
+			source.current_amount = clampi(int(state.get("amount", source.current_amount)), 0, source.max_amount)
+			source.regen_elapsed = float(state.get("regen_elapsed", 0.0))
+			source.queue_redraw()
 	for row: Dictionary in data.get("entities", []):
 		var definition: Variant = game.placement_registry.get_entity(str(row.definition_id))
 		if definition == null: return ERR_INVALID_DATA

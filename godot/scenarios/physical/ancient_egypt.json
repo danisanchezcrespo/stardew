@@ -9,5 +9,9 @@
     {"id": "pickup-clay-1", "item": "clay", "amount": 32, "cell": [9.5, 7.5]},
     {"id": "pickup-grain-1", "item": "grain", "amount": 25, "cell": [12.5, 5.5]},
     {"id": "pickup-wood-2", "item": "wood", "amount": 42, "cell": [15.5, 8.5]}
+  ],
+  "resource_sources": [
+    {"id": "source-grain-nile", "item": "grain", "cell": [20.5, 6.5], "initial": 500, "max": 500, "grant": 10, "regen_amount": 10, "regen_seconds": 12.0},
+    {"id": "source-clay-nile", "item": "clay", "cell": [27.5, 12.5], "initial": 300, "max": 300, "grant": 8, "regen_amount": 8, "regen_seconds": 15.0}
   ]
 }

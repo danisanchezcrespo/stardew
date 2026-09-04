@@ -10,6 +10,7 @@ var water_color := Color("#4d8fbd")
 var water_rects: Array = []
 var water_gaps: Array[Vector2i] = []
 var pickups: Array = []
+var resource_sources: Array = []
 var errors: Array[String] = []
 
 func load_from_path(path: String) -> Error:
@@ -30,4 +31,7 @@ func load_from_path(path: String) -> Error:
 	pickups = data.get("pickups", []).duplicate(true)
 	for pickup: Dictionary in pickups:
 		if not pickup.has_all(["id", "item", "amount", "cell"]): return ERR_INVALID_DATA
+	resource_sources = data.get("resource_sources", []).duplicate(true)
+	for source: Dictionary in resource_sources:
+		if not source.has_all(["id", "item", "cell", "max", "grant", "regen_amount", "regen_seconds"]): return ERR_INVALID_DATA
 	return OK

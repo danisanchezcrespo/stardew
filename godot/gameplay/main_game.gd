@@ -5,6 +5,7 @@ const PlayerScene = preload("res://player/player.tscn")
 const ItemRegistryType = preload("res://items/item_registry.gd")
 const PlayerInventoryType = preload("res://player/player_inventory.gd")
 const PickupType = preload("res://world/items/world_pickup.gd")
+const ResourceSourceType = preload("res://world/items/resource_source.gd")
 const TargetingType = preload("res://world/interaction/interaction_targeting.gd")
 const RecipeRegistryType = preload("res://crafting/recipe_registry.gd")
 const CraftingSystemType = preload("res://crafting/crafting_system.gd")
@@ -42,6 +43,7 @@ var water_cells: Dictionary = {}
 var item_registry: Variant
 var inventory: Variant
 var pickups: Array = []
+var resource_sources: Array = []
 var interaction_target: Variant = null
 var recipe_registry: Variant
 var crafting: Variant
@@ -108,6 +110,8 @@ var building_details_panel: Control
 var building_details_title: Label
 var building_details_body: Label
 var building_details_controls: Label
+var construction_delivery_popup: ColorRect
+var construction_delivery_label: Label
 var world_overlay: Node2D
 var active_player_build_id := ""
 var day_time_seconds := 60.0
@@ -147,6 +151,8 @@ func _process(delta: float) -> void:
 	workforce.process(delta)
 	for villager: Variant in villagers.values():
 		villager.process_life(self, delta)
+	for source: Variant in resource_sources:
+		if is_instance_valid(source): source.process_source(delta)
 	_update_population_hud()
 	if player != null and position_label != null:
 		var cell := Vector2i(floori(player.position.x / CELL_SIZE), floori(player.position.y / CELL_SIZE))
@@ -303,6 +309,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif not crafting_open and event.is_action_pressed("use_selected"):
 		if interaction_target != null and interaction_target.target_kind == "pickup":
 			collect_target()
+		elif interaction_target != null and interaction_target.target_kind == "resource_source":
+			collect_resource_source(interaction_target)
 		elif interaction_target != null and interaction_target.target_kind == "construction":
 			open_building_details(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
@@ -404,6 +412,8 @@ func _build_items() -> void:
 	assert(result == OK, "Placeable definitions must load: %s" % str(placement_registry.errors))
 	for pickup: Dictionary in scenario.pickups:
 		_spawn_pickup(str(pickup.id), str(pickup.item), int(pickup.amount), Vector2(float(pickup.cell[0]), float(pickup.cell[1])) * CELL_SIZE)
+	for source: Dictionary in scenario.resource_sources:
+		_spawn_resource_source(source)
 
 
 func _spawn_pickup(stable_id: String, item_id: String, amount: int, world_position: Vector2) -> Variant:
@@ -415,6 +425,17 @@ func _spawn_pickup(stable_id: String, item_id: String, amount: int, world_positi
 	add_child(pickup)
 	pickups.append(pickup)
 	return pickup
+
+
+func _spawn_resource_source(data: Dictionary) -> Variant:
+	var definition: Variant = item_registry.get_item(str(data.item))
+	assert(definition != null, "Resource source item must exist: %s" % str(data.item))
+	var source := ResourceSourceType.new()
+	source.position = Vector2(float(data.cell[0]), float(data.cell[1])) * CELL_SIZE
+	source.configure(str(data.id), definition, int(data.get("initial", data.max)), int(data.max), int(data.grant), int(data.regen_amount), float(data.regen_seconds))
+	add_child(source)
+	resource_sources.append(source)
+	return source
 
 
 func _build_hud() -> void:
@@ -624,6 +645,19 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_controls.text = "Esc: close"
 	building_details_controls.add_theme_color_override("font_color", Color("#6b3e20"))
 	building_details_panel.add_child(building_details_controls)
+	construction_delivery_popup = ColorRect.new()
+	construction_delivery_popup.position = Vector2(18, 270)
+	construction_delivery_popup.size = Vector2(384, 150)
+	construction_delivery_popup.color = Color("#3b281b")
+	construction_delivery_popup.visible = false
+	building_details_panel.add_child(construction_delivery_popup)
+	construction_delivery_label = Label.new()
+	construction_delivery_label.position = Vector2(18, 14)
+	construction_delivery_label.size = Vector2(348, 122)
+	construction_delivery_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	construction_delivery_label.add_theme_font_size_override("font_size", 16)
+	construction_delivery_label.add_theme_color_override("font_color", Color("#fffaf0"))
+	construction_delivery_popup.add_child(construction_delivery_label)
 
 
 func _hide_subject_panels() -> void:
@@ -643,6 +677,7 @@ func _hide_subject_panels() -> void:
 	if building_details_panel != null: building_details_panel.visible = false
 	if storage_panel != null: storage_panel.visible = false
 	if machine_panel != null: machine_panel.visible = false
+	if construction_delivery_popup != null: construction_delivery_popup.visible = false
 
 
 func open_building_details(instance_id: String) -> bool:
@@ -672,11 +707,24 @@ func building_details_context_action() -> void:
 	if site == null or site.complete:
 		close_building_details()
 		return
-	if site.materials_complete():
+	if construction_delivery_popup.visible:
+		for row: Dictionary in _construction_deliverable(site):
+			var accepted: int = site.deliver(str(row.item), int(row.amount))
+			if accepted > 0: inventory.remove(str(row.item), accepted)
+		_update_inventory_hud()
+	elif site.materials_complete():
 		active_player_build_id = building_details_id
 	else:
 		deliver_selected_to_construction(building_details_id)
 	_update_building_details()
+
+
+func _construction_deliverable(site: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for item_id: String in site.requirements:
+		var amount := mini(inventory.count(item_id), site.receivable(item_id))
+		if amount > 0: result.append({"item": item_id, "amount": amount})
+	return result
 
 
 func _update_building_details() -> void:
@@ -690,8 +738,15 @@ func _update_building_details() -> void:
 		for item_id: String in site.requirements:
 			materials.append("%s: %d / %d" % [item_registry.get_item(item_id).label, int(site.delivered.get(item_id, 0)), int(site.requirements[item_id])])
 		building_details_body.text = "UNDER CONSTRUCTION\n\nMaterials\n%s\n\nWork: %d%%\nHealth: stable" % ["\n".join(materials), roundi(site.work_progress() * 100.0)]
-		building_details_controls.text = "Space: %s    Esc: close" % ("start building" if site.materials_complete() else "place selected material")
+		var deliverable := _construction_deliverable(site)
+		construction_delivery_popup.visible = not deliverable.is_empty()
+		if not deliverable.is_empty():
+			var delivery_rows: Array[String] = []
+			for row: Dictionary in deliverable: delivery_rows.append("%s x%d" % [item_registry.get_item(str(row.item)).label, int(row.amount)])
+			construction_delivery_label.text = "DELIVER?\n\n%s\n\nSpace = deliver" % "\n".join(delivery_rows)
+		building_details_controls.text = "Space: %s    Esc: close" % ("deliver shown materials" if not deliverable.is_empty() else ("start building" if site.materials_complete() else "select a required material"))
 		return
+	construction_delivery_popup.visible = false
 	building_details_controls.text = "Space / Esc: close"
 	if storage_by_entity_id.has(building_details_id):
 		var rows: Array[String] = []
@@ -1278,6 +1333,8 @@ func _update_interaction_target() -> void:
 	for pickup: Variant in pickups:
 		if is_instance_valid(pickup) and pickup.amount > 0:
 			active.append(pickup)
+	for source: Variant in resource_sources:
+		if is_instance_valid(source): active.append(source)
 	for target: Variant in placed_targets.values():
 		if is_instance_valid(target):
 			active.append(target)
@@ -1296,6 +1353,8 @@ func _update_interaction_target() -> void:
 			interaction_label.text = "ROUTE: approach destination and press R" if not route_source_id.is_empty() else "Approach a resource stack or placed object"
 		elif interaction_target.target_kind == "pickup":
 			interaction_label.text = "%s x%d   Space = Pick up" % [interaction_target.item_label, interaction_target.amount]
+		elif interaction_target.target_kind == "resource_source":
+			interaction_label.text = "%s source %d/%d | Space to gather" % [interaction_target.item_label, interaction_target.current_amount, interaction_target.max_amount]
 		elif interaction_target.target_kind == "construction":
 			interaction_label.text = _construction_prompt(interaction_target.stable_id)
 		elif interaction_target.target_kind == "machine":
@@ -1336,6 +1395,19 @@ func collect_target() -> int:
 		interaction_target = null
 	_update_inventory_hud()
 	queue_redraw()
+	return accepted
+
+
+func collect_resource_source(source: Variant) -> int:
+	if source == null: return 0
+	var requested: int = source.available_grant()
+	if requested <= 0: return 0
+	var accepted: int = inventory.add(source.item_id, requested)
+	if accepted <= 0: return 0
+	source.take(accepted)
+	campaign.record_pickup(source.item_id)
+	_update_inventory_hud()
+	if world_overlay != null: world_overlay.queue_redraw()
 	return accepted
 
 
