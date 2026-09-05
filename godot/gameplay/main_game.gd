@@ -131,6 +131,8 @@ var active_machine_id := ""
 var machine_panel: Control
 var machine_status_label: Label
 var machine_title_label: Label
+var machine_worker_icon: TextureRect
+var machine_remove_worker_button: Button
 var villagers: Dictionary = {}
 var dependents: Dictionary = {}
 var next_dependent_id := 1
@@ -928,7 +930,7 @@ func _build_scenario_panel(layer: CanvasLayer) -> void:
 func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_panel = ColorRect.new()
 	machine_panel.position = Vector2(835, 120)
-	machine_panel.size = Vector2(420, 480)
+	machine_panel.size = Vector2(420, 560)
 	machine_panel.color = Color("#d8bd83")
 	machine_panel.visible = false
 	layer.add_child(machine_panel)
@@ -940,12 +942,26 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_panel.add_child(machine_title_label)
 	machine_status_label = Label.new()
 	machine_status_label.position = Vector2(28, 72)
-	machine_status_label.size = Vector2(364, 320)
+	machine_status_label.size = Vector2(248, 390)
 	machine_status_label.add_theme_font_size_override("font_size", 18)
 	machine_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	machine_panel.add_child(machine_status_label)
+	machine_worker_icon = TextureRect.new()
+	machine_worker_icon.position = Vector2(292, 72)
+	machine_worker_icon.size = Vector2(80, 100)
+	machine_worker_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	machine_worker_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	machine_worker_icon.visible = false
+	machine_panel.add_child(machine_worker_icon)
+	machine_remove_worker_button = Button.new()
+	machine_remove_worker_button.position = Vector2(278, 180)
+	machine_remove_worker_button.size = Vector2(112, 42)
+	machine_remove_worker_button.text = "Remove"
+	machine_remove_worker_button.pressed.connect(_remove_machine_worker)
+	machine_remove_worker_button.visible = false
+	machine_panel.add_child(machine_remove_worker_button)
 	var controls := Label.new()
-	controls.position = Vector2(28, 430)
+	controls.position = Vector2(28, 504)
 	controls.size = Vector2(364, 40)
 	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	controls.text = "Space: add compatible selected item, otherwise collect    Esc: close"
@@ -956,8 +972,8 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 
 func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_panel = ColorRect.new()
-	villager_panel.position = Vector2(835, 120)
-	villager_panel.size = Vector2(420, 480)
+	villager_panel.position = Vector2(835, 55)
+	villager_panel.size = Vector2(420, 610)
 	villager_panel.color = Color("#d8bd83")
 	villager_panel.visible = false
 	layer.add_child(villager_panel)
@@ -993,35 +1009,35 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_panel.add_child(villager_priority_option)
 	villager_status_label = Label.new()
 	villager_status_label.position = Vector2(22, 194)
-	villager_status_label.size = Vector2(376, 88)
+	villager_status_label.size = Vector2(376, 126)
 	villager_status_label.add_theme_font_size_override("font_size", 16)
 	villager_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	villager_panel.add_child(villager_status_label)
 	villager_resource_option = OptionButton.new()
-	villager_resource_option.position = Vector2(22, 286)
+	villager_resource_option.position = Vector2(22, 326)
 	villager_resource_option.size = Vector2(376, 36)
 	villager_resource_option.visible = false
 	villager_panel.add_child(villager_resource_option)
 	var assign := Button.new()
-	assign.position = Vector2(22, 330)
-	assign.size = Vector2(94, 42)
+	assign.position = Vector2(22, 374)
+	assign.size = Vector2(376, 42)
 	assign.text = "Assign transport"
 	assign.pressed.connect(begin_villager_transport_order)
 	villager_panel.add_child(assign)
 	var work := Button.new()
-	work.position = Vector2(143, 330)
-	work.size = Vector2(94, 42)
+	work.position = Vector2(22, 424)
+	work.size = Vector2(376, 42)
 	work.text = "Assign work"
 	work.pressed.connect(begin_villager_work_order)
 	villager_panel.add_child(work)
 	var stop := Button.new()
-	stop.position = Vector2(264, 330)
-	stop.size = Vector2(94, 42)
+	stop.position = Vector2(22, 474)
+	stop.size = Vector2(376, 42)
 	stop.text = "Stop task"
 	stop.pressed.connect(stop_selected_villager_task)
 	villager_panel.add_child(stop)
 	villager_order_feedback = Label.new()
-	villager_order_feedback.position = Vector2(22, 385)
+	villager_order_feedback.position = Vector2(22, 530)
 	villager_order_feedback.size = Vector2(376, 62)
 	villager_order_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	villager_order_feedback.add_theme_color_override("font_color", Color("#6b3e20"))
@@ -1116,6 +1132,11 @@ func close_building_details() -> void:
 func building_details_context_action() -> void:
 	var site: Variant = construction_by_entity_id.get(building_details_id)
 	if site == null or site.complete:
+		var placed: Variant = world_grid.entities_by_id.get(building_details_id)
+		if placed != null and placed.definition_id == "CHICKEN_COOP":
+			_raise_chicken(building_details_id)
+			_update_building_details()
+			return
 		close_building_details()
 		return
 	if construction_delivery_popup.visible:
@@ -1178,6 +1199,11 @@ func _update_building_details() -> void:
 		for item_id: String in machine.recipe_inputs: inputs.append("%s x%d" % [item_registry.get_item(item_id).label, machine.input_inventory.count(item_id)])
 		for item_id: String in machine.recipe_outputs: outputs.append("%s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
 		building_details_body.text = "KILN\n\nState: %s\nHealth: %d / %d\nProgress: %d%%\n\nInput\n%s\n\nOutput\n%s" % ["broken" if machine.broken else ("working" if machine.is_running() else "ready"), machine.durability, machine.max_durability, roundi(machine.progress() * 100.0), "\n".join(inputs), "\n".join(outputs)]
+		return
+	if placed.definition_id == "CHICKEN_COOP":
+		var chicken_count := _dependent_count(building_details_id, "chicken")
+		building_details_body.text = "CHICKEN COOP\n\nChickens: %d / 3\n\nAssign an animal keeper. Feed each chicken Grain and Water. Adults lay eggs every 35 seconds; collect them with Space.\n\nNew chicken cost: Grain x5" % chicken_count
+		building_details_controls.text = "Space: raise chicken (Grain x5)    Esc: close" if chicken_count < 3 else "Coop full    Esc: close"
 		return
 	if definition.population_capacity > 0:
 		var resident_rows: Array[String] = []
@@ -2205,7 +2231,7 @@ func interact_with_dependent(actor: Variant) -> int:
 		interaction_label.text = "Collected %s x%d" % [item_registry.get_item(actor.product_item).label, accepted]
 		_update_inventory_hud()
 		return accepted
-	if actor.is_mature() and actor.harvest_armed:
+	if actor.is_mature() and actor.harvest_armed and (actor.wild or actor.required_tool.is_empty() or selected_item == actor.required_tool):
 		var produced := 0
 		for item_id: String in actor.harvest_outputs:
 			var accepted: int = inventory.add(item_id, int(actor.harvest_outputs[item_id]))
@@ -2218,12 +2244,33 @@ func interact_with_dependent(actor: Variant) -> int:
 		interaction_label.text = "%s · %d items recovered" % ["Hunt complete" if actor.wild else "Animal processed", produced]
 		_update_inventory_hud()
 		return produced
-	if actor.is_mature():
+	if actor.is_mature() and (actor.wild or (not actor.required_tool.is_empty() and selected_item == actor.required_tool)):
 		actor.harvest_armed = true
 		interaction_label.text = actor.status_text() + (" · Space again to hunt" if actor.wild else " · Space again to process into meat")
 		return 0
 	interaction_label.text = actor.status_text() + " · select %s or %s to care" % [item_registry.get_item(actor.feed_item).label, item_registry.get_item(actor.drink_item).label]
 	return 0
+
+
+func _dependent_count(home_id: String, species_id: String) -> int:
+	var count := 0
+	for actor: Variant in dependents.values():
+		if actor.home_id == home_id and actor.species_id == species_id: count += 1
+	return count
+
+
+func _raise_chicken(home_id: String) -> bool:
+	if _dependent_count(home_id, "chicken") >= 3:
+		interaction_label.text = "Chicken coop is full"
+		return false
+	if inventory.count("grain") < 5:
+		interaction_label.text = "Need Grain x5 to raise a chicken"
+		return false
+	inventory.remove("grain", 5)
+	spawn_dependent("chicken", home_id)
+	_update_inventory_hud()
+	interaction_label.text = "A new young chicken joined the coop"
+	return true
 
 
 func _play_feedback(stream: AudioStream) -> void:
@@ -2352,10 +2399,28 @@ func _update_machine_panel() -> void:
 		output_rows.append("%s: %d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
 	var state := "BROKEN - needs Wood x2" if machine.broken else ("UNSTAFFED" if not machine.staffed else ("FIRING %d%%" % roundi(machine.progress() * 100.0) if machine.is_running() else "READY / WAITING FOR INPUT"))
 	var worker_names: Array[String] = []
+	var assigned_worker: Variant = null
 	for villager: Variant in villagers.values():
 		if not villager.task.is_empty() and str(villager.task.get("type", "")) == "work" and str(villager.task.get("target", "")) == active_machine_id:
 			worker_names.append(villager.villager_name)
+			if assigned_worker == null: assigned_worker = villager
 	machine_status_label.text = "State: %s\nHealth: %d / %d\nWorker: %s\nProgress: %d%%\n\nINPUT\n%s\n\nACCUMULATED OUTPUT\n%s" % [state, machine.durability, machine.max_durability, ", ".join(worker_names) if not worker_names.is_empty() else "none", roundi(machine.progress() * 100.0), "\n".join(input_rows), "\n".join(output_rows)]
+	machine_worker_icon.visible = assigned_worker != null
+	machine_remove_worker_button.visible = assigned_worker != null
+	if assigned_worker != null:
+		var worker_texture: Texture2D = assigned_worker.scenario_character_sheet
+		if not assigned_worker.scenario_character_sheets.is_empty(): worker_texture = assigned_worker.scenario_character_sheets[assigned_worker.appearance_id % assigned_worker.scenario_character_sheets.size()]
+		var portrait := AtlasTexture.new()
+		portrait.atlas = worker_texture
+		portrait.region = Rect2(0, 160, 64, 80)
+		machine_worker_icon.texture = portrait
+
+
+func _remove_machine_worker() -> void:
+	for villager: Variant in villagers.values():
+		if not villager.task.is_empty() and str(villager.task.get("type", "")) == "work" and str(villager.task.get("target", "")) == active_machine_id:
+			villager.clear_task()
+	_update_machine_panel()
 
 
 func select_route_endpoint(instance_id: String) -> bool:
@@ -2856,9 +2921,11 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
 	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
 	var sprite_size := Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
-	if definition_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP"]: sprite_size *= 2.0
+	if definition_id == "GRAIN_FARM": sprite_size = Vector2(128, 112)
+	elif definition_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP"]: sprite_size *= 2.0
 	elif definition_id == "SHRINE": sprite_size = Vector2(maxf(112.0, footprint_size.x + 36.0), maxf(116.0, footprint_size.y + 20.0)) * 2.0
 	var bottom_center := Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
+	if visual.has("scale"): sprite_size *= float(visual.scale)
 	var destination := Rect2(bottom_center - Vector2(sprite_size.x * 0.5, sprite_size.y), sprite_size)
 	var tint := Color(0.45, 1.0, 0.55, 0.62) if valid else Color(1.0, 0.35, 0.35, 0.62)
 	if not visual.is_empty():

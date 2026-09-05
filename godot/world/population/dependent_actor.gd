@@ -116,7 +116,8 @@ func set_targeted(value: bool) -> void: targeted = value; queue_redraw()
 func status_text() -> String:
 	var stage := "adult" if is_mature() else "young · %d%%" % roundi(age_seconds / mature_seconds * 100.0)
 	if wild: return "%s\nWild animal · Health %d%%\nRequired: %s" % [display_name, roundi(health), required_tool.capitalize()]
-	return "%s\n%s · %s\nFood %d%% · Water %d%% · Health %d%%" % [display_name, stage, "cared for" if cared_for else "needs assigned keeper", roundi(hunger), roundi(thirst), roundi(health)]
+	var product_status := "\n%s ready: %d" % [product_item.capitalize(), stored_product] if not product_item.is_empty() else ""
+	return "%s\n%s · %s\nFood %d%% · Water %d%% · Health %d%%%s" % [display_name, stage, "cared for" if cared_for else "needs assigned keeper", roundi(hunger), roundi(thirst), roundi(health), product_status]
 
 
 func _draw() -> void:

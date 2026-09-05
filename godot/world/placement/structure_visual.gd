@@ -32,7 +32,9 @@ func configure(type_id: String, cells: Array[Vector2i], visual_data: Dictionary 
 		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
 	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
 	sprite_size = Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
-	if definition_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP"]:
+	if definition_id == "GRAIN_FARM":
+		sprite_size = Vector2(128, 112)
+	elif definition_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP"]:
 		sprite_size *= 2.0
 	elif definition_id == "SHRINE":
 		# The temple art is nearly square; preserve that authored 3/4 projection.
@@ -54,7 +56,9 @@ func _draw() -> void:
 		var rows_count := maxi(1, int(visual.get("rows", 1)))
 		var column := int(visual.get("column", 0))
 		var row := int(visual.get("row", 0))
-		if visual.has("scale"): destination = Rect2(destination.position * float(visual.scale), destination.size * float(visual.scale))
+		if visual.has("scale"):
+			var scale_factor := float(visual.scale)
+			destination = Rect2(Vector2(-sprite_size.x * scale_factor * 0.5, -sprite_size.y * scale_factor), sprite_size * scale_factor)
 		var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
 		draw_texture_rect_region(texture, destination, Rect2(Vector2(column, row) * region_size, region_size))
 	elif industry_columns.has(definition_id):

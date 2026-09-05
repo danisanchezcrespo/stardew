@@ -61,7 +61,7 @@
       "id": "GRAIN_FARM", "label": "Irrigated Grain Farm", "color": "#d5ad3c",
       "construction_cost": {"wood": 8, "mud_bricks": 4}, "construction_work_seconds": 4.0,
       "recipe_inputs": {"water": 2}, "recipe_outputs": {"grain": 5}, "process_time_sec": 7.0, "workers_required": 1, "worker_priority": 40,
-      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+      "spatial": {"footprint": [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [1,-1], "input": [-1,1], "output": [3,1]}}
     },
     {
       "id": "BAKERY", "label": "Bakery", "color": "#c77a42",
@@ -119,7 +119,7 @@
     },
     {
       "id":"CHICKEN_COOP","label":"Chicken Coop","color":"#b9874f","construction_cost":{"planks":6,"mud_bricks":4},"construction_work_seconds":5.0,"workers_required":1,"profession":"animal_keeper","dependent_spawns":["chicken"],
-      "visual":{"texture":"res://assets/generated/buildings/egypt_economy_buildings_sheet.png","columns":5,"column":0},
+      "visual":{"texture":"res://assets/generated/buildings/chicken_coop.png","columns":1,"column":0,"scale":1.15},
       "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1]}}
     },
     {

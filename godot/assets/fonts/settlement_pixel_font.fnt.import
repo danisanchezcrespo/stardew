@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dv3q31xwnurr4"
+path="res://.godot/imported/settlement_pixel_font.fnt-46ecae62cd63e4ef86c655716ba8dd9d.fontdata"
+
+[deps]
+
+source_file="res://assets/fonts/settlement_pixel_font.fnt"
+dest_files=["res://.godot/imported/settlement_pixel_font.fnt-46ecae62cd63e4ef86c655716ba8dd9d.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

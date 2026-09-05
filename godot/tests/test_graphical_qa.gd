@@ -18,6 +18,8 @@ func _initialize() -> void:
 		_validate_sheet(path, failures)
 	_validate_mammoth(failures)
 	_validate_medieval_resources(failures)
+	_expect(ResourceLoader.exists("res://assets/fonts/settlement_pixel_font.fnt"), "The texture font must be importable.", failures)
+	_expect(ResourceLoader.exists("res://assets/generated/buildings/chicken_coop.png"), "Chicken coop must have a dedicated sprite.", failures)
 	if failures.is_empty():
 		print("PASS: graphical QA (240 player frames and mammoth atlas)")
 		quit(0)

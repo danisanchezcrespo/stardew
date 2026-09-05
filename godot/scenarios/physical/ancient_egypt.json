@@ -11,7 +11,7 @@
     {"id":"cool_evening","label":"Cool river breeze","starts_at":0.68,"duration":0.08,"worker_speed":1.08,"description":"The evening breeze restores the settlement's pace."}
   ],
   "dependents": [
-    {"id":"chicken","label":"Chicken","feed_item":"grain","drink_item":"water","product_item":"egg","mature_seconds":75.0,"product_interval":35.0,"harvest_outputs":{"meat":2},"texture":"res://assets/generated/animals/livestock.png","juvenile_row":1,"adult_row":0,"wander_radius":34.0},
+    {"id":"chicken","label":"Chicken","feed_item":"grain","drink_item":"water","product_item":"egg","required_tool":"bronze_tools","mature_seconds":75.0,"product_interval":35.0,"harvest_outputs":{"meat":2},"texture":"res://assets/generated/animals/livestock.png","juvenile_row":1,"adult_row":0,"wander_radius":34.0},
     {"id":"cow","label":"Cow","feed_item":"grain","drink_item":"water","product_item":"milk","mature_seconds":120.0,"product_interval":50.0,"harvest_outputs":{"meat":6},"texture":"res://assets/generated/animals/livestock.png","juvenile_row":3,"adult_row":2,"wander_radius":42.0}
   ],
   "palette": {"ground": "#cdbb7d", "water": "#4d8fbd"},

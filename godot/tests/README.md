@@ -39,6 +39,12 @@ Player atlas dimensions, per-frame clipping and the mammoth atlas can be checked
 godot --headless --path godot --script res://tests/test_graphical_qa.gd
 ```
 
+Chicken egg production, safe interaction and flock replacement can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_animal_husbandry.gd
+```
+
 Item definitions, inventory capacity, targeting and pickup can be checked with:
 
 ```powershell

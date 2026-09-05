@@ -3,6 +3,7 @@ extends RefCounted
 
 const REGULAR = preload("res://assets/fonts/AlegreyaSans-Regular.ttf")
 const BOLD = preload("res://assets/fonts/AlegreyaSans-Bold.ttf")
+const PIXEL = preload("res://assets/fonts/settlement_pixel_font.fnt")
 const INK := Color("#30241d")
 const CREAM := Color("#fff3d2")
 const GOLD := Color("#d9ae54")
@@ -19,8 +20,10 @@ static func create(palette: Dictionary = {}) -> Theme:
 	var result := Theme.new()
 	result.default_font = REGULAR
 	result.default_font_size = 17
-	result.set_font("font", "Button", BOLD)
-	result.set_font("font", "OptionButton", BOLD)
+	result.set_font("font", "Button", PIXEL)
+	result.set_font("font", "OptionButton", PIXEL)
+	result.set_font_size("font_size", "Button", 19)
+	result.set_font_size("font_size", "OptionButton", 18)
 	result.set_font("font", "LineEdit", REGULAR)
 	result.set_color("font_color", "Button", cream)
 	result.set_color("font_hover_color", "Button", Color.WHITE)
@@ -58,8 +61,7 @@ static func emphasize_headings(node: Node) -> void:
 	if node is Label:
 		var label := node as Label
 		if label.get_theme_font_size("font_size") >= 23:
-			label.add_theme_font_override("font", BOLD)
-			label.add_theme_color_override("font_color", INK)
+			label.add_theme_font_override("font", PIXEL)
 	for child: Node in node.get_children(): emphasize_headings(child)
 
 

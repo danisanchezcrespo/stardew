@@ -24,6 +24,7 @@ func _capture() -> void:
 	# Frame a representative gameplay area instead of the empty map edge.
 	var capture_cell := Vector2(float(args[3]), float(args[4])) if args.size() > 4 else Vector2(12.0, 8.0)
 	game.player.position = capture_cell * game.CELL_SIZE
+	if args.size() > 5 and str(args[5]) == "pause": game.set_pause_open(true)
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()
