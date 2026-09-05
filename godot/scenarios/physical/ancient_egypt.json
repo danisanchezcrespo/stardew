@@ -2,6 +2,7 @@
   "id": "ancient_egypt",
   "label": "Settlement on the Nile",
   "save_key": "ancient_egypt",
+  "repair_item_id": "wood",
   "campaign_path": "res://world/progression/ancient_egypt_campaign.json",
   "ground_texture": "res://assets/generated/terrain/sand_v2.png",
   "terminology": {"people":"villagers","person":"villager","water":"water","home":"dwelling"},

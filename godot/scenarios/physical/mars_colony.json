@@ -7,6 +7,7 @@
   "recipes_path":"res://scenarios/mars/recipes.json",
   "placeables_path":"res://scenarios/mars/placeables.json",
   "food_item_id":"mars_ration",
+  "repair_item_id":"metal_plate",
   "ground_texture":"res://assets/generated/mars/mars_ground.png",
   "path_texture":"res://assets/generated/mars/mars_path.png",
   "character_sheet":"res://assets/generated/mars/mars_colonist.png",

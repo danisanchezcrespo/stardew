@@ -2816,7 +2816,7 @@ func deliver_selected_to_machine(instance_id: String) -> int:
 		return 0
 	var slot: Dictionary = inventory.slots[selected_slot]
 	if machine.broken:
-		var repair_cost: int = machine.repair(slot.item_id, int(slot.amount))
+		var repair_cost: int = machine.repair(slot.item_id, int(slot.amount), scenario.repair_item_id)
 		if repair_cost > 0:
 			inventory.remove(slot.item_id, repair_cost)
 			_update_inventory_hud()
@@ -2837,7 +2837,7 @@ func machine_context_action(instance_id: String) -> int:
 	if machine == null: return 0
 	if not inventory.slots[selected_slot].is_empty():
 		var item_id: String = inventory.slots[selected_slot].item_id
-		if (machine.broken and item_id == "wood") or machine.accepts(item_id):
+		if (machine.broken and item_id == scenario.repair_item_id) or machine.accepts(item_id):
 			return deliver_selected_to_machine(instance_id)
 	return withdraw_machine_output(instance_id)
 
@@ -2917,7 +2917,9 @@ func _update_machine_panel() -> void:
 	var output_rows: Array[String] = []
 	for item_id: String in machine.recipe_outputs:
 		output_rows.append("%s: %d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
-	var state := "BROKEN - needs Wood x2" if machine.broken else ("UNSTAFFED" if not machine.staffed else ("FIRING %d%%" % roundi(machine.progress() * 100.0) if machine.is_running() else "READY / WAITING FOR INPUT"))
+	var repair_item: Variant = item_registry.get_item(scenario.repair_item_id)
+	var repair_label: String = repair_item.label if repair_item != null else scenario.repair_item_id.capitalize()
+	var state := "BROKEN - needs %s x2" % repair_label if machine.broken else ("UNSTAFFED" if not machine.staffed else ("FIRING %d%%" % roundi(machine.progress() * 100.0) if machine.is_running() else "READY / WAITING FOR INPUT"))
 	var worker_names: Array[String] = []
 	var assigned_worker: Variant = null
 	for villager: Variant in villagers.values():

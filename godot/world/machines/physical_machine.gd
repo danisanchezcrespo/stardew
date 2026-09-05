@@ -29,8 +29,8 @@ func accepts(item_id: String) -> bool:
 func add_input(item_id: String, amount: int) -> int:
 	return input_inventory.add(item_id, amount) if accepts(item_id) else 0
 
-func repair(item_id: String, amount: int) -> int:
-	if not broken or item_id != "wood" or amount < 2:
+func repair(item_id: String, amount: int, required_item_id: String = "wood") -> int:
+	if not broken or item_id != required_item_id or amount < 2:
 		return 0
 	durability = max_durability
 	broken = false

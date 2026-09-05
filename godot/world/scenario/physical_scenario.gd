@@ -30,6 +30,7 @@ var items_path := "res://items/items.json"
 var recipes_path := "res://crafting/recipes.json"
 var placeables_path := "res://world/placeables.json"
 var food_item_id := "food_ration"
+var repair_item_id := "wood"
 var resident_names: Array[String] = []
 
 func load_from_path(path: String) -> Error:
@@ -58,6 +59,7 @@ func load_from_path(path: String) -> Error:
 	recipes_path = str(data.get("recipes_path", recipes_path))
 	placeables_path = str(data.get("placeables_path", placeables_path))
 	food_item_id = str(data.get("food_item_id", food_item_id))
+	repair_item_id = str(data.get("repair_item_id", repair_item_id))
 	resident_names.clear()
 	for resident_name: Variant in data.get("resident_names", []): resident_names.append(str(resident_name))
 	var palette: Dictionary = data.get("palette", {})

@@ -1,6 +1,6 @@
 {
  "id":"medieval","label":"Medieval - A New Village","save_key":"medieval","campaign_path":"res://world/progression/medieval_campaign.json",
- "items_path":"res://scenarios/medieval/items.json","recipes_path":"res://scenarios/medieval/recipes.json","placeables_path":"res://scenarios/medieval/placeables.json","food_item_id":"loaf",
+ "items_path":"res://scenarios/medieval/items.json","recipes_path":"res://scenarios/medieval/recipes.json","placeables_path":"res://scenarios/medieval/placeables.json","food_item_id":"loaf","repair_item_id":"oak_wood",
  "ground_texture":"res://assets/generated/medieval/medieval_ground.png","path_texture":"res://assets/generated/medieval/medieval_path.png","character_sheet":"res://assets/generated/medieval/medieval_character.png","character_sheets":["res://assets/generated/medieval/medieval_character.png","res://assets/generated/medieval/medieval_character_female.png"],
  "palette":{"ground":"#618044","water":"#4b8ba7"},"terminology":{"people":"villagers","person":"villager","water":"river water","home":"cottage"},"resident_names":["Alys","Edwin","Mabel","Hugh","Joan","Osric","Elin","Robin"],
  "theme":{"ink":"#f5e5c4","text":"#fff7e6","accent":"#d5ad57","button":"#60472f","dark":"#211b18","panel":"#44362b"},

@@ -19,6 +19,8 @@ func _initialize() -> void:
 	_expect(machine.output_inventory.count("mud_bricks") == output_before, "Broken machine must stop safely.", failures)
 	_expect(machine.repair("clay", 2) == 0 and machine.broken, "Incorrect repair resource should be rejected.", failures)
 	_expect(machine.repair("wood", 2) == 2 and not machine.broken, "Two wood should restore a broken machine.", failures)
+	machine.broken = true
+	_expect(machine.repair("oak_wood", 2, "oak_wood") == 2 and not machine.broken, "Scenario-specific repair materials should restore a broken machine.", failures)
 	machine.process(0.01)
 	machine.process(0.1)
 	_expect(machine.output_inventory.count("mud_bricks") == output_before + 1, "Repaired machine should resume queued work.", failures)
