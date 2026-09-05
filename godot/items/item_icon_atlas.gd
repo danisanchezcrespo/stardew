@@ -3,7 +3,7 @@ extends RefCounted
 
 const TEXTURE = preload("res://assets/generated/items/egypt_item_icons.png")
 const ECONOMY_TEXTURE = preload("res://assets/generated/items/egypt_economy_item_icons.png")
-const CROP_TEXTURE = preload("res://assets/generated/crops/tree_growth_v2.png")
+const CROP_TEXTURE = preload("res://assets/generated/crops/tree_growth_v3.png")
 const CELLS := {
 	"wood": Vector2i(0, 0), "clay": Vector2i(1, 0), "grain": Vector2i(2, 0),
 	"mud_bricks": Vector2i(0, 1), "storage_crate": Vector2i(1, 1), "brick_kiln_plan": Vector2i(2, 1),

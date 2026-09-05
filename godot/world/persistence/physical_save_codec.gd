@@ -121,6 +121,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		var restored_site: Variant = game.construction_by_entity_id.get(str(row.id))
 		if restored_site == null or restored_site.complete:
 			game.placed_targets[str(row.id)].target_kind = "storage" if row.has("storage") else ("machine" if row.has("machine") else "building")
+			game._add_structure_visual(str(row.id), definition.entity_id, result.cells)
 		game.next_placed_id = maxi(game.next_placed_id, int(str(row.id).get_slice("-", 1)) + 1)
 	for villager_data: Dictionary in data.get("villagers", []):
 		game.restore_villager(villager_data)
@@ -131,6 +132,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			if definition != null and definition.entity_id == "DWELLING" and site != null and site.complete:
 				game.spawn_villagers_for_home(placed.instance_id, definition.population_capacity)
 	for row: Dictionary in data.get("routes", []):
+		game.restore_water_route_target(str(row.source))
 		var route := PhysicalRoute.new(str(row.id), str(row.source), str(row.destination), 2.0, str(row.get("villager", "")), str(row.get("item", "")))
 		route.progress_seconds = float(row.progress)
 		route.trips_completed = int(row.trips)

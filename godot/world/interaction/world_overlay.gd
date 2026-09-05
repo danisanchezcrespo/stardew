@@ -18,7 +18,7 @@ func _draw() -> void:
 			_draw_machine_progress(machine_target.global_position + Vector2(0, -98), machine.progress(), machine_target.item_label)
 	for crop: Variant in game.crops:
 		if is_instance_valid(crop) and crop.watered:
-			_draw_crop_progress(crop.global_position + Vector2(0, -58), crop.stage_label(), crop.progress())
+			_draw_crop_progress(crop.overlay_anchor(), crop.stage_label(), crop.progress())
 	if game.placement_mode:
 		var definition: Variant = game._selected_placeable_definition()
 		if definition != null:
@@ -107,10 +107,10 @@ func _draw_machine_progress(anchor: Vector2, progress: float, label: String) -> 
 	draw_rect(bar, Color("#f0cc72"), false, 1.0)
 
 func _draw_crop_progress(anchor: Vector2, label: String, progress: float) -> void:
-	var rect := Rect2(anchor - Vector2(75, 42), Vector2(150, 42))
+	var rect := Rect2(anchor - Vector2(62, 36), Vector2(124, 36))
 	_panel(rect)
 	draw_string(ThemeDB.fallback_font, rect.position + Vector2(8, 15), "%s growing  %d%%" % [label, roundi(progress * 100.0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
-	var bar := Rect2(rect.position + Vector2(8, 25), Vector2(134, 9))
+	var bar := Rect2(rect.position + Vector2(8, 23), Vector2(108, 8))
 	draw_rect(bar, Color("#172016"))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(progress, 0.0, 1.0), bar.size.y)), Color("#70b84a"))
 	draw_rect(bar, Color("#d8efab"), false, 1.0)

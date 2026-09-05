@@ -107,6 +107,36 @@ def clean_tree_sheet(source: Path, output: Path) -> None:
     image.save(output)
 
 
+def normalize_tree_sheet(source: Path, output: Path) -> None:
+    """Give every generated stage an exact, roomy atlas cell without distorting it."""
+    image = Image.open(source).convert("RGBA")
+    width, height = image.size
+    cell_size = (512, 1024)
+    atlas = Image.new("RGBA", (cell_size[0] * 4, cell_size[1]), (0, 0, 0, 0))
+    alpha = image.getchannel("A")
+    runs = []
+    start = None
+    for x in range(width):
+        occupied = alpha.crop((x, 0, x + 1, height)).getbbox() is not None
+        if occupied and start is None: start = x
+        if not occupied and start is not None:
+            runs.append((start, x)); start = None
+    if start is not None: runs.append((start, width))
+    if len(runs) != 4:
+        raise ValueError(f"Expected four separated growth stages, found {len(runs)}")
+    for index, (left, right) in enumerate(runs):
+        stage_alpha = alpha.crop((left, 0, right, height))
+        bounds = stage_alpha.getbbox()
+        top = bounds[1] if bounds else 0
+        bottom = bounds[3] if bounds else height
+        stage = image.crop((max(0, left - 8), max(0, top - 8), min(width, right + 8), min(height, bottom + 8)))
+        stage.thumbnail((cell_size[0] - 32, cell_size[1] - 32), Image.Resampling.LANCZOS)
+        x = index * cell_size[0] + (cell_size[0] - stage.width) // 2
+        y = cell_size[1] - stage.height - 16
+        atlas.alpha_composite(stage, (x, y))
+    atlas.save(output)
+
+
 if __name__ == "__main__":
     terrain = GENERATED / "terrain"
     crops = GENERATED / "crops"
@@ -115,3 +145,4 @@ if __name__ == "__main__":
     shoreline_atlas(sand, terrain / "shoreline_v2.png")
     inner_corner_atlas(sand, terrain / "shoreline_inner_corners_v2.png")
     clean_tree_sheet(crops / "tree_growth_source.png", crops / "tree_growth_v2.png")
+    normalize_tree_sheet(crops / "tree_growth_v3.png", crops / "tree_growth_v3.png")

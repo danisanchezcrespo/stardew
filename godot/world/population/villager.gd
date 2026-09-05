@@ -31,6 +31,8 @@ func configure(id: String, display_name: String, dwelling_id: String, spawn_posi
 	home_id = dwelling_id
 	home_position = spawn_position
 	position = spawn_position
+	z_as_relative = false
+	z_index = roundi(global_position.y + 10.0)
 	color_tint = tint
 	queue_redraw()
 
@@ -67,6 +69,7 @@ func set_targeted(value: bool) -> void:
 
 
 func process_life(game: Node2D, delta: float) -> void:
+	z_index = roundi(global_position.y + 10.0)
 	hunger = maxf(0.0, hunger - delta * (0.16 if state == "available" or state == "sleeping" else 0.28))
 	energy = maxf(0.0, energy - delta * (0.03 if state == "available" else 0.12))
 	if state == "sleeping":

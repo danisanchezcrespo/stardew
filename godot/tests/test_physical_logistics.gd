@@ -69,6 +69,15 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	for _step in range(120): outbound_villager.process_life(game, 0.1)
 	_expect(game.storage_by_entity_id[output_crate].count("mud_bricks") == 1, "Porter should carry finished bricks to destination storage.", failures)
 	_expect(outbound.trips_completed == 1, "Successful delivery should count one physical trip.", failures)
+	var water_cell: Vector2i = game.water_cells.keys()[0]
+	var water_target: Variant = game._ensure_water_route_target(water_cell)
+	game.spawn_villagers_for_home(input_crate, 3)
+	var water_villager: Variant = game.villagers.values()[2]
+	_expect(game.create_logistics_route(water_target.stable_id, output_crate, water_villager.stable_id, "water"), "A villager should accept an infinite-water-to-crate transport order.", failures)
+	water_villager.position = water_target.global_position
+	water_villager.state = "to_source"
+	water_villager.process_life(game, 0.1)
+	_expect(water_villager.carrying_item == "water" and water_villager.carrying_amount == 3, "Water source should provide a physical carrying stack without depletion.", failures)
 	game_root.queue_free()
 	await process_frame
 

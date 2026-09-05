@@ -25,11 +25,12 @@ const VillagerType = preload("res://world/population/villager.gd")
 const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
 const WorldOverlayType = preload("res://world/interaction/world_overlay.gd")
 const TreeCropType = preload("res://world/crops/tree_crop.gd")
+const StructureVisualType = preload("res://world/placement/structure_visual.gd")
 const SAND_TEXTURE = preload("res://assets/generated/terrain/sand_v2.png")
 const WATER_TEXTURE = preload("res://assets/generated/terrain/water_v2.png")
 const SHORELINE_TEXTURE = preload("res://assets/generated/terrain/shoreline_v2.png")
 const SHORELINE_CORNER_TEXTURE = preload("res://assets/generated/terrain/shoreline_inner_corners_v2.png")
-const TREE_GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_v2.png")
+const TREE_GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_v3.png")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -73,6 +74,7 @@ var placement_rotation := 0
 var next_placed_id := 1
 var placement_feedback := ""
 var placed_targets: Dictionary = {}
+var structure_visuals: Dictionary = {}
 var storage_by_entity_id: Dictionary = {}
 var storage_open := false
 var active_storage_id := ""
@@ -400,7 +402,6 @@ func _build_player() -> void:
 	player = PlayerScene.instantiate()
 	player.position = Vector2(6.5, 6.5) * CELL_SIZE
 	add_child(player)
-	player.z_index = 100
 	camera = player.get_node("Camera2D")
 	camera.limit_left = 0
 	camera.limit_top = 0
@@ -896,7 +897,7 @@ func begin_villager_transport_order() -> void:
 	pending_order_source_id = ""
 	villager_resource_option.clear()
 	villager_resource_option.visible = false
-	villager_order_feedback.text = "Click a completed crate or machine as SOURCE."
+	villager_order_feedback.text = "Click water, a completed crate, or a machine as SOURCE."
 
 
 func begin_villager_work_order() -> void:
@@ -922,8 +923,11 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 	var world_position: Vector2 = get_canvas_transform().affine_inverse() * screen_position
 	if not villager_order_mode.is_empty():
 		var endpoint: Variant = _placed_target_at(world_position)
+		if endpoint == null and villager_order_mode == "source":
+			var water_cell := _water_cell_at_world(world_position)
+			if water_cell != Vector2i(-1, -1): endpoint = _ensure_water_route_target(water_cell)
 		if endpoint == null:
-			villager_order_feedback.text = "Select a completed crate or machine."
+			villager_order_feedback.text = "Select water, a completed crate, or a machine."
 			return true
 		return _handle_order_endpoint(endpoint.stable_id)
 	var clicked_object: Variant = _any_placed_target_at(world_position)
@@ -969,6 +973,8 @@ func _placed_target_at(world_position: Vector2) -> Variant:
 	for target: Variant in placed_targets.values():
 		if villager_order_mode == "work":
 			if target.target_kind != "construction" and target.target_kind != "machine": continue
+		elif villager_order_mode == "source":
+			if target.target_kind != "storage" and target.target_kind != "machine" and target.target_kind != "water": continue
 		elif target.target_kind != "storage" and target.target_kind != "machine": continue
 		for point: Vector2 in target.interaction_points:
 			if point.distance_to(world_position) <= CELL_SIZE * 0.7: return target
@@ -985,7 +991,10 @@ func _handle_order_endpoint(instance_id: String) -> bool:
 		pending_order_source_id = instance_id
 		villager_resource_option.clear()
 		var source_inventory: Variant = _route_source_inventory(instance_id)
-		if machines_by_entity_id.has(instance_id):
+		if _is_water_source_id(instance_id):
+			villager_resource_option.add_item(item_registry.get_item("water").label)
+			villager_resource_option.set_item_metadata(0, "water")
+		elif machines_by_entity_id.has(instance_id):
 			for output_id: String in machines_by_entity_id[instance_id].recipe_outputs:
 				villager_resource_option.add_item(item_registry.get_item(output_id).label)
 				villager_resource_option.set_item_metadata(villager_resource_option.item_count - 1, output_id)
@@ -1263,6 +1272,8 @@ func confirm_placement() -> bool:
 			definition.construction_work_seconds
 		)
 	_add_placed_target(instance_id, definition, placement_cursor, placement_rotation)
+	if not construction_by_entity_id.has(instance_id):
+		_add_structure_visual(instance_id, definition.entity_id, result.cells)
 	campaign.record_placement(definition.entity_id)
 	if definition.storage_slots > 0:
 		storage_by_entity_id[instance_id] = PlayerInventoryType.new(item_registry, definition.storage_slots)
@@ -1332,6 +1343,54 @@ func _add_placed_target(instance_id: String, definition: Variant, origin: Vector
 	target.configure(instance_id, definition.label, origin_position, use_position, kind, footprint_points)
 	add_child(target)
 	placed_targets[instance_id] = target
+
+
+func _add_structure_visual(instance_id: String, definition_id: String, cells: Array[Vector2i]) -> void:
+	if structure_visuals.has(instance_id) or cells.is_empty(): return
+	var visual := StructureVisualType.new()
+	visual.configure(definition_id, cells)
+	add_child(visual)
+	structure_visuals[instance_id] = visual
+
+
+func _water_cell_at_world(world_position: Vector2) -> Vector2i:
+	var direct := Vector2i(floori(world_position.x / CELL_SIZE), floori(world_position.y / CELL_SIZE))
+	if water_cells.has(direct): return direct
+	var nearest := Vector2i(-1, -1)
+	var nearest_distance := CELL_SIZE * 0.75
+	for y in range(direct.y - 1, direct.y + 2):
+		for x in range(direct.x - 1, direct.x + 2):
+			var candidate := Vector2i(x, y)
+			if not water_cells.has(candidate): continue
+			var distance := world_position.distance_to(Vector2(candidate * CELL_SIZE) + Vector2.ONE * 16.0)
+			if distance < nearest_distance: nearest = candidate; nearest_distance = distance
+	return nearest
+
+
+func _ensure_water_route_target(cell: Vector2i) -> Variant:
+	var instance_id := "water-%d-%d" % [cell.x, cell.y]
+	if placed_targets.has(instance_id): return placed_targets[instance_id]
+	var position := Vector2(cell * CELL_SIZE) + Vector2.ONE * 16.0
+	var target := PlacedTargetType.new()
+	target.configure(instance_id, "Water source", position, position, "water", [position])
+	target.visible = false
+	add_child(target)
+	placed_targets[instance_id] = target
+	return target
+
+
+func _is_water_source_id(instance_id: String) -> bool:
+	return instance_id.begins_with("water-")
+
+
+func restore_water_route_target(instance_id: String) -> bool:
+	if not _is_water_source_id(instance_id): return false
+	var parts := instance_id.split("-")
+	if parts.size() != 3: return false
+	var cell := Vector2i(int(parts[1]), int(parts[2]))
+	if not water_cells.has(cell): return false
+	_ensure_water_route_target(cell)
+	return true
 
 
 func select_recipe(direction: int) -> void:
@@ -1625,6 +1684,7 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 			machines_by_entity_id[instance_id] = PhysicalMachineType.new(instance_id, definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, item_registry)
 			workforce.register_job(instance_id, ceili(definition.workers_required), definition.worker_priority)
 		if definition != null:
+			_add_structure_visual(instance_id, definition.entity_id, placed.cells)
 			campaign.record_completion(definition.entity_id)
 			if definition.entity_id == "DWELLING":
 				spawn_villagers_for_home(instance_id, definition.population_capacity)
@@ -1786,7 +1846,7 @@ func select_route_endpoint(instance_id: String) -> bool:
 func create_logistics_route(source_id: String, destination_id: String, villager_id: String = "", item_id: String = "") -> bool:
 	if not placed_targets.has(source_id) or not placed_targets.has(destination_id):
 		return false
-	var source_valid := storage_by_entity_id.has(source_id) or machines_by_entity_id.has(source_id)
+	var source_valid := storage_by_entity_id.has(source_id) or machines_by_entity_id.has(source_id) or _is_water_source_id(source_id)
 	var destination_valid := storage_by_entity_id.has(destination_id) or machines_by_entity_id.has(destination_id)
 	if not source_valid or not destination_valid:
 		return false
@@ -1796,10 +1856,13 @@ func create_logistics_route(source_id: String, destination_id: String, villager_
 		interaction_label.text = "Select a villager before creating a route"
 		return false
 	if item_id.is_empty():
-		var source_inventory: Variant = _route_source_inventory(source_id)
-		if source_inventory != null:
-			for slot: Dictionary in source_inventory.slots:
-				if not slot.is_empty() and _destination_accepts(destination_id, slot.item_id): item_id = slot.item_id; break
+		if _is_water_source_id(source_id):
+			item_id = "water"
+		else:
+			var source_inventory: Variant = _route_source_inventory(source_id)
+			if source_inventory != null:
+				for slot: Dictionary in source_inventory.slots:
+					if not slot.is_empty() and _destination_accepts(destination_id, slot.item_id): item_id = slot.item_id; break
 	if item_id.is_empty() or not _destination_accepts(destination_id, item_id):
 		interaction_label.text = "No compatible resource for this route"
 		return false
@@ -1832,6 +1895,10 @@ func _destination_accepts(destination_id: String, item_id: String) -> bool:
 
 
 func villager_collect(villager: Variant) -> int:
+	if _is_water_source_id(str(villager.task.source)) and str(villager.task.item) == "water":
+		villager.carrying_item = "water"
+		villager.carrying_amount = 3
+		return 3
 	var source: Variant = _route_source_inventory(str(villager.task.source))
 	if source == null: return 0
 	var amount := mini(3, source.count(str(villager.task.item)))
@@ -2123,16 +2190,12 @@ func _draw() -> void:
 		for placed: Variant in world_grid.entities_by_id.values():
 			if placed.definition_id == "TREE_CROP": continue
 			var site: Variant = construction_by_entity_id.get(placed.instance_id)
-			var machine: Variant = machines_by_entity_id.get(placed.instance_id)
-			var placed_color := Color("#8c7a66") if site != null and not site.complete else (Color("#8f302b") if machine != null and machine.broken else (Color("#db6b35") if machine != null and machine.is_running() else Color("#71472b")))
-			for cell: Vector2i in placed.cells:
-				var placed_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE * 2.0, Vector2.ONE * (CELL_SIZE - 4))
-				draw_rect(placed_rect, placed_color)
-				if site != null and not site.complete:
+			if site != null and not site.complete:
+				for cell: Vector2i in placed.cells:
+					var placed_rect := Rect2(Vector2(cell * CELL_SIZE) + Vector2.ONE * 2.0, Vector2.ONE * (CELL_SIZE - 4))
+					draw_rect(placed_rect, Color("#8c7a66"))
 					draw_line(placed_rect.position, placed_rect.end, Color("#d7c7a2"), 2.0)
 					draw_line(Vector2(placed_rect.end.x, placed_rect.position.y), Vector2(placed_rect.position.x, placed_rect.end.y), Color("#d7c7a2"), 2.0)
-			if site == null or site.complete:
-				_draw_structure_sprite(placed.definition_id, placed.cells)
 	if placement_mode:
 		var definition: Variant = _selected_placeable_definition()
 		if definition != null:

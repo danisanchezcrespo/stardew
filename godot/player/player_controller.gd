@@ -18,6 +18,7 @@ var animation_time := 0.0
 
 func _ready() -> void:
 	InputDefaultsType.ensure_actions()
+	z_as_relative = false
 	if get_node_or_null("CollisionShape2D") == null:
 		var collision := CollisionShape2D.new()
 		collision.name = "CollisionShape2D"
@@ -29,6 +30,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Feet/base Y is the painter's-order anchor shared by characters and structures.
+	z_index = roundi(global_position.y + 10.0)
 	var intent := Vector2.ZERO
 	if movement_enabled:
 		intent = Input.get_vector("move_left", "move_right", "move_up", "move_down")

@@ -13,6 +13,8 @@ var target_kind := "pickup"
 
 
 func configure(id: String, definition: Variant, stack_amount: int) -> void:
+	z_as_relative = false
+	z_index = -4096
 	stable_id = id
 	item_id = definition.item_id
 	item_label = definition.label
