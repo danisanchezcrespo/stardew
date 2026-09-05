@@ -13,6 +13,12 @@ var machine_running := false
 var machine_broken := false
 var effect_time := 0.0
 var visual: Dictionary = {}
+var upgrade_level := 1
+
+
+func set_upgrade_level(level: int) -> void:
+	upgrade_level = clampi(level, 1, 3)
+	queue_redraw()
 
 
 func set_machine_state(running: bool, broken: bool, delta: float) -> void:
@@ -68,6 +74,11 @@ func _draw() -> void:
 	elif machine_broken:
 		draw_circle(Vector2(sprite_size.x * 0.27, -sprite_size.y * 0.72), 11.0, Color("#8b2f2f"))
 		draw_string(ThemeDB.fallback_font, Vector2(sprite_size.x * 0.235, -sprite_size.y * 0.675), "!", HORIZONTAL_ALIGNMENT_CENTER, 10, 18, Color.WHITE)
+	if upgrade_level > 1:
+		var badge_position := Vector2(sprite_size.x * 0.34, -sprite_size.y + 16.0)
+		draw_circle(badge_position, 15.0, Color("#d9ae54"))
+		draw_circle(badge_position, 15.0, Color("#fff3d2"), false, 2.0)
+		draw_string(ThemeDB.fallback_font, badge_position + Vector2(-10, 6), "L%d" % upgrade_level, HORIZONTAL_ALIGNMENT_CENTER, 20, 15, Color("#30241d"))
 
 
 static func sprite_size_for(type_id: String, cells: Array[Vector2i], visual_data: Dictionary = {}) -> Vector2:

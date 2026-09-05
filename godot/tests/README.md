@@ -9,6 +9,12 @@ root with:
 godot --headless --path godot --script res://tests/test_definition_registry.gd
 ```
 
+Calendar, collections, building upgrades, and technology trees:
+
+```bash
+godot --headless --path godot --script res://tests/test_settlement_progression.gd
+```
+
 Spatial primitives can be checked independently with:
 
 ```powershell

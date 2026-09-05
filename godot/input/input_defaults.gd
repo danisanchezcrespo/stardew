@@ -27,6 +27,8 @@ const ACTIONS := {
 	"toggle_fullscreen": [KEY_F11],
 	"next_villager": [KEY_TAB],
 	"open_logistics": [KEY_G],
+	"open_tech_tree": [KEY_T],
+	"open_collection": [KEY_M],
 	"building_details": [],
 }
 

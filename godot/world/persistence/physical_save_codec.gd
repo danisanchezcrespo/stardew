@@ -1,7 +1,7 @@
 class_name PhysicalSaveCodec
 extends RefCounted
 
-const VERSION := 3
+const VERSION := 4
 static var pending_reload := false
 static var pending_reload_path := "user://physical_save.json"
 
@@ -21,7 +21,7 @@ func capture(game: Node2D) -> Dictionary:
 		if storage != null: row.storage = storage.snapshot()
 		var machine: Variant = game.machines_by_entity_id.get(placed.instance_id)
 		if machine != null:
-			row.machine = {"input": machine.input_inventory.snapshot(), "output": machine.output_inventory.snapshot(), "remaining": machine.remaining_seconds, "batches": machine.batches_completed, "durability": machine.durability, "broken": machine.broken, "manually_activated": machine.manually_activated}
+			row.machine = {"input": machine.input_inventory.snapshot(), "output": machine.output_inventory.snapshot(), "remaining": machine.remaining_seconds, "batches": machine.batches_completed, "durability": machine.durability, "max_durability":machine.max_durability, "broken": machine.broken, "manually_activated": machine.manually_activated}
 		entities.append(row)
 	var routes: Array[Dictionary] = []
 	for route: Variant in game.logistics_routes:
@@ -38,7 +38,7 @@ func capture(game: Node2D) -> Dictionary:
 	var dependents: Array[Dictionary] = []
 	for actor: Variant in game.dependents.values():
 		dependents.append({"id":actor.stable_id,"species":actor.species_id,"home":actor.home_id,"position":[actor.position.x,actor.position.y],"hunger":actor.hunger,"thirst":actor.thirst,"health":actor.health,"age":actor.age_seconds,"product_elapsed":actor.product_elapsed,"stored_product":actor.stored_product})
-	return {"version": VERSION, "scenario_id":game.scenario.scenario_id, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "dependents":dependents, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
+	return {"version": VERSION, "scenario_id":game.scenario.scenario_id, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "dependents":dependents, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "progression":game.meta_progression.snapshot(), "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
 	var absolute_path := ProjectSettings.globalize_path(path)
@@ -64,11 +64,14 @@ func load_from_path(game: Node2D, path: String) -> Error:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null: return FileAccess.get_open_error()
 	var data: Variant = JSON.parse_string(file.get_as_text())
-	if typeof(data) != TYPE_DICTIONARY or int(data.get("version", -1)) not in [1, 2, VERSION]: return ERR_INVALID_DATA
+	if typeof(data) != TYPE_DICTIONARY or int(data.get("version", -1)) not in [1, 2, 3, VERSION]: return ERR_INVALID_DATA
 	if data.has("scenario_id") and str(data.scenario_id) != game.scenario.scenario_id: return ERR_INVALID_DATA
 	return restore(game, data)
 
 func restore(game: Node2D, data: Dictionary) -> Error:
+	game.meta_progression.restore(data.get("progression", {}))
+	for tech: Dictionary in game.meta_progression.tech_nodes():
+		if int(tech.get("cost", 1)) == 0 and not game.meta_progression.unlocked_tech.has(str(tech.id)): game.meta_progression.unlock(str(tech.id))
 	for dependent: Variant in game.dependents.values():
 		if is_instance_valid(dependent): dependent.queue_free()
 	game.dependents.clear()
@@ -111,7 +114,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			site.complete = bool(row.construction.complete)
 			game.construction_by_entity_id[str(row.id)] = site
 		if row.has("storage"):
-			var storage := PlayerInventory.new(game.item_registry, definition.storage_slots)
+			var storage := PlayerInventory.new(game.item_registry, maxi(definition.storage_slots, row.storage.size()))
 			storage.slots = _slots(row.storage, storage.slot_count)
 			game.storage_by_entity_id[str(row.id)] = storage
 		if row.has("machine"):
@@ -121,6 +124,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			machine.remaining_seconds = float(row.machine.remaining)
 			machine.batches_completed = int(row.machine.batches)
 			machine.durability = int(row.machine.durability)
+			machine.max_durability = int(row.machine.get("max_durability", 3 + 2 * (game.meta_progression.building_level(str(row.id)) - 1)))
 			machine.broken = bool(row.machine.broken)
 			machine.manually_activated = bool(row.machine.get("manually_activated", false))
 			game.machines_by_entity_id[str(row.id)] = machine

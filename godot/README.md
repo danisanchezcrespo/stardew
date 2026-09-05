@@ -14,6 +14,12 @@ Open `project.godot` with Godot 4.x.
 
 The Ancient Egypt campaign contains 31 chapters and a complete manual-to-
 automated production arc. Use `Space` for contextual interaction, `C` for
-crafting, `Tab` for villagers, `G` for logistics, `Esc` for pause, and `F11`
+crafting, `T` for the technology tree, `M` for the era collection, `Tab` for
+villagers, `G` for logistics, `Esc` for pause, and `F11`
 or `Alt+Enter` for fullscreen. Progress autosaves every 90 seconds; manual
 save/load are available from the pause menu and on `K`/`L`.
+
+Each eight-day season advances through a scenario-specific calendar. Donating
+one of each collection item awards knowledge used to unlock connected
+technology nodes. Completed buildings can be upgraded twice; workshops gain
+production speed and durability, stores gain slots, and homes gain a resident.

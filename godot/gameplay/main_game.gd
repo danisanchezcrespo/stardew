@@ -31,6 +31,7 @@ const TerrainRendererType = preload("res://world/terrain/terrain_renderer.gd")
 const TreeCropType = preload("res://world/crops/tree_crop.gd")
 const StructureVisualType = preload("res://world/placement/structure_visual.gd")
 const GameThemeType = preload("res://ui/game_theme.gd")
+const SettlementProgressionType = preload("res://world/progression/settlement_progression.gd")
 const SAND_TEXTURE = preload("res://assets/generated/terrain/sand_v2.png")
 const WATER_TEXTURE = preload("res://assets/generated/terrain/water_v2.png")
 const SHORELINE_TEXTURE = preload("res://assets/generated/terrain/shoreline_v2.png")
@@ -133,6 +134,7 @@ var machine_status_label: Label
 var machine_title_label: Label
 var machine_worker_icon: TextureRect
 var machine_remove_worker_button: Button
+var machine_upgrade_button: Button
 var villagers: Dictionary = {}
 var dependents: Dictionary = {}
 var next_dependent_id := 1
@@ -156,11 +158,25 @@ var building_details_controls: Label
 var construction_delivery_popup: ColorRect
 var construction_delivery_label: Label
 var construction_delivery_icons: Array[TextureRect] = []
+var building_upgrade_button: Button
+var storage_upgrade_button: Button
 var world_overlay: Node2D
 var terrain_renderer: Node2D
 var active_player_build_id := ""
 var day_time_seconds := 60.0
-const DAY_LENGTH_SECONDS := 240.0
+const DAY_LENGTH_SECONDS := 720.0
+var meta_progression: Variant
+var tech_panel: Control
+var tech_open := false
+var tech_points_label: Label
+var tech_feedback_label: Label
+var collection_panel: Control
+var collection_open := false
+var collection_list: VBoxContainer
+var collection_feedback_label: Label
+var day_summary_panel: Control
+var day_summary_open := false
+var day_summary_label: Label
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
 var feedback_audio: AudioStreamPlayer
 
@@ -180,6 +196,10 @@ func _ready() -> void:
 	water_color = scenario.water_color
 	workforce = PhysicalWorkforceType.new()
 	campaign = EgyptCampaignType.new(scenario.campaign_path)
+	meta_progression = SettlementProgressionType.new()
+	assert(meta_progression.load_catalog("res://world/progression/progression_catalog.json", scenario.scenario_id) == OK, "Progression catalog must load")
+	for tech: Dictionary in meta_progression.tech_nodes():
+		if int(tech.get("cost", 1)) == 0: meta_progression.unlock(str(tech.id))
 	physical_save = PhysicalSaveCodecType.new()
 	feedback_audio = AudioStreamPlayer.new()
 	add_child(feedback_audio)
@@ -204,8 +224,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if pause_open: return
-	day_time_seconds = fmod(day_time_seconds + maxf(delta, 0.0), DAY_LENGTH_SECONDS)
+	if pause_open or day_summary_open or tech_open or collection_open: return
+	day_time_seconds += maxf(delta, 0.0)
+	if day_time_seconds >= DAY_LENGTH_SECONDS:
+		day_time_seconds = 0.0
+		_open_day_summary(meta_progression.advance_day())
+		return
 	autosave_elapsed += maxf(delta, 0.0)
 	if autosave_elapsed >= AUTOSAVE_INTERVAL_SECONDS and not scenario_select_open:
 		autosave_elapsed = 0.0
@@ -242,7 +266,8 @@ func _process(delta: float) -> void:
 		var definition: Variant = definition_for_instance(machine.instance_id)
 		var required_workers := ceili(definition.workers_required) if definition != null else 1
 		machine.staffed = required_workers <= 0 or assigned_villagers_to(machine.instance_id) >= required_workers
-		machine.process(delta * worker_efficiency_at(machine.instance_id) * environment_multiplier("production_speed"))
+		var upgrade_speed := 1.0 + float(meta_progression.building_level(machine.instance_id) - 1) * 0.25
+		machine.process(delta * worker_efficiency_at(machine.instance_id) * environment_multiplier("production_speed") * upgrade_speed)
 		if structure_visuals.has(machine.instance_id):
 			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
@@ -305,6 +330,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_logistics"):
 			set_logistics_open(false)
 		return
+	if tech_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_tech_tree"): set_tech_open(false)
+		return
+	if collection_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_collection"): set_collection_open(false)
+		elif event.is_action_pressed("use_selected"): donate_selected_item()
+		return
+	if day_summary_open:
+		if event.is_action_pressed("use_selected") or event.is_action_pressed("cancel"): close_day_summary()
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if _handle_villager_world_click(event.position):
 			get_viewport().set_input_as_handled()
@@ -325,6 +360,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("open_logistics"):
 		set_logistics_open(true)
+		return
+	if event.is_action_pressed("open_tech_tree"):
+		set_tech_open(true)
+		return
+	if event.is_action_pressed("open_collection"):
+		set_collection_open(true)
 		return
 	if building_details_open:
 		if event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down"):
@@ -640,8 +681,11 @@ func _build_hud() -> void:
 	_build_scenario_panel(layer)
 	_build_pause_panel(layer)
 	_build_logistics_panel(layer)
+	_build_tech_panel(layer)
+	_build_collection_panel(layer)
+	_build_day_summary_panel(layer)
 	_build_mobile_controls(layer)
-	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel]:
+	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel, tech_panel, collection_panel, day_summary_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
 		_apply_scenario_panel_palette(panel)
 	GameThemeType.decorate_panel(inventory_background, true)
@@ -649,7 +693,7 @@ func _build_hud() -> void:
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move: WASD    Action: Space    Villagers: click/Tab    Crafting: C    Routes: G    Menu: Esc"
+	help.text = "Move: WASD  Action: Space  Craft: C  Tech: T  Collection: M  Routes: G  Menu: Esc"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
@@ -782,6 +826,156 @@ func _build_logistics_panel(layer: CanvasLayer) -> void:
 	hint.text = "G / Esc: close    Routes wait safely when a source is empty or a destination is full."
 	hint.add_theme_color_override("font_color", Color("#6b3e20"))
 	logistics_panel.add_child(hint)
+
+
+func _build_tech_panel(layer: CanvasLayer) -> void:
+	tech_panel = ColorRect.new()
+	tech_panel.position = Vector2(70, 70)
+	tech_panel.size = Vector2(1140, 560)
+	tech_panel.color = Color(str(scenario.theme.get("panel", "#d8bd83")))
+	tech_panel.visible = false
+	layer.add_child(tech_panel)
+	var title := Label.new()
+	title.position = Vector2(34, 20); title.size = Vector2(700, 42)
+	title.text = "TECHNOLOGY TREE"; title.add_theme_font_size_override("font_size", 28)
+	tech_panel.add_child(title)
+	tech_points_label = Label.new()
+	tech_points_label.position = Vector2(820, 26); tech_points_label.size = Vector2(280, 32)
+	tech_points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	tech_panel.add_child(tech_points_label)
+	tech_feedback_label = Label.new()
+	tech_feedback_label.position = Vector2(34, 505); tech_feedback_label.size = Vector2(1060, 30)
+	tech_panel.add_child(tech_feedback_label)
+	var depths: Dictionary = {}
+	for node: Dictionary in meta_progression.tech_nodes(): _tech_depth(str(node.id), depths)
+	var node_positions: Dictionary = {}
+	for node: Dictionary in meta_progression.tech_nodes():
+		var depth := int(depths.get(str(node.id), 0))
+		var siblings: Array = meta_progression.tech_nodes().filter(func(candidate: Dictionary) -> bool: return int(depths.get(str(candidate.id), 0)) == depth)
+		var row := siblings.find(node)
+		node_positions[str(node.id)] = Vector2(34 + depth * 205, 90 + row * 82)
+	for node: Dictionary in meta_progression.tech_nodes():
+		for requirement: Variant in node.get("requires", []):
+			var connector := Line2D.new()
+			connector.width = 4.0; connector.default_color = Color(str(scenario.theme.get("accent", "#d9ae54")))
+			connector.points = PackedVector2Array([Vector2(node_positions[str(requirement)]) + Vector2(174, 29), Vector2(node_positions[str(node.id)]) + Vector2(0, 29)])
+			tech_panel.add_child(connector)
+	for node: Dictionary in meta_progression.tech_nodes():
+		var button := Button.new()
+		button.name = "Tech_%s" % str(node.id)
+		button.position = Vector2(node_positions[str(node.id)])
+		button.size = Vector2(174, 58)
+		button.text = str(node.label)
+		var unlock_names: Array[String] = []
+		for recipe_id: Variant in node.get("recipes", []):
+			var recipe: Variant = recipe_registry.get_recipe(str(recipe_id))
+			unlock_names.append(recipe.label if recipe != null else str(recipe_id))
+		button.tooltip_text = "Unlocks: %s" % ", ".join(unlock_names)
+		button.pressed.connect(func() -> void: _unlock_tech(str(node.id)))
+		tech_panel.add_child(button)
+	_refresh_tech_panel()
+
+
+func _tech_depth(node_id: String, cache: Dictionary) -> int:
+	if cache.has(node_id): return int(cache[node_id])
+	var node: Dictionary = meta_progression.tech_node(node_id)
+	var depth := 0
+	for requirement: Variant in node.get("requires", []): depth = maxi(depth, _tech_depth(str(requirement), cache) + 1)
+	cache[node_id] = depth
+	return depth
+
+
+func set_tech_open(value: bool) -> void:
+	tech_open = value
+	tech_panel.visible = value
+	player.movement_enabled = not value
+	if value: _refresh_tech_panel()
+
+
+func _refresh_tech_panel() -> void:
+	if tech_panel == null: return
+	tech_points_label.text = "Knowledge: %d" % meta_progression.research_points
+	for node: Dictionary in meta_progression.tech_nodes():
+		var button := tech_panel.get_node_or_null("Tech_%s" % str(node.id)) as Button
+		if button == null: continue
+		var unlocked: bool = meta_progression.unlocked_tech.has(str(node.id))
+		button.disabled = unlocked or not meta_progression.can_unlock(str(node.id))
+		button.text = "%s\n%s" % [str(node.label), "DISCOVERED" if unlocked else "%d knowledge" % int(node.cost)]
+
+
+func _unlock_tech(node_id: String) -> void:
+	if meta_progression.unlock(node_id):
+		tech_feedback_label.text = "Discovered: %s. New recipes are now available." % str(meta_progression.tech_node(node_id).label)
+		_update_crafting_ui()
+	else: tech_feedback_label.text = "Complete its prerequisite and gather enough knowledge."
+	_refresh_tech_panel()
+
+
+func _build_collection_panel(layer: CanvasLayer) -> void:
+	collection_panel = ColorRect.new()
+	collection_panel.position = Vector2(330, 70); collection_panel.size = Vector2(620, 560)
+	collection_panel.color = Color(str(scenario.theme.get("panel", "#d8bd83"))); collection_panel.visible = false
+	layer.add_child(collection_panel)
+	var title := Label.new()
+	title.position = Vector2(30, 20); title.size = Vector2(560, 42); title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.text = str(meta_progression.catalog.get("collection_name", "Collection")); title.add_theme_font_size_override("font_size", 28)
+	collection_panel.add_child(title)
+	var scroll := ScrollContainer.new(); scroll.position = Vector2(30, 75); scroll.size = Vector2(560, 390)
+	collection_panel.add_child(scroll)
+	collection_list = VBoxContainer.new(); collection_list.custom_minimum_size = Vector2(530, 0)
+	scroll.add_child(collection_list)
+	collection_feedback_label = Label.new(); collection_feedback_label.position = Vector2(30, 478); collection_feedback_label.size = Vector2(560, 58)
+	collection_feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	collection_panel.add_child(collection_feedback_label)
+	_refresh_collection_panel()
+
+
+func set_collection_open(value: bool) -> void:
+	collection_open = value; collection_panel.visible = value; player.movement_enabled = not value
+	if value: _refresh_collection_panel()
+
+
+func _refresh_collection_panel() -> void:
+	if collection_list == null: return
+	for child: Node in collection_list.get_children(): child.queue_free()
+	for entry: Dictionary in meta_progression.collection_items():
+		var item_id := str(entry.item); var item: Variant = item_registry.get_item(item_id)
+		var row := HBoxContainer.new(); row.custom_minimum_size = Vector2(520, 38); collection_list.add_child(row)
+		var icon := TextureRect.new(); icon.custom_minimum_size = Vector2(34, 34); icon.texture = ItemIconAtlasType.icon(item_id); icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; row.add_child(icon)
+		var label := Label.new(); label.custom_minimum_size = Vector2(440, 34)
+		label.text = "%s    %s" % [item.label if item != null else item_id, "DONATED" if meta_progression.donated_items.has(item_id) else "Not discovered"]
+		label.modulate = Color.WHITE if meta_progression.donated_items.has(item_id) else Color(0.35, 0.35, 0.35)
+		row.add_child(label)
+	var progress: Vector2i = meta_progression.collection_progress()
+	collection_feedback_label.text = "%d / %d preserved · Select an inventory item and press Space to donate one." % [progress.x, progress.y]
+
+
+func donate_selected_item() -> bool:
+	var slot: Dictionary = inventory.slots[selected_slot]
+	if slot.is_empty(): collection_feedback_label.text = "Select an item in your inventory first."; return false
+	var item_id := str(slot.item_id)
+	if not meta_progression.donate(item_id): collection_feedback_label.text = "That item is not needed, or is already preserved."; return false
+	inventory.remove(item_id, 1); _update_inventory_hud(); _refresh_collection_panel(); _refresh_tech_panel()
+	collection_feedback_label.text = "Donation accepted. Knowledge increased."
+	return true
+
+
+func _build_day_summary_panel(layer: CanvasLayer) -> void:
+	day_summary_panel = ColorRect.new(); day_summary_panel.position = Vector2(390, 150); day_summary_panel.size = Vector2(500, 360)
+	day_summary_panel.color = Color(str(scenario.theme.get("dark", "#171b22"))); day_summary_panel.visible = false; layer.add_child(day_summary_panel)
+	var title := Label.new(); title.position = Vector2(35, 30); title.size = Vector2(430, 45); title.text = "A NEW DAY"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 28); day_summary_panel.add_child(title)
+	day_summary_label = Label.new(); day_summary_label.position = Vector2(45, 100); day_summary_label.size = Vector2(410, 130); day_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; day_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; day_summary_panel.add_child(day_summary_label)
+	var button := Button.new(); button.position = Vector2(125, 270); button.size = Vector2(250, 48); button.text = "Begin the day"; button.pressed.connect(close_day_summary); day_summary_panel.add_child(button)
+
+
+func _open_day_summary(summary: Dictionary) -> void:
+	day_summary_open = true; day_summary_panel.visible = true; player.movement_enabled = false
+	day_summary_label.text = "%s, Day %d · Year %d\n\nThe settlement gained 1 knowledge.\nMachines, crops and animals keep their progress." % [str(summary.season), int(summary.day), int(summary.year)]
+	physical_save.save_to_path(self, _autosave_path())
+
+
+func close_day_summary() -> void:
+	day_summary_open = false; day_summary_panel.visible = false; player.movement_enabled = true
 
 
 func set_logistics_open(value: bool) -> void:
@@ -960,6 +1154,9 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_remove_worker_button.pressed.connect(_remove_machine_worker)
 	machine_remove_worker_button.visible = false
 	machine_panel.add_child(machine_remove_worker_button)
+	machine_upgrade_button = Button.new()
+	machine_upgrade_button.position = Vector2(278, 232); machine_upgrade_button.size = Vector2(112, 42); machine_upgrade_button.text = "Upgrade"
+	machine_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_machine_id)); machine_panel.add_child(machine_upgrade_button)
 	var controls := Label.new()
 	controls.position = Vector2(28, 504)
 	controls.size = Vector2(364, 40)
@@ -1085,6 +1282,9 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 		var icon := _make_item_icon(Vector2(20, 48 + index * 27), Vector2(22, 22))
 		construction_delivery_popup.add_child(icon)
 		construction_delivery_icons.append(icon)
+	building_upgrade_button = Button.new()
+	building_upgrade_button.position = Vector2(250, 18); building_upgrade_button.size = Vector2(145, 42); building_upgrade_button.text = "Upgrade"
+	building_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(building_details_id)); building_details_panel.add_child(building_upgrade_button)
 
 
 func _hide_subject_panels() -> void:
@@ -1163,8 +1363,12 @@ func _update_building_details() -> void:
 	var placed: Variant = world_grid.entities_by_id.get(building_details_id)
 	if placed == null: close_building_details(); return
 	var definition: Variant = placement_registry.get_entity(placed.definition_id)
-	building_details_title.text = definition.label
+	var building_level: int = meta_progression.building_level(building_details_id)
+	building_details_title.text = "%s · L%d" % [definition.label, building_level]
 	var site: Variant = construction_by_entity_id.get(building_details_id)
+	building_upgrade_button.visible = site == null or site.complete
+	building_upgrade_button.disabled = building_level >= 3
+	building_upgrade_button.text = "MAX LEVEL" if building_level >= 3 else "Upgrade L%d" % (building_level + 1)
 	if site != null and not site.complete:
 		var materials: Array[String] = []
 		for item_id: String in site.requirements:
@@ -1185,7 +1389,7 @@ func _update_building_details() -> void:
 		building_details_controls.text = "Space: %s    Esc: close" % ("deliver shown materials" if not deliverable.is_empty() else ("start building" if site.materials_complete() else "select a required material"))
 		return
 	construction_delivery_popup.visible = false
-	building_details_controls.text = "Space / Esc: close"
+	building_details_controls.text = "Upgrade levels improve output speed by 25% · Esc: close"
 	if storage_by_entity_id.has(building_details_id):
 		var rows: Array[String] = []
 		for slot: Dictionary in storage_by_entity_id[building_details_id].slots:
@@ -1561,6 +1765,9 @@ func _build_storage_panel(layer: CanvasLayer) -> void:
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(title)
+	storage_upgrade_button = Button.new()
+	storage_upgrade_button.position = Vector2(275, 14); storage_upgrade_button.size = Vector2(125, 40); storage_upgrade_button.text = "Upgrade"
+	storage_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_storage_id)); storage_panel.add_child(storage_upgrade_button)
 	storage_player_label = Label.new()
 	storage_player_label.position = Vector2(18, 58)
 	storage_player_label.size = Vector2(188, 26)
@@ -1784,6 +1991,7 @@ func _add_structure_visual(instance_id: String, definition_id: String, cells: Ar
 	var visual := StructureVisualType.new()
 	var definition: Variant = placement_registry.get_entity(definition_id)
 	visual.configure(definition_id, cells, definition.visual if definition != null else {})
+	visual.set_upgrade_level(meta_progression.building_level(instance_id))
 	add_child(visual)
 	structure_visuals[instance_id] = visual
 
@@ -1856,6 +2064,9 @@ func craft_selected_recipe() -> bool:
 	if not campaign.is_unlocked(recipe.unlock_after):
 		_update_crafting_ui("Locked — advance the current campaign chapter first.")
 		return false
+	if not meta_progression.recipe_unlocked(recipe_id):
+		_update_crafting_ui("Locked — discover it in the Technology Tree (T).")
+		return false
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
 	if result.valid:
 		_play_feedback(CRAFT_SOUND)
@@ -1878,7 +2089,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 	for index in range(crafting_recipe_buttons.size()):
 		var button := crafting_recipe_buttons[index]
 		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
-		var unlocked: bool = campaign.is_unlocked(recipe.unlock_after)
+		var unlocked: bool = campaign.is_unlocked(recipe.unlock_after) and meta_progression.recipe_unlocked(recipe.recipe_id)
 		var available: bool = unlocked and crafting.query(inventory, recipe.recipe_id).valid
 		var text_color := Color("#fffaf0") if available else (Color("#777777") if unlocked else Color("#665e58"))
 		button.text = "%s%d.  %s" % ["▶ " if index == selected_recipe_index else "   ", index + 1, recipe.label]
@@ -1888,7 +2099,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		button.add_theme_color_override("font_pressed_color", text_color)
 		button.add_theme_color_override("font_focus_color", text_color)
 	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
-	var selected_unlocked: bool = campaign.is_unlocked(selected.unlock_after)
+	var selected_unlocked: bool = campaign.is_unlocked(selected.unlock_after) and meta_progression.recipe_unlocked(selected.recipe_id)
 	var ingredients: Array[String] = []
 	var icon_index := 0
 	for icon: TextureRect in crafting_resource_icons: icon.visible = false
@@ -1914,7 +2125,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 			crafting_resource_icons[icon_index].visible = true
 			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
-	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED — complete an earlier campaign chapter"
+	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED — advance the campaign or Technology Tree (T)"
 	if not feedback.is_empty():
 		status = feedback
 	crafting_detail_label.text = "[color=#3b281b]%s\n\nNeeds:\n[/color]%s[color=#3b281b]\n\nProduces:\n%s\n\n%s[/color]" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
@@ -2391,6 +2602,9 @@ func _update_machine_panel() -> void:
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine == null: return
 	machine_title_label.text = _placed_definition_label(active_machine_id).to_upper()
+	var level: int = meta_progression.building_level(active_machine_id)
+	machine_upgrade_button.text = "MAX LEVEL" if level >= 3 else "Upgrade L%d" % (level + 1)
+	machine_upgrade_button.disabled = level >= 3
 	var input_rows: Array[String] = []
 	for item_id: String in machine.recipe_inputs:
 		input_rows.append("%s: %d / %d" % [item_registry.get_item(item_id).label, machine.input_inventory.count(item_id), int(machine.recipe_inputs[item_id])])
@@ -2762,6 +2976,9 @@ func _update_storage_ui(feedback: String = "") -> void:
 	var storage: Variant = storage_by_entity_id.get(active_storage_id)
 	if storage == null:
 		return
+	var level: int = meta_progression.building_level(active_storage_id)
+	storage_upgrade_button.text = "MAX LEVEL" if level >= 3 else "Upgrade L%d" % (level + 1)
+	storage_upgrade_button.disabled = level >= 3
 	storage_player_label.text = "▶  PLAYER" if storage_focus_side == 0 else "PLAYER"
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
@@ -2786,6 +3003,56 @@ func _update_storage_ui(feedback: String = "") -> void:
 		storage_crate_slot_labels[index].visible = false
 	storage_contents_label.add_theme_color_override("font_color", Color("#6b3e20") if storage_focus_side == 1 else Color("#3b281b"))
 	storage_feedback_label.text = feedback
+
+
+func _upgrade_cost(instance_id: String) -> Dictionary:
+	var definition: Variant = definition_for_instance(instance_id)
+	if definition == null: return {}
+	var level: int = meta_progression.building_level(instance_id)
+	var result: Dictionary = {}
+	for item_id: String in definition.construction_cost:
+		result[item_id] = maxi(1, ceili(float(definition.construction_cost[item_id]) * 0.5 * level))
+	if result.is_empty() and not meta_progression.collection_items().is_empty():
+		result[str(meta_progression.collection_items()[0].item)] = 4 * level
+	return result
+
+
+func _try_upgrade_building(instance_id: String) -> bool:
+	if instance_id.is_empty() or meta_progression.building_level(instance_id) >= 3: return false
+	var cost := _upgrade_cost(instance_id)
+	if cost.is_empty():
+		interaction_label.text = "This structure cannot be upgraded"
+		return false
+	var missing: Array[String] = []
+	for item_id: String in cost:
+		if inventory.count(item_id) < int(cost[item_id]): missing.append("%s x%d" % [item_registry.get_item(item_id).label, int(cost[item_id]) - inventory.count(item_id)])
+	if not missing.is_empty():
+		var message := "Upgrade needs: %s" % ", ".join(missing)
+		if machine_open: machine_status_label.text += "\n\n" + message
+		elif storage_open: storage_feedback_label.text = message
+		else: building_details_controls.text = message
+		return false
+	for item_id: String in cost: inventory.remove(item_id, int(cost[item_id]))
+	var new_level: int = meta_progression.upgrade_building(instance_id)
+	meta_progression.research_points += 1
+	var definition: Variant = definition_for_instance(instance_id)
+	if machines_by_entity_id.has(instance_id):
+		var upgraded_machine: Variant = machines_by_entity_id[instance_id]
+		upgraded_machine.max_durability += 2
+		upgraded_machine.durability += 2
+	elif storage_by_entity_id.has(instance_id):
+		var upgraded_storage: Variant = storage_by_entity_id[instance_id]
+		for unused in range(mini(2, 12 - upgraded_storage.slots.size())): upgraded_storage.slots.append({})
+		upgraded_storage.slot_count = upgraded_storage.slots.size()
+	elif definition != null and definition.population_capacity > 0:
+		spawn_villagers_for_home(instance_id, 1)
+	if structure_visuals.has(instance_id): structure_visuals[instance_id].set_upgrade_level(new_level)
+	_update_inventory_hud(); _refresh_tech_panel()
+	if machine_open: _update_machine_panel()
+	elif storage_open: _update_storage_ui("Upgrade complete · Level %d" % new_level)
+	elif building_details_open: _update_building_details()
+	interaction_label.text = "Building upgraded to level %d" % new_level
+	return true
 
 
 func _slot_text(slot: Dictionary) -> String:
@@ -2824,7 +3091,7 @@ func _update_population_hud() -> void:
 		var people_word := str(scenario.terminology.get("people", "people"))
 		var event := active_environment_event()
 		var event_text := " | ⚠ %s" % str(event.label) if not event.is_empty() else ""
-		population_label.text = "%d %s | %d assigned | %d meals | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, (total_minutes / 60) % 24, total_minutes % 60, event_text]
+		population_label.text = "%d %s | %d assigned | %d meals | %s | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, meta_progression.calendar_text(), (total_minutes / 60) % 24, total_minutes % 60, event_text]
 
 
 func _refresh_population_capacity() -> void:

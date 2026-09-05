@@ -1,0 +1,57 @@
+{
+  "ancient_egypt": {
+    "seasons":["Akhet · Flood","Peret · Growing","Shemu · Harvest","Dry Season"],
+    "collection_name":"House of Records",
+    "collection":[
+      {"item":"clay","research":1},{"item":"grain","research":1},{"item":"papyrus_reeds","research":1},{"item":"flax","research":1},{"item":"mud_bricks","research":2},{"item":"bread","research":2},{"item":"beer","research":2},{"item":"limestone","research":2},{"item":"copper_ingot","research":3},{"item":"linen","research":3},{"item":"papyrus_sheet","research":3},{"item":"egg","research":2},{"item":"milk","research":2}
+    ],
+    "tech":[
+      {"id":"settlement","label":"Settled Life","cost":0,"requires":[],"recipes":["storage_crate","mud_bricks","brick_kiln_plan","dwelling_plan"]},
+      {"id":"irrigation","label":"Irrigation","cost":2,"requires":["settlement"],"recipes":["grain_farm_plan","food_ration"]},
+      {"id":"foodcraft","label":"Bread & Beer","cost":3,"requires":["irrigation"],"recipes":["bakery_plan","brewery_plan","kitchen_plan"]},
+      {"id":"woodcraft","label":"Carpentry","cost":3,"requires":["settlement"],"recipes":["sawmill_plan","planks"]},
+      {"id":"stonecraft","label":"Masonry","cost":4,"requires":["woodcraft"],"recipes":["quarry_plan","stone_blocks"]},
+      {"id":"metallurgy","label":"Metallurgy","cost":5,"requires":["stonecraft"],"recipes":["copper_mine_plan","smelter_plan","bronze_tools"]},
+      {"id":"writing","label":"Writing & Textiles","cost":5,"requires":["foodcraft","woodcraft"],"recipes":["weaver_plan","papyrus_workshop_plan"]},
+      {"id":"husbandry","label":"Animal Husbandry","cost":4,"requires":["irrigation"],"recipes":["chicken_coop_plan","cattle_barn_plan","egg_meal","meat_stew"]},
+      {"id":"monument","label":"Monumental Architecture","cost":7,"requires":["metallurgy","writing"],"recipes":["shrine_plan"]}
+    ]
+  },
+  "prehistory": {
+    "seasons":["Thaw","Long Sun","Foraging","Deep Frost"],
+    "collection_name":"Cave Chronicle",
+    "collection":[{"item":"branches","research":1},{"item":"flint","research":1},{"item":"berries","research":1},{"item":"hide","research":2},{"item":"mammoth_meat","research":2},{"item":"smoked_meat","research":3},{"item":"spear","research":3}],
+    "tech":[
+      {"id":"survival","label":"Fire & Survival","cost":0,"requires":[],"recipes":["spear","campfire_plan"]},
+      {"id":"hunt","label":"The Great Hunt","cost":2,"requires":["survival"],"recipes":["food_cache_plan","hide_shelter_plan"]},
+      {"id":"tools","label":"Flint Working","cost":3,"requires":["hunt"],"recipes":["flint_workshop_plan"]},
+      {"id":"preserve","label":"Food Preservation","cost":3,"requires":["tools"],"recipes":["smoking_rack_plan"]},
+      {"id":"ritual","label":"Shared Memory","cost":5,"requires":["preserve"],"recipes":["ritual_stones_plan"]}
+    ]
+  },
+  "medieval": {
+    "seasons":["Spring","Summer","Autumn","Winter"],
+    "collection_name":"Royal Cabinet",
+    "collection":[{"item":"oak_wood","research":1},{"item":"field_stone","research":1},{"item":"wheat","research":1},{"item":"flour","research":2},{"item":"loaf","research":2},{"item":"iron_ore_medieval","research":2},{"item":"iron_tools","research":3},{"item":"coin","research":3}],
+    "tech":[
+      {"id":"village","label":"Village Foundations","cost":0,"requires":[],"recipes":["granary_plan","cottage_plan"]},
+      {"id":"milling","label":"Milling","cost":2,"requires":["village"],"recipes":["windmill_plan","hand_loaf"]},
+      {"id":"smithing","label":"Smithing","cost":3,"requires":["milling"],"recipes":["forge_plan"]},
+      {"id":"commerce","label":"Commerce","cost":4,"requires":["smithing"],"recipes":["market_plan"]},
+      {"id":"feudalism","label":"Feudal Administration","cost":6,"requires":["commerce"],"recipes":["keep_plan"]}
+    ]
+  },
+  "mars_colony": {
+    "seasons":["Clear Cycle","Dust Cycle","Polar Cold","Solar Calm"],
+    "collection_name":"Exobiology Archive",
+    "collection":[{"item":"martian_ice","research":1},{"item":"iron_ore","research":1},{"item":"metal_plate","research":2},{"item":"energy_cell","research":2},{"item":"mars_water","research":2},{"item":"oxygen","research":3},{"item":"algae","research":3},{"item":"mars_ration","research":3}],
+    "tech":[
+      {"id":"landing","label":"Landing Protocols","cost":0,"requires":[],"recipes":["refine_plate","mars_storage","solar_array_plan","habitat_plan"]},
+      {"id":"power","label":"Solar Power","cost":2,"requires":["landing"],"recipes":["ice_melter_plan"]},
+      {"id":"life_support","label":"Life Support","cost":3,"requires":["power"],"recipes":["oxygen_extractor_plan"]},
+      {"id":"hydroponics","label":"Hydroponics","cost":4,"requires":["life_support"],"recipes":["greenhouse_plan","mars_ration"]},
+      {"id":"fabrication","label":"Advanced Fabrication","cost":5,"requires":["hydroponics"],"recipes":["fabricator_plan"]},
+      {"id":"communications","label":"Deep Space Communications","cost":7,"requires":["fabrication"],"recipes":["comms_array_plan"]}
+    ]
+  }
+}
