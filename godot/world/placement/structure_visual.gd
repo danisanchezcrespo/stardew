@@ -19,9 +19,11 @@ func configure(type_id: String, cells: Array[Vector2i]) -> void:
 		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
 	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
 	sprite_size = Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
-	if definition_id == "SHRINE":
+	if definition_id == "DWELLING":
+		sprite_size *= 2.0
+	elif definition_id == "SHRINE":
 		# The temple art is nearly square; preserve that authored 3/4 projection.
-		sprite_size = Vector2(maxf(112.0, footprint_size.x + 36.0), maxf(116.0, footprint_size.y + 20.0))
+		sprite_size = Vector2(maxf(112.0, footprint_size.x + 36.0), maxf(116.0, footprint_size.y + 20.0)) * 2.0
 	global_position = Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
 	z_as_relative = false
 	z_index = roundi(global_position.y)

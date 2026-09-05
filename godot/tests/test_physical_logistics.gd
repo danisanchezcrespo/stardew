@@ -80,7 +80,16 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	var water_target: Variant = game._ensure_water_route_target(water_cell)
 	game.spawn_villagers_for_home(input_crate, 3)
 	var water_villager: Variant = game.villagers.values()[2]
-	_expect(game.create_logistics_route(water_target.stable_id, output_crate, water_villager.stable_id, "water"), "A villager should accept an infinite-water-to-crate transport order.", failures)
+	game.select_villager(water_villager.stable_id)
+	game.begin_villager_transport_order()
+	var water_screen: Vector2 = game.get_canvas_transform() * water_target.global_position
+	_expect(game._handle_villager_world_click(water_screen) and game.villager_order_mode == "destination", "Clicking water after Assign transport should select the infinite source.", failures)
+	var crate_screen: Vector2 = game.get_canvas_transform() * game.placed_targets[output_crate].global_position
+	_expect(game._handle_villager_world_click(crate_screen), "Clicking a crate should complete the water transport order.", failures)
+	_expect(str(water_villager.task.get("source", "")) == water_target.stable_id and str(water_villager.task.get("destination", "")) == output_crate and str(water_villager.task.get("item", "")) == "water", "The exact NPC -> water -> crate UI flow should assign the villager task.", failures)
+	var water_start: Vector2 = water_villager.position
+	for _step in range(10): water_villager.process_life(game, 0.1)
+	_expect(water_villager.position.distance_to(water_start) > 1.0, "A newly assigned water route should start moving immediately from the villager's current position.", failures)
 	water_villager.position = water_target.global_position
 	water_villager.state = "to_source"
 	water_villager.process_life(game, 0.1)

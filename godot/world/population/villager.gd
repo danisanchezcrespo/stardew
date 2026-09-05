@@ -82,10 +82,14 @@ func process_life(game: Node2D, delta: float) -> void:
 		state = "going_home"
 	if hunger <= 30.0 and carrying_amount == 0 and game.find_food_storage_for(self) != null:
 		state = "seeking_food"
-	elif hunger <= 0.0 and carrying_amount == 0:
+	elif hunger <= 0.0 and carrying_amount == 0 and task.is_empty():
 		state = "hungry"
 		queue_redraw()
 		return
+	elif hunger <= 0.0 and state == "hungry" and not task.is_empty():
+		# Avoid a permanent early-game deadlock when no food exists yet.
+		# Ordered villagers keep working slowly until the player establishes food.
+		state = _resume_state()
 	if state == "going_home":
 		if _move_to(home_position, delta): state = "sleeping"
 	elif state == "seeking_food":
@@ -161,7 +165,9 @@ func _move_to(target: Vector2, delta: float) -> bool:
 
 
 func status_text() -> String:
-	return state.capitalize().replace("_", " ")
+	var result := state.capitalize().replace("_", " ")
+	if hunger <= 0.0 and not task.is_empty() and state != "seeking_food": result += " (starving; slowed)"
+	return result
 
 
 func _draw() -> void:
