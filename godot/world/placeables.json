@@ -5,6 +5,7 @@
       "label": "Storage Crate",
       "color": "#71472b",
       "storage_slots": 8,
+      "visual": {"size": [48, 60]},
       "spatial": {
         "footprint": [[0, 0]],
         "rotations": [0, 1, 2, 3],
@@ -23,6 +24,7 @@
       "process_time_sec": 4.0,
       "workers_required": 1,
       "worker_priority": 50,
+      "visual": {"size": [84, 92]},
       "spatial": {
         "footprint": [[0, 0], [1, 0], [0, 1], [1, 1]],
         "rotations": [0, 1, 2, 3],
@@ -37,11 +39,12 @@
       "construction_cost": {"wood": 4, "mud_bricks": 6},
       "construction_work_seconds": 2.0,
       "population_capacity": 2,
+      "visual": {"size": [168, 120]},
       "spatial": {
-        "footprint": [[0, 0], [1, 0]],
+        "footprint": [[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],
         "rotations": [0, 1, 2, 3],
         "allowed_terrain": ["sand"],
-        "ports": {"use": [0, 1]}
+        "ports": {"use": [1, 3]}
       }
     },
     {
@@ -50,82 +53,93 @@
       "color": "#d9b85f",
       "construction_cost": {"planks": 8, "stone_blocks": 16, "linen": 4, "papyrus_sheet": 4},
       "construction_work_seconds": 5.0,
+      "visual": {"size": [224, 232]},
       "spatial": {
-        "footprint": [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
+        "footprint": [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[0,3],[1,3],[2,3],[3,3],[4,3],[5,3]],
         "rotations": [0, 1, 2, 3],
         "allowed_terrain": ["sand"],
-        "ports": {"use": [0, 3]}
+        "ports": {"use": [2, 4]}
       }
     },
     {
       "id": "GRAIN_FARM", "label": "Irrigated Grain Farm", "color": "#d5ad3c",
       "construction_cost": {"wood": 8, "mud_bricks": 4}, "construction_work_seconds": 4.0,
       "recipe_inputs": {"water": 2}, "recipe_outputs": {"grain": 5}, "process_time_sec": 7.0, "workers_required": 1, "worker_priority": 40,
+      "visual": {"size": [128, 112]},
       "spatial": {"footprint": [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [1,-1], "input": [-1,1], "output": [3,1]}}
     },
     {
       "id": "BAKERY", "label": "Bakery", "color": "#c77a42",
       "construction_cost": {"wood": 4, "mud_bricks": 10}, "construction_work_seconds": 4.0,
       "recipe_inputs": {"grain": 3, "water": 1}, "recipe_outputs": {"bread": 4}, "process_time_sec": 7.0, "workers_required": 1, "worker_priority": 45,
-      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+      "visual": {"size": [168, 184]},
+      "spatial": {"footprint": [[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [1,-1], "input": [-1,1], "output": [4,1]}}
     },
     {
       "id": "BREWERY", "label": "Brewery", "color": "#b97038",
       "construction_cost": {"wood": 4, "mud_bricks": 10}, "construction_work_seconds": 4.0,
       "recipe_inputs": {"grain": 2, "water": 1}, "recipe_outputs": {"beer": 3}, "process_time_sec": 8.0, "workers_required": 1, "worker_priority": 45,
-      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+      "visual": {"size": [168, 184]},
+      "spatial": {"footprint": [[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [1,-1], "input": [-1,1], "output": [4,1]}}
     },
     {
       "id": "KITCHEN", "label": "Communal Kitchen", "color": "#a85a35",
       "construction_cost": {"wood": 5, "mud_bricks": 10}, "construction_work_seconds": 5.0,
       "recipe_inputs": {"bread": 2, "beer": 1}, "recipe_outputs": {"food_ration": 5}, "process_time_sec": 3.0, "workers_required": 1, "worker_priority": 60,
-      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+      "visual": {"size": [168, 184]},
+      "spatial": {"footprint": [[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [1,-1], "input": [-1,1], "output": [4,1]}}
     },
     {
       "id": "SAWMILL", "label": "Sawmill", "color": "#916037",
       "construction_cost": {"wood": 10, "mud_bricks": 4}, "construction_work_seconds": 5.0,
       "recipe_inputs": {"wood": 2}, "recipe_outputs": {"planks": 3}, "process_time_sec": 6.0, "workers_required": 1, "worker_priority": 35,
-      "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+      "visual": {"size": [168, 184]},
+      "spatial": {"footprint": [[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [1,-1], "input": [-1,1], "output": [4,1]}}
     },
     {
       "id":"QUARRY","label":"Limestone Quarry","color":"#c9b77f",
       "construction_cost":{"planks":8,"mud_bricks":8},"construction_work_seconds":7.0,
       "recipe_inputs":{},"recipe_outputs":{"limestone":4},"process_time_sec":12.0,"workers_required":1,"worker_priority":35,
-      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1],[2,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"output":[3,1]}}
+      "visual":{"size":[168,184]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"output":[4,1]}}
     },
     {
       "id":"COPPER_MINE","label":"Copper Mine","color":"#9a704d",
       "construction_cost":{"planks":10,"stone_blocks":6},"construction_work_seconds":8.0,
       "recipe_inputs":{},"recipe_outputs":{"copper_ore":3},"process_time_sec":14.0,"workers_required":1,"worker_priority":35,
-      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1],[2,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"output":[3,1]}}
+      "visual":{"size":[168,184]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"output":[4,1]}}
     },
     {
       "id":"COPPER_SMELTER","label":"Copper Smelter","color":"#ad6038",
       "construction_cost":{"stone_blocks":8,"mud_bricks":8},"construction_work_seconds":7.0,
       "recipe_inputs":{"copper_ore":3,"wood":1},"recipe_outputs":{"copper_ingot":2},"process_time_sec":10.0,"workers_required":1,"worker_priority":45,
-      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1],"input":[-1,0],"output":[2,1]}}
+      "visual":{"size":[168,184]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"input":[-1,1],"output":[4,1]}}
     },
     {
       "id":"WEAVER","label":"Linen Weaver","color":"#c6a66e",
       "construction_cost":{"planks":8,"bronze_tools":1},"construction_work_seconds":6.0,
       "recipe_inputs":{"flax":3},"recipe_outputs":{"linen":2},"process_time_sec":9.0,"workers_required":1,"worker_priority":40,
-      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1],"input":[-1,0],"output":[2,1]}}
+      "visual":{"size":[168,184]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"input":[-1,1],"output":[4,1]}}
     },
     {
       "id":"PAPYRUS_WORKSHOP","label":"Papyrus Workshop","color":"#b89c5c",
       "construction_cost":{"planks":8,"linen":4,"bronze_tools":1},"construction_work_seconds":7.0,
       "recipe_inputs":{"papyrus_reeds":3,"water":1},"recipe_outputs":{"papyrus_sheet":2},"process_time_sec":10.0,"workers_required":1,"worker_priority":40,
-      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1],"input":[-1,0],"output":[2,1]}}
+      "visual":{"size":[168,184]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"input":[-1,1],"output":[4,1]}}
     },
     {
       "id":"CHICKEN_COOP","label":"Chicken Coop","color":"#b9874f","construction_cost":{"planks":6,"mud_bricks":4},"construction_work_seconds":5.0,"workers_required":1,"profession":"animal_keeper","dependent_spawns":["chicken"],
-      "visual":{"texture":"res://assets/generated/buildings/chicken_coop.png","columns":1,"column":0,"scale":1.15},
-      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1]}}
+      "visual":{"texture":"res://assets/generated/buildings/chicken_coop.png","columns":1,"column":0,"size":[128,120]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1]}}
     },
     {
       "id":"CATTLE_BARN","label":"Cattle Barn","color":"#9b6a43","construction_cost":{"planks":10,"mud_bricks":8},"construction_work_seconds":7.0,"workers_required":1,"profession":"animal_keeper","dependent_spawns":["cow"],
-      "visual":{"texture":"res://assets/generated/buildings/egypt_economy_buildings_sheet.png","columns":5,"column":1},
-      "spatial":{"footprint":[[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1]}}
+      "visual":{"texture":"res://assets/generated/buildings/egypt_economy_buildings_sheet.png","columns":5,"column":1,"size":[168,140]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1]}}
     },
     {
       "id": "TREE_CROP", "label": "Tree Seed", "color": "#73913a",

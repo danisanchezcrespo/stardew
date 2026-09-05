@@ -30,15 +30,7 @@ func configure(type_id: String, cells: Array[Vector2i], visual_data: Dictionary 
 	for cell: Vector2i in cells:
 		minimum = Vector2i(mini(minimum.x, cell.x), mini(minimum.y, cell.y))
 		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
-	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
-	sprite_size = Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
-	if definition_id == "GRAIN_FARM":
-		sprite_size = Vector2(128, 112)
-	elif definition_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP"]:
-		sprite_size *= 2.0
-	elif definition_id == "SHRINE":
-		# The temple art is nearly square; preserve that authored 3/4 projection.
-		sprite_size = Vector2(maxf(112.0, footprint_size.x + 36.0), maxf(116.0, footprint_size.y + 20.0)) * 2.0
+	sprite_size = sprite_size_for(definition_id, cells, visual)
 	global_position = Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
 	z_as_relative = false
 	z_index = roundi(global_position.y)
@@ -56,9 +48,6 @@ func _draw() -> void:
 		var rows_count := maxi(1, int(visual.get("rows", 1)))
 		var column := int(visual.get("column", 0))
 		var row := int(visual.get("row", 0))
-		if visual.has("scale"):
-			var scale_factor := float(visual.scale)
-			destination = Rect2(Vector2(-sprite_size.x * scale_factor * 0.5, -sprite_size.y * scale_factor), sprite_size * scale_factor)
 		var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
 		draw_texture_rect_region(texture, destination, Rect2(Vector2(column, row) * region_size, region_size))
 	elif industry_columns.has(definition_id):
@@ -79,3 +68,25 @@ func _draw() -> void:
 	elif machine_broken:
 		draw_circle(Vector2(sprite_size.x * 0.27, -sprite_size.y * 0.72), 11.0, Color("#8b2f2f"))
 		draw_string(ThemeDB.fallback_font, Vector2(sprite_size.x * 0.235, -sprite_size.y * 0.675), "!", HORIZONTAL_ALIGNMENT_CENTER, 10, 18, Color.WHITE)
+
+
+static func sprite_size_for(type_id: String, cells: Array[Vector2i], visual_data: Dictionary = {}) -> Vector2:
+	if cells.is_empty(): return Vector2.ZERO
+	var minimum := cells[0]
+	var maximum := cells[0]
+	for cell: Vector2i in cells:
+		minimum = Vector2i(mini(minimum.x, cell.x), mini(minimum.y, cell.y))
+		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
+	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
+	var result := Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
+	var authored_size: Array = visual_data.get("size", [])
+	if authored_size.size() >= 2:
+		result = Vector2(float(authored_size[0]), float(authored_size[1]))
+	elif type_id == "GRAIN_FARM":
+		result = Vector2(128, 112)
+	elif type_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP"]:
+		result *= 2.0
+	elif type_id == "SHRINE":
+		result = Vector2(maxf(112.0, footprint_size.x + 36.0), maxf(116.0, footprint_size.y + 20.0)) * 2.0
+	if visual_data.has("scale"): result *= float(visual_data.scale)
+	return result
