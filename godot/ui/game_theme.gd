@@ -18,13 +18,15 @@ static func create(palette: Dictionary = {}) -> Theme:
 	var blue: Color = Color(str(palette.get("button", BLUE.to_html())))
 	var night: Color = Color(str(palette.get("dark", NIGHT.to_html())))
 	var result := Theme.new()
-	result.default_font = REGULAR
+	# One visual language everywhere: the bitmap typeface is used for both
+	# headings and body copy; hierarchy comes from size, not a second family.
+	result.default_font = PIXEL
 	result.default_font_size = 17
 	result.set_font("font", "Button", PIXEL)
 	result.set_font("font", "OptionButton", PIXEL)
 	result.set_font_size("font_size", "Button", 19)
 	result.set_font_size("font_size", "OptionButton", 18)
-	result.set_font("font", "LineEdit", REGULAR)
+	result.set_font("font", "LineEdit", PIXEL)
 	result.set_color("font_color", "Button", cream)
 	result.set_color("font_hover_color", "Button", Color.WHITE)
 	result.set_color("font_pressed_color", "Button", Color.WHITE)

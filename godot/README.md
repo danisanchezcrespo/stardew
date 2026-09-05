@@ -26,6 +26,12 @@ and Mars each contain ten era-specific narrative moments. Press `Space` to
 begin and to advance dialogue; moments already seen are saved in the museum
 metagame file and do not repeat.
 
+Narrative content is data-driven in `world/time_travel/dialogues.json`. Each
+entry declares its era, unique id, campaign trigger, speaker, and English text,
+so dialogue wording and the milestone that fires it can be changed without
+editing GDScript. UI headings and body copy use the same project pixel font;
+their different sizes provide the visual hierarchy.
+
 The Ancient Egypt campaign contains 31 chapters and a complete manual-to-
 automated production arc. Use `Space` for contextual interaction, `C` for
 crafting, `T` for the technology tree, `M` for the era collection, `Tab` for
