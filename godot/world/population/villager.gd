@@ -3,6 +3,8 @@ extends Node2D
 
 const LATERAL_TEXTURE = preload("res://assets/generated/character/egyptian_worker_lateral_10frame_sheet.png")
 const VERTICAL_TEXTURE = preload("res://assets/generated/character/egyptian_worker_vertical_10frame_sheet.png")
+const MALE_LATERAL_TEXTURE = preload("res://assets/generated/character/egyptian_man_lateral_sheet.png")
+const MALE_VERTICAL_TEXTURE = preload("res://assets/generated/character/egyptian_man_vertical_sheet.png")
 const FRAME_SIZE := Vector2(64, 80)
 const WALK_SPEED := 72.0
 const FRAME_RATE := 10.0
@@ -23,9 +25,10 @@ var selected := false
 var targeted := false
 var target_kind := "villager"
 var color_tint := Color.WHITE
+var appearance_id := 0
 
 
-func configure(id: String, display_name: String, dwelling_id: String, spawn_position: Vector2, tint: Color = Color.WHITE) -> void:
+func configure(id: String, display_name: String, dwelling_id: String, spawn_position: Vector2, tint: Color = Color.WHITE, appearance: int = 0) -> void:
 	stable_id = id
 	villager_name = display_name
 	home_id = dwelling_id
@@ -34,6 +37,7 @@ func configure(id: String, display_name: String, dwelling_id: String, spawn_posi
 	z_as_relative = false
 	z_index = roundi(global_position.y + 10.0)
 	color_tint = tint
+	appearance_id = posmod(appearance, 6)
 	queue_redraw()
 
 
@@ -172,10 +176,11 @@ func status_text() -> String:
 
 func _draw() -> void:
 	_draw_shadow_ellipse(Vector2(0, 9), Vector2(12, 5), Color(0, 0, 0, 0.22))
-	var texture := VERTICAL_TEXTURE
+	var male := appearance_id % 2 == 1
+	var texture: Texture2D = MALE_VERTICAL_TEXTURE if male else VERTICAL_TEXTURE
 	var row := 0 if facing == "south" else 1
 	if facing == "west" or facing == "east":
-		texture = LATERAL_TEXTURE
+		texture = MALE_LATERAL_TEXTURE if male else LATERAL_TEXTURE
 		row = 0 if facing == "west" else 1
 	var moving := state in ["to_source", "to_destination", "to_work", "going_home", "seeking_food", "waiting: source empty"]
 	var frame := int(animation_time * FRAME_RATE) % 10 if moving else 0

@@ -14,6 +14,8 @@
     {"id": "source-water-nile", "item": "water", "cell": [32.5, 8.5], "initial": 600, "max": 1200, "grant": 12, "regen_amount": 24, "regen_seconds": 10.0},
     {"id": "source-grain-nile", "item": "grain", "cell": [20.5, 6.5], "initial": 500, "max": 500, "grant": 10, "regen_amount": 10, "regen_seconds": 12.0},
     {"id": "source-clay-nile", "item": "clay", "cell": [27.5, 12.5], "initial": 300, "max": 300, "grant": 8, "regen_amount": 8, "regen_seconds": 15.0}
+    ,{"id":"source-flax-bank","item":"flax","cell":[29.5,20.5],"initial":80,"max":160,"grant":8,"regen_amount":5,"regen_seconds":18.0}
+    ,{"id":"source-papyrus-bank","item":"papyrus_reeds","cell":[32.5,18.5],"initial":100,"max":240,"grant":10,"regen_amount":6,"regen_seconds":16.0}
   ],
   "crops": [
     {"id": "tree-initial-1", "cell": [18, 13], "stage": 3},

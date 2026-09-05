@@ -39,6 +39,8 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	game.select_villager(villager.stable_id)
 	game._rename_selected_villager("Merit")
 	_expect(villager.villager_name == "Merit", "The characteristics panel should rename a villager.", failures)
+	game._change_selected_villager_appearance(3)
+	_expect(villager.appearance_id == 3 and villager.MALE_LATERAL_TEXTURE != null, "Villager panel should select and render a persistent male/clothing appearance.", failures)
 	var move_destination := Vector2(760, 180)
 	var screen_destination: Vector2 = game.get_canvas_transform() * move_destination
 	_expect(game._handle_villager_world_click(screen_destination), "Clicking empty ground with a selected villager should issue a move order.", failures)

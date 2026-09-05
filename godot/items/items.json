@@ -18,6 +18,20 @@
     {"id": "brewery_plan", "label": "Brewery plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "BREWERY"},
     {"id": "kitchen_plan", "label": "Kitchen plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "KITCHEN"},
     {"id": "sawmill_plan", "label": "Sawmill plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "SAWMILL"},
-    {"id": "tree_seed", "label": "Tree seed", "color": "#7f9b3c", "max_stack": 50, "placeable_entity_id": "TREE_CROP"}
+    {"id": "tree_seed", "label": "Tree seed", "color": "#7f9b3c", "max_stack": 50, "placeable_entity_id": "TREE_CROP"},
+    {"id":"limestone","label":"Limestone","color":"#d8c58e","max_stack":50},
+    {"id":"stone_blocks","label":"Dressed stone","color":"#e2d3a6","max_stack":50},
+    {"id":"copper_ore","label":"Copper ore","color":"#8c694e","max_stack":50},
+    {"id":"copper_ingot","label":"Copper ingot","color":"#c97843","max_stack":30},
+    {"id":"flax","label":"Flax","color":"#779d54","max_stack":50},
+    {"id":"linen","label":"Linen","color":"#eee0b8","max_stack":30},
+    {"id":"papyrus_reeds","label":"Papyrus reeds","color":"#78994b","max_stack":50},
+    {"id":"papyrus_sheet","label":"Papyrus sheets","color":"#e7d39b","max_stack":30},
+    {"id":"bronze_tools","label":"Bronze tools","color":"#b66f3d","max_stack":20},
+    {"id":"quarry_plan","label":"Quarry plan","color":"#d8c58e","max_stack":5,"placeable_entity_id":"QUARRY"},
+    {"id":"copper_mine_plan","label":"Copper mine plan","color":"#bb7950","max_stack":5,"placeable_entity_id":"COPPER_MINE"},
+    {"id":"smelter_plan","label":"Smelter plan","color":"#bf7042","max_stack":5,"placeable_entity_id":"COPPER_SMELTER"},
+    {"id":"weaver_plan","label":"Weaver plan","color":"#d9c99f","max_stack":5,"placeable_entity_id":"WEAVER"},
+    {"id":"papyrus_workshop_plan","label":"Papyrus workshop plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"PAPYRUS_WORKSHOP"}
   ]
 }

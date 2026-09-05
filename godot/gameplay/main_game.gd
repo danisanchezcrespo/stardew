@@ -19,6 +19,7 @@ const PhysicalScenarioType = preload("res://world/scenario/physical_scenario.gd"
 const BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_buildings_sheet.png")
 const ECONOMY_BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_economy_buildings_sheet.png")
 const SHRINE_TEXTURE = preload("res://assets/generated/buildings/egypt_shrine_v2.png")
+const INDUSTRY_BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_industry_buildings.png")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
@@ -118,6 +119,7 @@ var next_villager_id := 1
 var selected_villager_id := ""
 var villager_panel: Control
 var villager_name_edit: LineEdit
+var villager_appearance_option: OptionButton
 var villager_status_label: Label
 var villager_order_feedback: Label
 var villager_resource_option: OptionButton
@@ -641,9 +643,16 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_name_edit.text_submitted.connect(_rename_selected_villager)
 	villager_name_edit.focus_exited.connect(_commit_villager_name)
 	villager_panel.add_child(villager_name_edit)
+	villager_appearance_option = OptionButton.new()
+	villager_appearance_option.position = Vector2(22, 106)
+	villager_appearance_option.size = Vector2(376, 36)
+	for option_name: String in ["Woman · Nile blue", "Man · Nile blue", "Woman · Desert ochre", "Man · Desert ochre", "Woman · Reed green", "Man · Reed green"]:
+		villager_appearance_option.add_item(option_name)
+	villager_appearance_option.item_selected.connect(_change_selected_villager_appearance)
+	villager_panel.add_child(villager_appearance_option)
 	villager_status_label = Label.new()
-	villager_status_label.position = Vector2(22, 112)
-	villager_status_label.size = Vector2(376, 190)
+	villager_status_label.position = Vector2(22, 152)
+	villager_status_label.size = Vector2(376, 130)
 	villager_status_label.add_theme_font_size_override("font_size", 16)
 	villager_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	villager_panel.add_child(villager_status_label)
@@ -884,6 +893,8 @@ func _commit_villager_name() -> void:
 func _update_villager_panel() -> void:
 	if not villagers.has(selected_villager_id): return
 	var villager: Variant = villagers[selected_villager_id]
+	if villager_appearance_option != null and villager_appearance_option.selected != villager.appearance_id:
+		villager_appearance_option.select(villager.appearance_id)
 	var task_text := "None"
 	if not villager.task.is_empty() and str(villager.task.get("type", "transport")) == "work":
 		var work_target: Variant = placed_targets.get(str(villager.task.target))
@@ -896,6 +907,21 @@ func _update_villager_panel() -> void:
 		var destination_target: Variant = placed_targets.get(str(villager.task.destination))
 		task_text = "Carry %s\n%s → %s" % [resource.label if resource != null else str(villager.task.item), source_target.item_label if source_target != null else str(villager.task.source), destination_target.item_label if destination_target != null else str(villager.task.destination)]
 	villager_status_label.text = "Home: %s\nStatus: %s\n\nHunger   %d%%\nEnergy   %d%%\n\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
+
+
+func _change_selected_villager_appearance(index: int) -> void:
+	if not villagers.has(selected_villager_id): return
+	var villager: Variant = villagers[selected_villager_id]
+	villager.appearance_id = posmod(index, 6)
+	villager.color_tint = _villager_appearance_tint(villager.appearance_id)
+	villager.queue_redraw()
+
+
+func _villager_appearance_tint(appearance: int) -> Color:
+	match floori(posmod(appearance, 6) / 2.0):
+		1: return Color("#f3d2a2")
+		2: return Color("#cce0b2")
+	return Color.WHITE
 
 
 func begin_villager_transport_order() -> void:
@@ -1959,9 +1985,10 @@ func spawn_villagers_for_home(home_id: String, count: int) -> void:
 	for index in range(existing, count):
 		var villager_id := "villager-%04d" % next_villager_id
 		var display_name := VILLAGER_NAMES[(next_villager_id - 1) % VILLAGER_NAMES.size()]
-		var tint: Color = [Color("#f1d8ba"), Color("#d5e6f2"), Color("#f2d4df"), Color("#dce8c2")][(next_villager_id - 1) % 4]
+		var appearance := (next_villager_id - 1) % 6
+		var tint: Color = _villager_appearance_tint(appearance)
 		var villager: Variant = VillagerType.new()
-		villager.configure(villager_id, display_name, home_id, home_target.global_position + Vector2((index * 14) - 7, 28), tint)
+		villager.configure(villager_id, display_name, home_id, home_target.global_position + Vector2((index * 14) - 7, 28), tint, appearance)
 		add_child(villager)
 		villagers[villager_id] = villager
 		next_villager_id += 1
@@ -1977,7 +2004,7 @@ func restore_villager(data: Dictionary) -> Variant:
 	var values: Array = data.get("position", [fallback_position.x, fallback_position.y])
 	var tint_values: Array = data.get("tint", [1.0, 1.0, 1.0, 1.0])
 	var villager: Variant = VillagerType.new()
-	villager.configure(villager_id, str(data.get("name", "Villager")), home_id, Vector2(float(values[0]), float(values[1])), Color(float(tint_values[0]), float(tint_values[1]), float(tint_values[2]), float(tint_values[3])))
+	villager.configure(villager_id, str(data.get("name", "Villager")), home_id, Vector2(float(values[0]), float(values[1])), Color(float(tint_values[0]), float(tint_values[1]), float(tint_values[2]), float(tint_values[3])), int(data.get("appearance", 0)))
 	villager.home_position = Vector2(float(data.get("home_position", [fallback_position.x, fallback_position.y])[0]), float(data.get("home_position", [fallback_position.x, fallback_position.y])[1]))
 	villager.hunger = float(data.get("hunger", 100.0))
 	villager.energy = float(data.get("energy", 100.0))
@@ -2266,7 +2293,8 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 		return
 	var columns := {"STORAGE_CRATE": 0, "BRICK_KILN": 1, "DWELLING": 2, "SHRINE": 3}
 	var economy_columns := {"GRAIN_FARM": 0, "BAKERY": 1, "BREWERY": 2, "KITCHEN": 3, "SAWMILL": 4}
-	if (not columns.has(definition_id) and not economy_columns.has(definition_id)) or cells.is_empty(): return
+	var industry_columns := {"QUARRY": 0, "COPPER_MINE": 1, "COPPER_SMELTER": 2, "WEAVER": 3, "PAPYRUS_WORKSHOP": 4}
+	if (not columns.has(definition_id) and not economy_columns.has(definition_id) and not industry_columns.has(definition_id)) or cells.is_empty(): return
 	var minimum := cells[0]
 	var maximum := cells[0]
 	for cell: Vector2i in cells:
@@ -2274,12 +2302,15 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
 	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
 	var sprite_size := Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
-	if definition_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL"]: sprite_size *= 2.0
+	if definition_id in ["DWELLING", "BAKERY", "BREWERY", "KITCHEN", "SAWMILL", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP"]: sprite_size *= 2.0
 	elif definition_id == "SHRINE": sprite_size = Vector2(maxf(112.0, footprint_size.x + 36.0), maxf(116.0, footprint_size.y + 20.0)) * 2.0
 	var bottom_center := Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
 	var destination := Rect2(bottom_center - Vector2(sprite_size.x * 0.5, sprite_size.y), sprite_size)
 	var tint := Color(0.45, 1.0, 0.55, 0.62) if valid else Color(1.0, 0.35, 0.35, 0.62)
-	if economy_columns.has(definition_id):
+	if industry_columns.has(definition_id):
+		var cell_width := INDUSTRY_BUILDING_TEXTURE.get_width() / 5.0
+		draw_texture_rect_region(INDUSTRY_BUILDING_TEXTURE, destination, Rect2(int(industry_columns[definition_id]) * cell_width, 0, cell_width, INDUSTRY_BUILDING_TEXTURE.get_height()), tint if ghost else Color.WHITE)
+	elif economy_columns.has(definition_id):
 		var cell_width := ECONOMY_BUILDING_TEXTURE.get_width() / 5.0
 		draw_texture_rect_region(ECONOMY_BUILDING_TEXTURE, destination, Rect2(int(economy_columns[definition_id]) * cell_width, 0, cell_width, ECONOMY_BUILDING_TEXTURE.get_height()), tint if ghost else Color.WHITE)
 	elif definition_id == "SHRINE":

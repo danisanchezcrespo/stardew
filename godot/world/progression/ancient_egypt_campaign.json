@@ -20,6 +20,17 @@
     {"id":"prepare_meals","label":"Prepare the first communal meals","type":"produce","item":"food_ration"},
     {"id":"grow_population","label":"Welcome four settlers","type":"population","count":4},
     {"id":"logistics_network","label":"Operate three transport routes","type":"route_count","count":3},
+    {"id":"build_quarry","label":"Open a limestone quarry","type":"complete","entity":"QUARRY"},
+    {"id":"quarry_stone","label":"Extract the first limestone","type":"produce","item":"limestone"},
+    {"id":"build_mine","label":"Open a copper mine","type":"complete","entity":"COPPER_MINE"},
+    {"id":"mine_copper","label":"Extract the first copper ore","type":"produce","item":"copper_ore"},
+    {"id":"build_smelter","label":"Build a copper smelter","type":"complete","entity":"COPPER_SMELTER"},
+    {"id":"smelt_copper","label":"Smelt the first copper ingots","type":"produce","item":"copper_ingot"},
+    {"id":"forge_tools","label":"Craft a set of bronze tools","type":"craft","recipe":"bronze_tools"},
+    {"id":"build_weaver","label":"Build a linen weaver","type":"complete","entity":"WEAVER"},
+    {"id":"weave_linen","label":"Weave the first linen cloth","type":"produce","item":"linen"},
+    {"id":"build_papyrus","label":"Build a papyrus workshop","type":"complete","entity":"PAPYRUS_WORKSHOP"},
+    {"id":"make_papyrus","label":"Produce the first papyrus sheets","type":"produce","item":"papyrus_sheet"},
     {"id":"monument","label":"Complete the River Temple","type":"complete","entity":"SHRINE"}
   ]
 }

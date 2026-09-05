@@ -27,7 +27,7 @@ func capture(game: Node2D) -> Dictionary:
 		routes.append({"id": route.route_id, "source": route.source_id, "destination": route.destination_id, "villager": route.villager_id, "item": route.item_id, "progress": route.progress_seconds, "trips": route.trips_completed})
 	var villagers: Array[Dictionary] = []
 	for villager: Variant in game.villagers.values():
-		villagers.append({"id": villager.stable_id, "name": villager.villager_name, "home": villager.home_id, "home_position": [villager.home_position.x, villager.home_position.y], "position": [villager.position.x, villager.position.y], "hunger": villager.hunger, "energy": villager.energy, "state": villager.state, "facing": villager.facing, "task": villager.task.duplicate(true), "carrying_item": villager.carrying_item, "carrying_amount": villager.carrying_amount, "tint": [villager.color_tint.r, villager.color_tint.g, villager.color_tint.b, villager.color_tint.a]})
+		villagers.append({"id": villager.stable_id, "name": villager.villager_name, "appearance": villager.appearance_id, "home": villager.home_id, "home_position": [villager.home_position.x, villager.home_position.y], "position": [villager.position.x, villager.position.y], "hunger": villager.hunger, "energy": villager.energy, "state": villager.state, "facing": villager.facing, "task": villager.task.duplicate(true), "carrying_item": villager.carrying_item, "carrying_amount": villager.carrying_amount, "tint": [villager.color_tint.r, villager.color_tint.g, villager.color_tint.b, villager.color_tint.a]})
 	var pickup_amounts: Dictionary = {}
 	for pickup: Variant in game.pickups:
 		if is_instance_valid(pickup): pickup_amounts[pickup.stable_id] = pickup.amount

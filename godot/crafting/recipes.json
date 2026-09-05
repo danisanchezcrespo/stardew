@@ -5,12 +5,19 @@
     {"id": "brick_kiln_plan", "label": "Brick Kiln Plan", "inputs": {"wood": 5}, "outputs": {"brick_kiln_plan": 1}},
     {"id": "dwelling_plan", "label": "Dwelling Plan", "inputs": {"wood": 4, "mud_bricks": 4}, "outputs": {"dwelling_plan": 1}},
     {"id": "food_ration", "label": "Food Ration", "inputs": {"grain": 2}, "outputs": {"food_ration": 1}},
-    {"id": "shrine_plan", "label": "Temple Plan", "inputs": {"wood": 8, "mud_bricks": 12, "grain": 6}, "outputs": {"shrine_plan": 1}, "unlock_after":"prepare_meals"},
+    {"id": "shrine_plan", "label": "Temple Plan", "inputs": {"wood": 8, "stone_blocks": 12, "linen": 4, "papyrus_sheet": 4}, "outputs": {"shrine_plan": 1}, "unlock_after":"make_papyrus"},
     {"id": "grain_farm_plan", "label": "Grain Farm Plan", "inputs": {"wood": 6, "mud_bricks": 4}, "outputs": {"grain_farm_plan": 1}, "unlock_after":"produce_planks"},
     {"id": "bakery_plan", "label": "Bakery Plan", "inputs": {"wood": 4, "mud_bricks": 8}, "outputs": {"bakery_plan": 1}, "unlock_after":"harvest_grain"},
     {"id": "brewery_plan", "label": "Brewery Plan", "inputs": {"wood": 4, "mud_bricks": 8}, "outputs": {"brewery_plan": 1}, "unlock_after":"bake_bread"},
     {"id": "kitchen_plan", "label": "Kitchen Plan", "inputs": {"wood": 5, "mud_bricks": 10}, "outputs": {"kitchen_plan": 1}, "unlock_after":"brew_beer"},
     {"id": "sawmill_plan", "label": "Sawmill Plan", "inputs": {"wood": 10, "mud_bricks": 4}, "outputs": {"sawmill_plan": 1}, "unlock_after":"automate"},
-    {"id": "planks", "label": "Wood Planks x2", "inputs": {"wood": 2}, "outputs": {"planks": 2}, "unlock_after":"build_sawmill"}
+    {"id": "planks", "label": "Wood Planks x2", "inputs": {"wood": 2}, "outputs": {"planks": 2}, "unlock_after":"build_sawmill"},
+    {"id":"quarry_plan","label":"Quarry Plan","inputs":{"planks":8,"mud_bricks":8},"outputs":{"quarry_plan":1},"unlock_after":"prepare_meals"},
+    {"id":"stone_blocks","label":"Dress Stone Blocks x2","inputs":{"limestone":3},"outputs":{"stone_blocks":2},"unlock_after":"quarry_stone"},
+    {"id":"copper_mine_plan","label":"Copper Mine Plan","inputs":{"planks":10,"stone_blocks":6},"outputs":{"copper_mine_plan":1},"unlock_after":"quarry_stone"},
+    {"id":"smelter_plan","label":"Copper Smelter Plan","inputs":{"stone_blocks":8,"mud_bricks":8},"outputs":{"smelter_plan":1},"unlock_after":"mine_copper"},
+    {"id":"bronze_tools","label":"Bronze Tools","inputs":{"copper_ingot":2,"planks":1},"outputs":{"bronze_tools":1},"unlock_after":"smelt_copper"},
+    {"id":"weaver_plan","label":"Linen Weaver Plan","inputs":{"planks":8,"bronze_tools":1},"outputs":{"weaver_plan":1},"unlock_after":"forge_tools"},
+    {"id":"papyrus_workshop_plan","label":"Papyrus Workshop Plan","inputs":{"planks":8,"linen":4,"bronze_tools":1},"outputs":{"papyrus_workshop_plan":1},"unlock_after":"weave_linen"}
   ]
 }

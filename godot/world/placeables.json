@@ -48,7 +48,7 @@
       "id": "SHRINE",
       "label": "River Temple",
       "color": "#d9b85f",
-      "construction_cost": {"planks": 6, "mud_bricks": 10},
+      "construction_cost": {"planks": 8, "stone_blocks": 16, "linen": 4, "papyrus_sheet": 4},
       "construction_work_seconds": 5.0,
       "spatial": {
         "footprint": [[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]],
@@ -86,6 +86,36 @@
       "construction_cost": {"wood": 10, "mud_bricks": 4}, "construction_work_seconds": 5.0,
       "recipe_inputs": {"wood": 2}, "recipe_outputs": {"planks": 3}, "process_time_sec": 6.0, "workers_required": 1, "worker_priority": 35,
       "spatial": {"footprint": [[0,0],[1,0],[0,1],[1,1]], "rotations": [0,1,2,3], "allowed_terrain": ["sand"], "ports": {"use": [0,-1], "input": [-1,0], "output": [2,1]}}
+    },
+    {
+      "id":"QUARRY","label":"Limestone Quarry","color":"#c9b77f",
+      "construction_cost":{"planks":8,"mud_bricks":8},"construction_work_seconds":7.0,
+      "recipe_inputs":{},"recipe_outputs":{"limestone":4},"process_time_sec":12.0,"workers_required":1,"worker_priority":35,
+      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1],[2,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"output":[3,1]}}
+    },
+    {
+      "id":"COPPER_MINE","label":"Copper Mine","color":"#9a704d",
+      "construction_cost":{"planks":10,"stone_blocks":6},"construction_work_seconds":8.0,
+      "recipe_inputs":{},"recipe_outputs":{"copper_ore":3},"process_time_sec":14.0,"workers_required":1,"worker_priority":35,
+      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1],[2,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1],"output":[3,1]}}
+    },
+    {
+      "id":"COPPER_SMELTER","label":"Copper Smelter","color":"#ad6038",
+      "construction_cost":{"stone_blocks":8,"mud_bricks":8},"construction_work_seconds":7.0,
+      "recipe_inputs":{"copper_ore":3,"wood":1},"recipe_outputs":{"copper_ingot":2},"process_time_sec":10.0,"workers_required":1,"worker_priority":45,
+      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1],"input":[-1,0],"output":[2,1]}}
+    },
+    {
+      "id":"WEAVER","label":"Linen Weaver","color":"#c6a66e",
+      "construction_cost":{"planks":8,"bronze_tools":1},"construction_work_seconds":6.0,
+      "recipe_inputs":{"flax":3},"recipe_outputs":{"linen":2},"process_time_sec":9.0,"workers_required":1,"worker_priority":40,
+      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1],"input":[-1,0],"output":[2,1]}}
+    },
+    {
+      "id":"PAPYRUS_WORKSHOP","label":"Papyrus Workshop","color":"#b89c5c",
+      "construction_cost":{"planks":8,"linen":4,"bronze_tools":1},"construction_work_seconds":7.0,
+      "recipe_inputs":{"papyrus_reeds":3,"water":1},"recipe_outputs":{"papyrus_sheet":2},"process_time_sec":10.0,"workers_required":1,"worker_priority":40,
+      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1],"input":[-1,0],"output":[2,1]}}
     },
     {
       "id": "TREE_CROP", "label": "Tree Seed", "color": "#73913a",
