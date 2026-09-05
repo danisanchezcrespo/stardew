@@ -17,9 +17,9 @@ func _capture() -> void:
 		return
 	ScenarioType.requested_path = str(args[0])
 	ScenarioType.requested_autostart = true
-	if args.size() > 5 and str(args[5]) == "dialogue":
-		TimeTravelStateType.persistence_enabled = false
-		TimeTravelStateType.loaded = false
+	# Captures must never consume narrative events or mutate the player's saves.
+	TimeTravelStateType.persistence_enabled = false
+	TimeTravelStateType.loaded = false
 	var game := MainScene.instantiate()
 	root.add_child(game)
 	await process_frame
@@ -29,7 +29,10 @@ func _capture() -> void:
 	var capture_cell := Vector2(float(args[3]), float(args[4])) if args.size() > 4 else Vector2(12.0, 8.0)
 	game.player.position = capture_cell * game.CELL_SIZE
 	if args.size() > 5:
-		if str(args[5]) == "pause": game.set_pause_open(true)
+		if str(args[5]) == "pause":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			game.set_pause_open(true)
 		elif str(args[5]) == "dialogue":
 			game._close_splash()
 			if not game.dialogue_open:

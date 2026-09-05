@@ -21,8 +21,10 @@ func _initialize() -> void:
 	_expect(is_equal_approx(game.camera.zoom.x, 0.75), "Zoom out should clamp at 0.75x.", failures)
 	game.set_scenario_select_open(false)
 	game.set_pause_open(true)
-	game._back_to_main_menu()
-	_expect(game.scenario_select_open and not game.pause_open, "Back to main menu should open the era selector and close pause.", failures)
+	var menu_labels: Array[String] = []
+	for child: Node in game.pause_panel.get_children():
+		if child is Button: menu_labels.append((child as Button).text)
+	_expect(menu_labels == ["NEW GAME", "CONTINUE", "SAVE", "LOAD", "QUIT"], "Pause menu should expose only the five requested actions in order.", failures)
 	game_root.queue_free()
 	await process_frame
 	if failures.is_empty():

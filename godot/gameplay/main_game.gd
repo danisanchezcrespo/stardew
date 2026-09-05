@@ -812,7 +812,7 @@ func _emit_action(action: String) -> void:
 func _build_pause_panel(layer: CanvasLayer) -> void:
 	pause_panel = ColorRect.new()
 	pause_panel.position = Vector2(430, 118)
-	pause_panel.size = Vector2(420, 554)
+	pause_panel.size = Vector2(420, 455)
 	pause_panel.color = Color(0.05, 0.06, 0.08, 0.97)
 	pause_panel.visible = false
 	layer.add_child(pause_panel)
@@ -820,7 +820,7 @@ func _build_pause_panel(layer: CanvasLayer) -> void:
 	title.position = Vector2(46, 34)
 	title.size = Vector2(328, 48)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.text = "SETTLEMENT PAUSED"
+	title.text = "TIME QUEST"
 	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color("#f0cc72"))
 	pause_panel.add_child(title)
@@ -828,17 +828,15 @@ func _build_pause_panel(layer: CanvasLayer) -> void:
 	subtitle.position = Vector2(46, 82)
 	subtitle.size = Vector2(328, 42)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.text = "Your progress autosaves every 90 seconds"
+	subtitle.text = "NEW GAME RESETS ALL TIMELINES"
 	subtitle.add_theme_color_override("font_color", Color("#fff3d2"))
 	pause_panel.add_child(subtitle)
 	var actions: Array[Dictionary] = [
-		{"label": "Continue", "call": func() -> void: set_pause_open(false)},
-		{"label": "Save game", "call": func() -> void: _save_from_menu()},
-		{"label": "Load last save", "call": func() -> void: _load_from_menu(_manual_save_path())},
-		{"label": "Load autosave", "call": func() -> void: _load_from_menu(_autosave_path())},
-		{"label": "Toggle fullscreen", "call": func() -> void: toggle_fullscreen()},
-		{"label": "Back to main menu", "call": func() -> void: _back_to_main_menu()},
-		{"label": "Quit to desktop", "call": func() -> void: get_tree().quit()}
+		{"label": "NEW GAME", "call": func() -> void: _start_new_game()},
+		{"label": "CONTINUE", "call": func() -> void: set_pause_open(false)},
+		{"label": "SAVE", "call": func() -> void: _save_from_menu()},
+		{"label": "LOAD", "call": func() -> void: _load_from_menu(_manual_save_path())},
+		{"label": "QUIT", "call": func() -> void: get_tree().quit()}
 	]
 	for index in range(actions.size()):
 		var button := Button.new()
@@ -1321,6 +1319,28 @@ func _load_from_menu(path: String) -> void:
 		return
 	PhysicalSaveCodecType.pending_reload = true
 	PhysicalSaveCodecType.pending_reload_path = path
+	get_tree().reload_current_scene()
+
+
+func _start_new_game() -> void:
+	var save_paths: Array[String] = [
+		"user://time_traveler_meta.json",
+		"user://time_museum_save.json", "user://time_museum_autosave.json",
+		"user://prehistory_save.json", "user://prehistory_autosave.json",
+		"user://ancient_egypt_save.json", "user://ancient_egypt_autosave.json",
+		"user://medieval_save.json", "user://medieval_autosave.json",
+		"user://mars_colony_save.json", "user://mars_colony_autosave.json",
+		"user://physical_save.json", "user://autosave.json"
+	]
+	for path: String in save_paths:
+		var absolute_path := ProjectSettings.globalize_path(path)
+		if FileAccess.file_exists(path): DirAccess.remove_absolute(absolute_path)
+	TimeTravelStateType.reset_for_tests()
+	TimeTravelStateType.loaded = true
+	TimeTravelStateType.splash_seen_session = false
+	PhysicalSaveCodecType.pending_reload = false
+	PhysicalScenarioType.requested_path = "res://scenarios/physical/time_museum.json"
+	PhysicalScenarioType.requested_autostart = true
 	get_tree().reload_current_scene()
 
 
