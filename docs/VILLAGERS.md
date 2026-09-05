@@ -10,7 +10,9 @@ number of residents specified by its bed capacity (currently two).
 - The characteristics panel shows home, current state, hunger, energy, task,
   and carried item.
 - Edit the name field and press `Enter` (or click elsewhere) to rename them.
-- Names, needs, position, home, task, and carried resources are saved.
+- Choose one of six character appearances: two body sprites and three clothing palettes.
+- Choose relaxed, normal, or urgent work priority.
+- Names, appearance, priority, needs, position, home, queued tasks, and cargo are saved.
 
 ## Transport orders
 
@@ -23,6 +25,15 @@ The villager walks to the source, carries up to three units, walks to the
 destination, delivers, and repeats. The order waits visibly if the source is
 empty or the destination cannot receive more. Routes never transfer resources
 without their assigned villager.
+
+Press `G` to open Settlement Logistics. Every route reports its worker,
+resource, endpoints, completed trips, and live state. Routes can be paused,
+resumed, or deleted. Yellow arrows indicate active routes, grey indicates a
+paused route, and red indicates waiting or blockage. Water tiles can serve as
+infinite route sources.
+
+Click empty ground to send the selected villager there. Shift-click adds a
+waypoint instead of replacing the active move order.
 
 ## Work orders
 
@@ -40,6 +51,6 @@ runs while an assigned villager is physically at the workplace.
 
 ## Building details
 
-Approach a building and press `Enter`. Kilns expose health, worker, progress,
+Approach a building and press `Space`. Workshops expose health, worker, progress,
 input, and accumulated output. Homes expose beds, residents, and resident
 needs. Construction sites expose delivered materials and work progress.

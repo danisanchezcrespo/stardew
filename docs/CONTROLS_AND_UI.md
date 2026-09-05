@@ -30,6 +30,11 @@ Gameplay code consumes named actions, never hardware keys directly.
 Bindings must be remappable. Prompts display the active device and update when
 the last-used device changes.
 
+The current playable build also uses `G` for the settlement logistics dashboard.
+`Escape` with no local panel open pauses the settlement and offers Continue,
+Save, Load, Autosave, Fullscreen, and Quit. A transactional autosave is written
+every 90 seconds of active play.
+
 ## Input architecture
 
 An input-intent layer converts hardware events into gameplay commands. Player,
