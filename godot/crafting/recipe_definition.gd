@@ -5,3 +5,4 @@ var recipe_id := ""
 var label := ""
 var inputs: Dictionary = {}
 var outputs: Dictionary = {}
+var unlock_after := ""

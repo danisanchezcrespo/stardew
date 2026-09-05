@@ -1,0 +1,25 @@
+{
+  "id": "ancient_egypt_long_campaign",
+  "objectives": [
+    {"id":"gather","label":"Gather wood and clay","type":"gather","items":["wood","clay"]},
+    {"id":"craft_kiln","label":"Draft a Brick Kiln plan","type":"craft","recipe":"brick_kiln_plan"},
+    {"id":"place_kiln","label":"Choose a site for the kiln","type":"place","entity":"BRICK_KILN"},
+    {"id":"build_kiln","label":"Supply and finish the kiln","type":"complete","entity":"BRICK_KILN"},
+    {"id":"fire_bricks","label":"Fire the first batch of bricks","type":"produce","item":"mud_bricks"},
+    {"id":"build_home","label":"Build a home for two settlers","type":"complete","entity":"DWELLING"},
+    {"id":"automate","label":"Assign the first transport route","type":"route_count","count":1},
+    {"id":"build_sawmill","label":"Build a sawmill","type":"complete","entity":"SAWMILL"},
+    {"id":"produce_planks","label":"Mill the first wooden planks","type":"produce","item":"planks"},
+    {"id":"build_farm","label":"Establish an irrigated grain farm","type":"complete","entity":"GRAIN_FARM"},
+    {"id":"harvest_grain","label":"Harvest the first farmed grain","type":"produce","item":"grain"},
+    {"id":"build_bakery","label":"Build a bakery","type":"complete","entity":"BAKERY"},
+    {"id":"bake_bread","label":"Bake the settlement's first bread","type":"produce","item":"bread"},
+    {"id":"build_brewery","label":"Build a brewery","type":"complete","entity":"BREWERY"},
+    {"id":"brew_beer","label":"Brew the first jars of beer","type":"produce","item":"beer"},
+    {"id":"build_kitchen","label":"Build a communal kitchen","type":"complete","entity":"KITCHEN"},
+    {"id":"prepare_meals","label":"Prepare the first communal meals","type":"produce","item":"food_ration"},
+    {"id":"grow_population","label":"Welcome four settlers","type":"population","count":4},
+    {"id":"logistics_network","label":"Operate three transport routes","type":"route_count","count":3},
+    {"id":"monument","label":"Complete the River Temple","type":"complete","entity":"SHRINE"}
+  ]
+}

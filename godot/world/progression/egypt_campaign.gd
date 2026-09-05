@@ -1,46 +1,109 @@
 class_name EgyptCampaign
 extends RefCounted
 
-const OBJECTIVES := [
-	{"id": "gather", "label": "Gather wood and clay"},
-	{"id": "craft_kiln", "label": "Craft a Brick Kiln plan"},
-	{"id": "place_kiln", "label": "Place the Brick Kiln plan"},
-	{"id": "build_kiln", "label": "Supply and build the Brick Kiln"},
-	{"id": "fire_bricks", "label": "Fire a batch of mud bricks"},
-	{"id": "build_home", "label": "Build a Reed Dwelling"},
-	{"id": "automate", "label": "Assign a villager transport route"},
-	{"id": "monument", "label": "Complete the River Shrine"}
-]
+const DEFAULT_PATH := "res://world/progression/ancient_egypt_campaign.json"
+
+var objectives: Array[Dictionary] = []
 var completed: Dictionary = {}
-var gathered_wood := false
+var gathered_items: Dictionary = {}
+var crafted_recipes: Dictionary = {}
+var placed_entities: Dictionary = {}
+var completed_entities: Dictionary = {}
+var gathered_wood := false # Backward-compatible save fields.
 var gathered_clay := false
 
+
+func _init() -> void:
+	load_from_path(DEFAULT_PATH)
+
+
+func load_from_path(path: String) -> Error:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null: return FileAccess.get_open_error()
+	var data: Variant = JSON.parse_string(file.get_as_text())
+	if typeof(data) != TYPE_DICTIONARY or typeof(data.get("objectives")) != TYPE_ARRAY: return ERR_INVALID_DATA
+	objectives.clear()
+	for row: Variant in data.objectives:
+		if typeof(row) != TYPE_DICTIONARY or not row.has_all(["id", "label", "type"]): return ERR_INVALID_DATA
+		objectives.append(row.duplicate(true))
+	return OK
+
+
 func record_pickup(item_id: String) -> void:
-	if item_id == "wood": gathered_wood = true
-	if item_id == "clay": gathered_clay = true
-	if gathered_wood and gathered_clay: completed["gather"] = true
+	gathered_items[item_id] = true
+	gathered_wood = gathered_items.has("wood")
+	gathered_clay = gathered_items.has("clay")
+	_refresh_event_objectives()
+
 
 func record_craft(recipe_id: String) -> void:
-	if recipe_id == "brick_kiln_plan": completed["craft_kiln"] = true
+	crafted_recipes[recipe_id] = true
+	_refresh_event_objectives()
+
 
 func record_placement(entity_id: String) -> void:
-	if entity_id == "BRICK_KILN": completed["place_kiln"] = true
+	placed_entities[entity_id] = true
+	_refresh_event_objectives()
+
 
 func record_completion(entity_id: String) -> void:
-	if entity_id == "BRICK_KILN": completed["build_kiln"] = true
-	if entity_id == "DWELLING": completed["build_home"] = true
-	if entity_id == "SHRINE": completed["monument"] = true
+	completed_entities[entity_id] = true
+	_refresh_event_objectives()
 
-func refresh(machines: Dictionary, routes: Array) -> void:
-	for machine: Variant in machines.values():
-		if int(machine.batches_completed) > 0: completed["fire_bricks"] = true
-	if not routes.is_empty(): completed["automate"] = true
+
+func refresh(machines: Dictionary, routes: Array, world_grid: Variant = null, villagers: Dictionary = {}) -> void:
+	_refresh_event_objectives()
+	for objective: Dictionary in objectives:
+		if completed.has(str(objective.id)): continue
+		match str(objective.type):
+			"route_count":
+				if routes.size() >= int(objective.get("count", 1)): completed[str(objective.id)] = true
+			"population":
+				if villagers.size() >= int(objective.get("count", 1)): completed[str(objective.id)] = true
+			"produce":
+				for instance_id: String in machines:
+					var machine: Variant = machines[instance_id]
+					if int(machine.batches_completed) <= 0: continue
+					var output_id := str(objective.get("item", ""))
+					if not output_id.is_empty() and machine.recipe_outputs.has(output_id): completed[str(objective.id)] = true
+					var entity_id := str(objective.get("entity", ""))
+					if not entity_id.is_empty() and world_grid != null:
+						var placed: Variant = world_grid.entities_by_id.get(instance_id)
+						if placed != null and placed.definition_id == entity_id: completed[str(objective.id)] = true
+
+
+func _refresh_event_objectives() -> void:
+	for objective: Dictionary in objectives:
+		var objective_id := str(objective.id)
+		if completed.has(objective_id): continue
+		match str(objective.type):
+			"gather":
+				var ready := true
+				for item_id: Variant in objective.get("items", []): ready = ready and gathered_items.has(str(item_id))
+				if ready: completed[objective_id] = true
+			"craft":
+				if crafted_recipes.has(str(objective.get("recipe", ""))): completed[objective_id] = true
+			"place":
+				if placed_entities.has(str(objective.get("entity", ""))): completed[objective_id] = true
+			"complete":
+				if completed_entities.has(str(objective.get("entity", ""))): completed[objective_id] = true
+
+
+func current_objective() -> Dictionary:
+	for objective: Dictionary in objectives:
+		if not completed.has(str(objective.id)): return objective
+	return {}
+
 
 func current_text() -> String:
-	for objective: Dictionary in OBJECTIVES:
-		if not completed.has(objective.id):
-			return "GOAL  %s  (%d/%d)" % [objective.label, completed.size(), OBJECTIVES.size()]
-	return "SETTLEMENT ESTABLISHED  All %d goals complete" % OBJECTIVES.size()
+	var objective := current_objective()
+	if objective.is_empty(): return "DYNASTY ESTABLISHED  All %d chapters complete" % objectives.size()
+	return "CHAPTER %02d/%02d  %s" % [completed.size() + 1, objectives.size(), str(objective.label)]
+
+
+func is_unlocked(objective_id: String) -> bool:
+	return objective_id.is_empty() or completed.has(objective_id)
+
 
 func is_complete() -> bool:
-	return completed.size() == OBJECTIVES.size()
+	return completed.size() >= objectives.size()

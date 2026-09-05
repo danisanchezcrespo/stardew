@@ -34,7 +34,7 @@ func capture(game: Node2D) -> Dictionary:
 	var source_states: Dictionary = {}
 	for source: Variant in game.resource_sources:
 		if is_instance_valid(source): source_states[source.stable_id] = {"amount": source.current_amount, "regen_elapsed": source.regen_elapsed}
-	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
+	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
 	var absolute_path := ProjectSettings.globalize_path(path)
@@ -142,8 +142,14 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 	game._refresh_population_capacity()
 	var campaign_data: Dictionary = data.get("campaign", {})
 	game.campaign.completed = campaign_data.get("completed", {}).duplicate(true)
+	game.campaign.gathered_items = campaign_data.get("gathered", {}).duplicate(true)
+	game.campaign.crafted_recipes = campaign_data.get("crafted", {}).duplicate(true)
+	game.campaign.placed_entities = campaign_data.get("placed", {}).duplicate(true)
+	game.campaign.completed_entities = campaign_data.get("buildings", {}).duplicate(true)
 	game.campaign.gathered_wood = bool(campaign_data.get("wood", false))
 	game.campaign.gathered_clay = bool(campaign_data.get("clay", false))
+	if game.campaign.gathered_wood: game.campaign.gathered_items["wood"] = true
+	if game.campaign.gathered_clay: game.campaign.gathered_items["clay"] = true
 	game.workforce.food_reserve = float(data.get("workforce", {}).get("food", 0.0))
 	game._update_inventory_hud()
 	game.queue_redraw()

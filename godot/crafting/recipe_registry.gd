@@ -57,6 +57,7 @@ func _parse_recipe(data: Dictionary, index: int, item_registry: Variant) -> Vari
 	recipe.label = str(data.get("label", recipe_id))
 	recipe.inputs = inputs
 	recipe.outputs = outputs
+	recipe.unlock_after = str(data.get("unlock_after", ""))
 	return recipe
 
 

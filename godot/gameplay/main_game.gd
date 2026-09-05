@@ -27,6 +27,7 @@ const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
 const WorldOverlayType = preload("res://world/interaction/world_overlay.gd")
 const TreeCropType = preload("res://world/crops/tree_crop.gd")
 const StructureVisualType = preload("res://world/placement/structure_visual.gd")
+const GameThemeType = preload("res://ui/game_theme.gd")
 const SAND_TEXTURE = preload("res://assets/generated/terrain/sand_v2.png")
 const WATER_TEXTURE = preload("res://assets/generated/terrain/water_v2.png")
 const SHORELINE_TEXTURE = preload("res://assets/generated/terrain/shoreline_v2.png")
@@ -139,6 +140,7 @@ const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "
 
 
 func _ready() -> void:
+	get_tree().root.theme = GameThemeType.create()
 	scenario = PhysicalScenarioType.new()
 	if not PhysicalScenarioType.requested_path.is_empty():
 		scenario_path = PhysicalScenarioType.requested_path
@@ -195,7 +197,7 @@ func _process(delta: float) -> void:
 	for machine: Variant in machines_by_entity_id.values():
 		machine.staffed = machine.manually_activated or assigned_villagers_to(machine.instance_id) > 0
 		machine.process(delta)
-	campaign.refresh(machines_by_entity_id, logistics_routes)
+	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
 	if objective_label != null:
 		objective_label.text = campaign.current_text()
 	if machine_open:
@@ -558,6 +560,10 @@ func _build_hud() -> void:
 	_build_villager_panel(layer)
 	_build_building_details_panel(layer)
 	_build_scenario_panel(layer)
+	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel]:
+		GameThemeType.decorate_panel(panel, panel == scenario_panel)
+	GameThemeType.decorate_panel(inventory_background, true)
+	GameThemeType.emphasize_headings(layer)
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
@@ -1427,6 +1433,10 @@ func _on_recipe_button_hovered(index: int) -> void:
 
 func craft_selected_recipe() -> bool:
 	var recipe_id: String = recipe_registry.recipe_order[selected_recipe_index]
+	var recipe: Variant = recipe_registry.get_recipe(recipe_id)
+	if not campaign.is_unlocked(recipe.unlock_after):
+		_update_crafting_ui("Locked — advance the current campaign chapter first.")
+		return false
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
 	if result.valid:
 		campaign.record_craft(recipe_id)
@@ -1448,8 +1458,9 @@ func _update_crafting_ui(feedback: String = "") -> void:
 	for index in range(crafting_recipe_buttons.size()):
 		var button := crafting_recipe_buttons[index]
 		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
-		var available: bool = crafting.query(inventory, recipe.recipe_id).valid
-		var text_color := Color("#fffaf0") if available else Color("#777777")
+		var unlocked: bool = campaign.is_unlocked(recipe.unlock_after)
+		var available: bool = unlocked and crafting.query(inventory, recipe.recipe_id).valid
+		var text_color := Color("#fffaf0") if available else (Color("#777777") if unlocked else Color("#665e58"))
 		button.text = "%s%d.  %s" % ["▶ " if index == selected_recipe_index else "   ", index + 1, recipe.label]
 		button.modulate = Color.WHITE
 		button.add_theme_color_override("font_color", text_color)
@@ -1457,6 +1468,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		button.add_theme_color_override("font_pressed_color", text_color)
 		button.add_theme_color_override("font_focus_color", text_color)
 	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
+	var selected_unlocked: bool = campaign.is_unlocked(selected.unlock_after)
 	var ingredients: Array[String] = []
 	var icon_index := 0
 	for icon: TextureRect in crafting_resource_icons: icon.visible = false
@@ -1482,7 +1494,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 			crafting_resource_icons[icon_index].visible = true
 			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
-	var status := "Ready to craft" if query.valid else _crafting_failure_text(query)
+	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED — complete an earlier campaign chapter"
 	if not feedback.is_empty():
 		status = feedback
 	crafting_detail_label.text = "[color=#3b281b]%s\n\nNeeds:\n[/color]%s[color=#3b281b]\n\nProduces:\n%s\n\n%s[/color]" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
