@@ -34,6 +34,9 @@ const WATER_TEXTURE = preload("res://assets/generated/terrain/water_v2.png")
 const SHORELINE_TEXTURE = preload("res://assets/generated/terrain/shoreline_v2.png")
 const SHORELINE_CORNER_TEXTURE = preload("res://assets/generated/terrain/shoreline_inner_corners_v2.png")
 const TREE_GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_v3.png")
+const PICKUP_SOUND = preload("res://assets/audio/pickup.wav")
+const CRAFT_SOUND = preload("res://assets/audio/craft.wav")
+const BUILD_SOUND = preload("res://assets/audio/build_complete.wav")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -51,6 +54,7 @@ var inventory_label: Label
 var inventory_icons: Array[TextureRect] = []
 var inventory_slot_labels: Array[Label] = []
 var water_cells: Dictionary = {}
+var path_cells: Dictionary = {}
 var item_registry: Variant
 var inventory: Variant
 var pickups: Array = []
@@ -149,6 +153,7 @@ var active_player_build_id := ""
 var day_time_seconds := 60.0
 const DAY_LENGTH_SECONDS := 240.0
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
+var feedback_audio: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -163,6 +168,8 @@ func _ready() -> void:
 	workforce = PhysicalWorkforceType.new()
 	campaign = EgyptCampaignType.new()
 	physical_save = PhysicalSaveCodecType.new()
+	feedback_audio = AudioStreamPlayer.new()
+	add_child(feedback_audio)
 	_build_terrain()
 	_build_boundaries()
 	_build_player()
@@ -215,6 +222,8 @@ func _process(delta: float) -> void:
 	for machine: Variant in machines_by_entity_id.values():
 		machine.staffed = machine.manually_activated or assigned_villagers_to(machine.instance_id) > 0
 		machine.process(delta)
+		if structure_visuals.has(machine.instance_id):
+			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
 	if objective_label != null:
 		objective_label.text = campaign.current_text()
@@ -397,6 +406,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _build_terrain() -> void:
 	world_grid = WorldGridType.new(WORLD_SIZE, "sand")
+	for values: Array in scenario.path_rects:
+		for local_y in range(int(values[3])):
+			for local_x in range(int(values[2])):
+				var path_cell := Vector2i(int(values[0]) + local_x, int(values[1]) + local_y)
+				if world_grid.contains(path_cell): path_cells[path_cell] = true
 	for values: Array in scenario.water_rects:
 		var origin_x := int(values[0]); var origin_y := int(values[1])
 		var width := int(values[2]); var height := int(values[3])
@@ -548,6 +562,9 @@ func _build_hud() -> void:
 	layer.add_child(population_label)
 	objective_label = Label.new()
 	objective_label.position = Vector2(500, 84)
+	objective_label.size = Vector2(670, 58)
+	objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	objective_label.add_theme_font_size_override("font_size", 16)
 	objective_label.add_theme_color_override("font_color", Color("#f0cc72"))
 	layer.add_child(objective_label)
@@ -593,6 +610,7 @@ func _build_hud() -> void:
 	_build_scenario_panel(layer)
 	_build_pause_panel(layer)
 	_build_logistics_panel(layer)
+	_build_mobile_controls(layer)
 	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
 	GameThemeType.decorate_panel(inventory_background, true)
@@ -604,6 +622,43 @@ func _build_hud() -> void:
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
+
+
+func _build_mobile_controls(layer: CanvasLayer) -> void:
+	if not OS.has_feature("mobile"): return
+	var directions := {
+		"move_left": Vector2(24, 548), "move_right": Vector2(152, 548),
+		"move_up": Vector2(88, 492), "move_down": Vector2(88, 604)
+	}
+	for action: String in directions:
+		var button := Button.new()
+		button.position = directions[action]
+		button.size = Vector2(62, 52)
+		button.text = {"move_left": "◀", "move_right": "▶", "move_up": "▲", "move_down": "▼"}[action]
+		button.modulate.a = 0.82
+		button.button_down.connect(func() -> void: Input.action_press(action))
+		button.button_up.connect(func() -> void: Input.action_release(action))
+		layer.add_child(button)
+	var actions: Array[Dictionary] = [
+		{"label": "ACTION", "action": "use_selected", "position": Vector2(1085, 548)},
+		{"label": "CRAFT", "action": "open_crafting", "position": Vector2(950, 590)},
+		{"label": "MENU", "action": "cancel", "position": Vector2(1090, 485)}
+	]
+	for row: Dictionary in actions:
+		var button := Button.new()
+		button.position = row.position
+		button.size = Vector2(112, 52)
+		button.text = row.label
+		button.modulate.a = 0.86
+		button.pressed.connect(func() -> void: _emit_action(str(row.action)))
+		layer.add_child(button)
+
+
+func _emit_action(action: String) -> void:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	Input.parse_input_event(event)
 
 
 func _build_pause_panel(layer: CanvasLayer) -> void:
@@ -765,8 +820,8 @@ func _load_from_menu(path: String) -> void:
 
 func _build_scenario_panel(layer: CanvasLayer) -> void:
 	scenario_panel = ColorRect.new()
-	scenario_panel.position = Vector2(330, 190)
-	scenario_panel.size = Vector2(620, 300)
+	scenario_panel.position = Vector2(290, 115)
+	scenario_panel.size = Vector2(700, 490)
 	scenario_panel.color = Color(0.05, 0.06, 0.08, 0.97)
 	scenario_panel.visible = false
 	layer.add_child(scenario_panel)
@@ -775,11 +830,40 @@ func _build_scenario_panel(layer: CanvasLayer) -> void:
 	title.text = "CHOOSE A SETTLEMENT"
 	title.add_theme_font_size_override("font_size", 28)
 	scenario_panel.add_child(title)
-	var options := Label.new()
-	options.position = Vector2(44, 105)
-	options.text = "[1]  Settlement on the Nile\n\n[2]  Settlement between the Rivers"
-	options.add_theme_font_size_override("font_size", 22)
-	scenario_panel.add_child(options)
+	var intro := Label.new()
+	intro.position = Vector2(70, 92)
+	intro.size = Vector2(560, 70)
+	intro.text = "Build a small living colony: gather, craft, irrigate, feed your people and raise a monument that survives the ages."
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	intro.add_theme_color_override("font_color", Color("#fff3d2"))
+	scenario_panel.add_child(intro)
+	var nile := Button.new()
+	nile.position = Vector2(100, 185)
+	nile.size = Vector2(500, 58)
+	nile.text = "New game  ·  Settlement on the Nile"
+	nile.pressed.connect(func() -> void: select_scenario("res://scenarios/physical/ancient_egypt.json"))
+	scenario_panel.add_child(nile)
+	var rivers := Button.new()
+	rivers.position = Vector2(100, 260)
+	rivers.size = Vector2(500, 58)
+	rivers.text = "New game  ·  Settlement between the Rivers"
+	rivers.pressed.connect(func() -> void: select_scenario("res://scenarios/physical/mesopotamia.json"))
+	scenario_panel.add_child(rivers)
+	var continue_game := Button.new()
+	continue_game.position = Vector2(100, 335)
+	continue_game.size = Vector2(500, 58)
+	continue_game.text = "Continue saved settlement"
+	continue_game.disabled = not FileAccess.file_exists("user://physical_save.json")
+	continue_game.pressed.connect(func() -> void: _load_from_menu("user://physical_save.json"))
+	scenario_panel.add_child(continue_game)
+	var shortcut := Label.new()
+	shortcut.position = Vector2(100, 420)
+	shortcut.size = Vector2(500, 28)
+	shortcut.text = "Keyboard shortcuts: 1 Nile  ·  2 Between the Rivers"
+	shortcut.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	shortcut.add_theme_color_override("font_color", Color("#f0cc72"))
+	scenario_panel.add_child(shortcut)
 
 
 func _build_machine_panel(layer: CanvasLayer) -> void:
@@ -1673,6 +1757,7 @@ func craft_selected_recipe() -> bool:
 		return false
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
 	if result.valid:
+		_play_feedback(CRAFT_SOUND)
 		campaign.record_craft(recipe_id)
 		_update_inventory_hud()
 		_update_crafting_ui("Crafted successfully.")
@@ -1873,6 +1958,7 @@ func collect_target() -> int:
 		interaction_label.text = "Inventory full"
 		return 0
 	interaction_target.take(accepted)
+	_play_feedback(PICKUP_SOUND)
 	campaign.record_pickup(interaction_target.item_id)
 	if interaction_target.amount == 0:
 		interaction_target.set_targeted(false)
@@ -1890,6 +1976,7 @@ func collect_resource_source(source: Variant) -> int:
 	var accepted: int = inventory.add(source.item_id, requested)
 	if accepted <= 0: return 0
 	source.take(accepted)
+	_play_feedback(PICKUP_SOUND)
 	campaign.record_pickup(source.item_id)
 	_update_inventory_hud()
 	if world_overlay != null: world_overlay.queue_redraw()
@@ -1930,6 +2017,7 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		return 0.0
 	var applied: float = site.apply_work(seconds)
 	if site.complete:
+		_play_feedback(BUILD_SOUND)
 		if active_player_build_id == instance_id: active_player_build_id = ""
 		var target: Variant = placed_targets.get(instance_id)
 		var placed: Variant = world_grid.entities_by_id.get(instance_id)
@@ -1950,6 +2038,12 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		interaction_label.text = _construction_prompt(instance_id)
 	queue_redraw()
 	return applied
+
+
+func _play_feedback(stream: AudioStream) -> void:
+	if feedback_audio == null or DisplayServer.get_name() == "headless": return
+	feedback_audio.stream = stream
+	feedback_audio.play()
 
 
 func _construction_prompt(instance_id: String) -> String:
@@ -2450,6 +2544,7 @@ func _draw() -> void:
 			var terrain_texture: Texture2D = WATER_TEXTURE if water_cells.has(cell) else SAND_TEXTURE
 			var source_position := Vector2((x * CELL_SIZE) % terrain_texture.get_width(), (y * CELL_SIZE) % terrain_texture.get_height())
 			draw_texture_rect_region(terrain_texture, rect, Rect2(source_position, Vector2.ONE * CELL_SIZE))
+			if path_cells.has(cell) and not water_cells.has(cell): _draw_path_cell(cell, rect)
 			if water_cells.has(cell): _draw_shoreline(cell, rect)
 	if world_grid != null:
 		for placed: Variant in world_grid.entities_by_id.values():
@@ -2505,6 +2600,15 @@ func _draw_shoreline(cell: Vector2i, destination: Rect2) -> void:
 	for index in range(4):
 		if not water_cells.has(cell + diagonals[index]) and water_cells.has(cell + adjacent_pairs[index][0]) and water_cells.has(cell + adjacent_pairs[index][1]):
 			draw_texture_rect_region(SHORELINE_CORNER_TEXTURE, destination, Rect2(index * 64, 0, 64, 64))
+
+
+func _draw_path_cell(cell: Vector2i, destination: Rect2) -> void:
+	draw_rect(destination, Color("#b89559") if (cell.x + cell.y) % 2 == 0 else Color("#bea064"))
+	var seed_value := cell.x * 92821 + cell.y * 68917
+	for index in range(3):
+		var px := float(posmod(seed_value + index * 11, 25) + 4)
+		var py := float(posmod(seed_value / 7 + index * 17, 23) + 5)
+		draw_circle(destination.position + Vector2(px, py), 1.5, Color("#836c47"), false, 1.0)
 
 
 func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost: bool = false, valid: bool = true) -> void:

@@ -98,7 +98,23 @@ func current_objective() -> Dictionary:
 func current_text() -> String:
 	var objective := current_objective()
 	if objective.is_empty(): return "DYNASTY ESTABLISHED  All %d chapters complete" % objectives.size()
-	return "CHAPTER %02d/%02d  %s" % [completed.size() + 1, objectives.size(), str(objective.label)]
+	var chapter := objectives.find(objective) + 1
+	return "CHAPTER %02d/%02d  %s\n%s" % [chapter, objectives.size(), str(objective.label), current_hint()]
+
+
+func current_hint() -> String:
+	var objective := current_objective()
+	if objective.is_empty(): return "The Nile settlement can now sustain itself."
+	if objective.has("hint"): return str(objective.hint)
+	match str(objective.type):
+		"gather": return "Explore nearby resource piles and press Space."
+		"craft": return "Open Crafting with C; unavailable ingredients are marked red."
+		"place": return "Craft its plan, then follow the placement ghost and press Space."
+		"complete": return "Deliver the materials, then press Space once to begin construction."
+		"produce": return "Supply the matching workshop; production continues while you explore."
+		"population": return "Each completed house welcomes two settlers."
+		"route_count": return "Select a villager, assign transport, then choose source and destination."
+	return "Grow the settlement one deliberate step at a time."
 
 
 func is_unlocked(objective_id: String) -> bool:

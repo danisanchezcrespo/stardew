@@ -4,6 +4,7 @@
   "palette": {"ground": "#cdbb7d", "water": "#4d8fbd"},
   "water_rects": [[34, 4, 6, 22], [8, 10, 10, 1]],
   "water_gaps": [[13, 10], [14, 10]],
+  "path_rects": [[5,11,27,2],[20,5,2,16],[28,17,6,2],[14,8,2,5]],
   "pickups": [
     {"id": "pickup-wood-1", "item": "wood", "amount": 18, "cell": [7.5, 6.5]},
     {"id": "pickup-clay-1", "item": "clay", "amount": 32, "cell": [9.5, 7.5]},

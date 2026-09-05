@@ -9,6 +9,16 @@ const CELL_SIZE := 32
 
 var definition_id := ""
 var sprite_size := Vector2.ZERO
+var machine_running := false
+var machine_broken := false
+var effect_time := 0.0
+
+
+func set_machine_state(running: bool, broken: bool, delta: float) -> void:
+	machine_running = running
+	machine_broken = broken
+	if running: effect_time += maxf(delta, 0.0)
+	queue_redraw()
 
 
 func configure(type_id: String, cells: Array[Vector2i]) -> void:
@@ -46,3 +56,11 @@ func _draw() -> void:
 		draw_texture_rect(SHRINE_TEXTURE, destination, false)
 	elif columns.has(definition_id):
 		draw_texture_rect_region(BUILDING_TEXTURE, destination, Rect2(int(columns[definition_id]) * 256, 0, 256, 256))
+	if machine_running:
+		for index in range(3):
+			var phase := fmod(effect_time * 16.0 + index * 11.0, 34.0)
+			var drift := sin(effect_time * 2.2 + index) * 4.0
+			draw_circle(Vector2(sprite_size.x * 0.12 + drift, -sprite_size.y * 0.78 - phase), 4.5 + index, Color(0.92, 0.9, 0.82, 0.52 - index * 0.1))
+	elif machine_broken:
+		draw_circle(Vector2(sprite_size.x * 0.27, -sprite_size.y * 0.72), 11.0, Color("#8b2f2f"))
+		draw_string(ThemeDB.fallback_font, Vector2(sprite_size.x * 0.235, -sprite_size.y * 0.675), "!", HORIZONTAL_ALIGNMENT_CENTER, 10, 18, Color.WHITE)

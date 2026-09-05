@@ -9,6 +9,7 @@ var sand_color := Color("#cdbb7d")
 var water_color := Color("#4d8fbd")
 var water_rects: Array = []
 var water_gaps: Array[Vector2i] = []
+var path_rects: Array = []
 var pickups: Array = []
 var resource_sources: Array = []
 var crops: Array = []
@@ -27,6 +28,7 @@ func load_from_path(path: String) -> Error:
 	sand_color = Color(str(palette.get("ground", "#cdbb7d")))
 	water_color = Color(str(palette.get("water", "#4d8fbd")))
 	water_rects = data.get("water_rects", []).duplicate(true)
+	path_rects = data.get("path_rects", []).duplicate(true)
 	water_gaps.clear()
 	for pair: Array in data.get("water_gaps", []): water_gaps.append(Vector2i(int(pair[0]), int(pair[1])))
 	pickups = data.get("pickups", []).duplicate(true)
