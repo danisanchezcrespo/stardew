@@ -94,6 +94,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			source.current_amount = clampi(int(state.get("amount", source.current_amount)), 0, source.max_amount)
 			source.regen_elapsed = float(state.get("regen_elapsed", 0.0))
 			source.queue_redraw()
+	var legacy_completed_entities: Array[String] = []
 	for row: Dictionary in data.get("entities", []):
 		var definition: Variant = game.placement_registry.get_entity(str(row.definition_id))
 		if definition == null: return ERR_INVALID_DATA
@@ -113,6 +114,10 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			site.work_done_seconds = float(row.construction.get("work_done_seconds", row.construction.get("work_done", 0.0)))
 			site.complete = bool(row.construction.complete)
 			game.construction_by_entity_id[str(row.id)] = site
+		elif not definition.construction_cost.is_empty() or definition.construction_work_seconds > 0.0:
+			# A definition may gain a blueprint phase after an older save already
+			# placed it as a finished building. Preserve it and credit its quest.
+			legacy_completed_entities.append(definition.entity_id)
 		if row.has("storage"):
 			var storage := PlayerInventory.new(game.item_registry, maxi(definition.storage_slots, row.storage.size()))
 			storage.slots = _slots(row.storage, storage.slot_count)
@@ -163,6 +168,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 	game.campaign.crafted_recipes = campaign_data.get("crafted", {}).duplicate(true)
 	game.campaign.placed_entities = campaign_data.get("placed", {}).duplicate(true)
 	game.campaign.completed_entities = campaign_data.get("buildings", {}).duplicate(true)
+	for entity_id: String in legacy_completed_entities: game.campaign.completed_entities[entity_id] = true
 	game.campaign.gathered_wood = bool(campaign_data.get("wood", false))
 	game.campaign.gathered_clay = bool(campaign_data.get("clay", false))
 	if game.campaign.gathered_wood: game.campaign.gathered_items["wood"] = true

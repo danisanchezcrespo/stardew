@@ -37,6 +37,12 @@ func _initialize() -> void:
 	prehistory.load_from_path(paths[0])
 	_expect(prehistory.wildlife.size() >= 3, "Prehistory needs a huntable herd", failures)
 	_expect(str(prehistory.dependents[0].get("required_tool", "")) == "spear", "Mammoth hunting must require a spear", failures)
+	var medieval := ScenarioType.new()
+	medieval.load_from_path(paths[2])
+	var medieval_placeables := PlacementRegistryType.new()
+	medieval_placeables.load_from_path(medieval.placeables_path)
+	var granary: Variant = medieval_placeables.get_entity("GRANARY")
+	_expect(granary != null and not granary.construction_cost.is_empty() and granary.construction_work_seconds > 0.0, "The medieval granary must pass through blueprint construction so its completion quest can fire.", failures)
 	if failures.is_empty():
 		print("PASS: four era content")
 		quit(0)
