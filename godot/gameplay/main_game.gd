@@ -27,6 +27,7 @@ const VillagerType = preload("res://world/population/villager.gd")
 const DependentActorType = preload("res://world/population/dependent_actor.gd")
 const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
 const WorldOverlayType = preload("res://world/interaction/world_overlay.gd")
+const TerrainRendererType = preload("res://world/terrain/terrain_renderer.gd")
 const TreeCropType = preload("res://world/crops/tree_crop.gd")
 const StructureVisualType = preload("res://world/placement/structure_visual.gd")
 const GameThemeType = preload("res://ui/game_theme.gd")
@@ -154,6 +155,7 @@ var construction_delivery_popup: ColorRect
 var construction_delivery_label: Label
 var construction_delivery_icons: Array[TextureRect] = []
 var world_overlay: Node2D
+var terrain_renderer: Node2D
 var active_player_build_id := ""
 var day_time_seconds := 60.0
 const DAY_LENGTH_SECONDS := 240.0
@@ -180,6 +182,9 @@ func _ready() -> void:
 	feedback_audio = AudioStreamPlayer.new()
 	add_child(feedback_audio)
 	_build_terrain()
+	terrain_renderer = TerrainRendererType.new()
+	terrain_renderer.configure(self)
+	add_child(terrain_renderer)
 	_build_boundaries()
 	_build_player()
 	_build_items()
@@ -1942,6 +1947,8 @@ func _update_interaction_target() -> void:
 			interaction_label.text = _machine_prompt(interaction_target.stable_id)
 		elif interaction_target.target_kind == "villager":
 			interaction_label.text = "%s | Space to open" % interaction_target.villager_name
+		elif interaction_target.target_kind == "dependent":
+			interaction_label.text = "%s | Space to interact" % interaction_target.display_name
 		else:
 			interaction_label.text = "Space to Open %s" % interaction_target.item_label
 		if not route_source_id.is_empty() and interaction_target != null:
@@ -2755,15 +2762,6 @@ func _refresh_population_capacity() -> void:
 
 
 func _draw() -> void:
-	for y in range(WORLD_SIZE.y):
-		for x in range(WORLD_SIZE.x):
-			var cell := Vector2i(x, y)
-			var rect := Rect2(Vector2(cell * CELL_SIZE), Vector2.ONE * CELL_SIZE)
-			var terrain_texture: Texture2D = WATER_TEXTURE if water_cells.has(cell) else (ground_texture if ground_texture != null else SAND_TEXTURE)
-			var source_position := Vector2((x * CELL_SIZE) % terrain_texture.get_width(), (y * CELL_SIZE) % terrain_texture.get_height())
-			draw_texture_rect_region(terrain_texture, rect, Rect2(source_position, Vector2.ONE * CELL_SIZE))
-			if path_cells.has(cell) and not water_cells.has(cell): _draw_path_cell(cell, rect)
-			if water_cells.has(cell): _draw_shoreline(cell, rect)
 	if world_grid != null:
 		for placed: Variant in world_grid.entities_by_id.values():
 			if placed.definition_id == "TREE_CROP": continue

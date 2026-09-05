@@ -16,6 +16,9 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+godot/qa/
+godot/assets/generated/**/*_v2.png
+godot/assets/generated/**/*_v2.png.import
 *_source.png
 *_source.png.import
 

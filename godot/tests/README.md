@@ -33,6 +33,12 @@ Player movement, facing, camera and collision can be checked with:
 godot --headless --path godot --script res://tests/test_player_movement.gd
 ```
 
+Player atlas dimensions, per-frame clipping and the mammoth atlas can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_graphical_qa.gd
+```
+
 Item definitions, inventory capacity, targeting and pickup can be checked with:
 
 ```powershell

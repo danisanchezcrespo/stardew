@@ -43,6 +43,8 @@ func _draw() -> void:
 		_draw_construction(anchor, target)
 	elif target.target_kind == "villager":
 		_draw_hint(anchor + Vector2(0, -18), [target.villager_name, target.status_text(), "Space to open"])
+	elif target.target_kind == "dependent":
+		_draw_hint(anchor + Vector2(0, -28), [target.display_name, target.status_text(), "Space to interact"])
 	elif target.target_kind == "storage":
 		_draw_hint(anchor, [target.item_label, "Space to open"])
 	elif target.target_kind == "machine":

@@ -32,6 +32,10 @@ var harvest_armed := false
 var cared_for := false
 var wild := false
 var required_tool := ""
+var sprite_columns := 4
+var sprite_rows := 4
+var adult_size := Vector2(62, 62)
+var juvenile_size := Vector2(42, 42)
 
 
 func configure(id: String, definition: Dictionary, dwelling_id: String, spawn_position: Vector2) -> void:
@@ -50,6 +54,12 @@ func configure(id: String, definition: Dictionary, dwelling_id: String, spawn_po
 	wander_radius = float(definition.get("wander_radius", 38.0))
 	wild = bool(definition.get("wild", false))
 	required_tool = str(definition.get("required_tool", ""))
+	sprite_columns = maxi(1, int(definition.get("sprite_columns", 4)))
+	sprite_rows = maxi(1, int(definition.get("sprite_rows", 4)))
+	var configured_size: Array = definition.get("adult_size", [62, 62])
+	adult_size = Vector2(float(configured_size[0]), float(configured_size[1]))
+	var configured_juvenile_size: Array = definition.get("juvenile_size", [42, 42])
+	juvenile_size = Vector2(float(configured_juvenile_size[0]), float(configured_juvenile_size[1]))
 	texture = load(str(definition.get("texture", "res://assets/generated/animals/livestock.png"))) as Texture2D
 	juvenile_row = int(definition.get("juvenile_row", 1))
 	adult_row = int(definition.get("adult_row", 0))
@@ -112,8 +122,9 @@ func status_text() -> String:
 func _draw() -> void:
 	if texture == null: return
 	var row := adult_row if is_mature() else juvenile_row
-	var source_size := Vector2(texture.get_width() / 4.0, texture.get_height() / 4.0)
-	var size := Vector2(62, 62) if is_mature() else Vector2(42, 42)
+	var source_size := Vector2(texture.get_width() / float(sprite_columns), texture.get_height() / float(sprite_rows))
+	var size := adult_size if is_mature() else juvenile_size
+	facing_column = clampi(facing_column, 0, sprite_columns - 1)
 	draw_texture_rect_region(texture, Rect2(Vector2(-size.x * 0.5, -size.y + 8), size), Rect2(Vector2(facing_column, row) * source_size, source_size))
 	if targeted: draw_circle(Vector2(0, 9), 18.0, Color("#ffe27a"), false, 3.0)
 	if hunger < 20.0 or thirst < 20.0: draw_string(ThemeDB.fallback_font, Vector2(-5, -58), "!", HORIZONTAL_ALIGNMENT_CENTER, 12, 18, Color("#ff8066"))
