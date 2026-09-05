@@ -109,6 +109,15 @@ var sand_color := Color("#cdbb7d")
 var water_color := Color("#4d8fbd")
 var scenario_panel: Control
 var scenario_select_open := false
+var pause_panel: Control
+var pause_open := false
+var logistics_panel: Control
+var logistics_open := false
+var logistics_list: ItemList
+var logistics_detail: Label
+var selected_route_index := 0
+var autosave_elapsed := 0.0
+const AUTOSAVE_INTERVAL_SECONDS := 90.0
 var machine_open := false
 var active_machine_id := ""
 var machine_panel: Control
@@ -120,6 +129,7 @@ var selected_villager_id := ""
 var villager_panel: Control
 var villager_name_edit: LineEdit
 var villager_appearance_option: OptionButton
+var villager_priority_option: OptionButton
 var villager_status_label: Label
 var villager_order_feedback: Label
 var villager_resource_option: OptionButton
@@ -165,12 +175,18 @@ func _ready() -> void:
 		set_scenario_select_open(true)
 	if PhysicalSaveCodecType.pending_reload:
 		PhysicalSaveCodecType.pending_reload = false
-		physical_save.load_from_path(self, "user://physical_save.json")
+		physical_save.load_from_path(self, PhysicalSaveCodecType.pending_reload_path)
+		PhysicalSaveCodecType.pending_reload_path = "user://physical_save.json"
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
+	if pause_open: return
 	day_time_seconds = fmod(day_time_seconds + maxf(delta, 0.0), DAY_LENGTH_SECONDS)
+	autosave_elapsed += maxf(delta, 0.0)
+	if autosave_elapsed >= AUTOSAVE_INTERVAL_SECONDS and not scenario_select_open:
+		autosave_elapsed = 0.0
+		physical_save.save_to_path(self, "user://autosave.json")
 	workforce.process(delta)
 	for villager: Variant in villagers.values():
 		villager.process_life(self, delta)
@@ -251,6 +267,14 @@ func _update_route_interaction_target() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if pause_open:
+		if event.is_action_pressed("cancel"):
+			set_pause_open(false)
+		return
+	if logistics_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_logistics"):
+			set_logistics_open(false)
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if _handle_villager_world_click(event.position):
 			get_viewport().set_input_as_handled()
@@ -268,6 +292,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("next_villager") and not villagers.is_empty():
 		cycle_villager_selection()
+		return
+	if event.is_action_pressed("open_logistics"):
+		set_logistics_open(true)
 		return
 	if building_details_open:
 		if event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down"):
@@ -364,6 +391,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.is_action_pressed("quick_slot_%d" % (index + 1)):
 				select_quick_slot(index)
 				break
+		if event.is_action_pressed("cancel"):
+			set_pause_open(true)
 
 
 func _build_terrain() -> void:
@@ -562,17 +591,176 @@ func _build_hud() -> void:
 	_build_villager_panel(layer)
 	_build_building_details_panel(layer)
 	_build_scenario_panel(layer)
-	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel]:
+	_build_pause_panel(layer)
+	_build_logistics_panel(layer)
+	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
 	GameThemeType.decorate_panel(inventory_background, true)
 	GameThemeType.emphasize_headings(layer)
 	var help := Label.new()
 	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help.position = Vector2(22, -118)
-	help.text = "Move: WASD    Action: Space    Villagers: click/Tab    Crafting: C    Back: Esc"
+	help.text = "Move: WASD    Action: Space    Villagers: click/Tab    Crafting: C    Routes: G    Menu: Esc"
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
+
+
+func _build_pause_panel(layer: CanvasLayer) -> void:
+	pause_panel = ColorRect.new()
+	pause_panel.position = Vector2(430, 118)
+	pause_panel.size = Vector2(420, 500)
+	pause_panel.color = Color(0.05, 0.06, 0.08, 0.97)
+	pause_panel.visible = false
+	layer.add_child(pause_panel)
+	var title := Label.new()
+	title.position = Vector2(46, 34)
+	title.size = Vector2(328, 48)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.text = "SETTLEMENT PAUSED"
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color("#f0cc72"))
+	pause_panel.add_child(title)
+	var subtitle := Label.new()
+	subtitle.position = Vector2(46, 82)
+	subtitle.size = Vector2(328, 42)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.text = "Your progress autosaves every 90 seconds"
+	subtitle.add_theme_color_override("font_color", Color("#fff3d2"))
+	pause_panel.add_child(subtitle)
+	var actions: Array[Dictionary] = [
+		{"label": "Continue", "call": func() -> void: set_pause_open(false)},
+		{"label": "Save game", "call": func() -> void: _save_from_menu()},
+		{"label": "Load last save", "call": func() -> void: _load_from_menu("user://physical_save.json")},
+		{"label": "Load autosave", "call": func() -> void: _load_from_menu("user://autosave.json")},
+		{"label": "Toggle fullscreen", "call": func() -> void: toggle_fullscreen()},
+		{"label": "Quit to desktop", "call": func() -> void: get_tree().quit()}
+	]
+	for index in range(actions.size()):
+		var button := Button.new()
+		button.position = Vector2(70, 134 + index * 54)
+		button.size = Vector2(280, 42)
+		button.text = str(actions[index].label)
+		button.pressed.connect(actions[index].call)
+		pause_panel.add_child(button)
+
+
+func _build_logistics_panel(layer: CanvasLayer) -> void:
+	logistics_panel = ColorRect.new()
+	logistics_panel.position = Vector2(180, 105)
+	logistics_panel.size = Vector2(920, 500)
+	logistics_panel.color = Color("#d8bd83")
+	logistics_panel.visible = false
+	layer.add_child(logistics_panel)
+	var title := Label.new()
+	title.position = Vector2(30, 20)
+	title.text = "SETTLEMENT LOGISTICS"
+	title.add_theme_font_size_override("font_size", 28)
+	logistics_panel.add_child(title)
+	logistics_list = ItemList.new()
+	logistics_list.position = Vector2(30, 72)
+	logistics_list.size = Vector2(510, 350)
+	logistics_list.item_selected.connect(_select_route)
+	logistics_panel.add_child(logistics_list)
+	logistics_detail = Label.new()
+	logistics_detail.position = Vector2(570, 78)
+	logistics_detail.size = Vector2(320, 270)
+	logistics_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	logistics_detail.add_theme_color_override("font_color", Color("#30241d"))
+	logistics_panel.add_child(logistics_detail)
+	var pause_route := Button.new()
+	pause_route.position = Vector2(570, 360)
+	pause_route.size = Vector2(145, 42)
+	pause_route.text = "Pause / resume"
+	pause_route.pressed.connect(_toggle_selected_route)
+	logistics_panel.add_child(pause_route)
+	var remove_route := Button.new()
+	remove_route.position = Vector2(735, 360)
+	remove_route.size = Vector2(145, 42)
+	remove_route.text = "Delete route"
+	remove_route.pressed.connect(_delete_selected_route)
+	logistics_panel.add_child(remove_route)
+	var hint := Label.new()
+	hint.position = Vector2(30, 442)
+	hint.text = "G / Esc: close    Routes wait safely when a source is empty or a destination is full."
+	hint.add_theme_color_override("font_color", Color("#6b3e20"))
+	logistics_panel.add_child(hint)
+
+
+func set_logistics_open(value: bool) -> void:
+	logistics_open = value
+	if logistics_panel != null: logistics_panel.visible = value
+	if player != null:
+		player.movement_enabled = not value
+		player.velocity = Vector2.ZERO
+	if value: _refresh_logistics_panel()
+
+
+func _refresh_logistics_panel() -> void:
+	if logistics_list == null: return
+	logistics_list.clear()
+	for route: Variant in logistics_routes:
+		var worker: Variant = villagers.get(route.villager_id)
+		var item: Variant = item_registry.get_item(route.item_id)
+		var state_text: String = "paused" if not route.enabled else (worker.status_text() if worker != null else "worker missing")
+		logistics_list.add_item("%s  ·  %s  ·  %s" % [worker.villager_name if worker != null else "Unassigned", item.label if item != null else route.item_id, state_text])
+	if logistics_routes.is_empty():
+		logistics_detail.text = "No routes yet.\n\nSelect a villager, choose Assign transport, then click a source and a destination."
+		return
+	selected_route_index = clampi(selected_route_index, 0, logistics_routes.size() - 1)
+	logistics_list.select(selected_route_index)
+	_select_route(selected_route_index)
+
+
+func _select_route(index: int) -> void:
+	if index < 0 or index >= logistics_routes.size(): return
+	selected_route_index = index
+	var route: Variant = logistics_routes[index]
+	var source: Variant = placed_targets.get(route.source_id)
+	var destination: Variant = placed_targets.get(route.destination_id)
+	var worker: Variant = villagers.get(route.villager_id)
+	logistics_detail.text = "%s\n\n%s  →  %s\nResource: %s\nTrips completed: %d\n\nStatus: %s" % [worker.villager_name if worker != null else "Missing worker", source.item_label if source != null else "Missing source", destination.item_label if destination != null else "Missing destination", item_registry.get_item(route.item_id).label, route.trips_completed, "Paused" if not route.enabled else (worker.status_text() if worker != null else "Blocked")]
+
+
+func _toggle_selected_route() -> void:
+	if selected_route_index < 0 or selected_route_index >= logistics_routes.size(): return
+	logistics_routes[selected_route_index].enabled = not logistics_routes[selected_route_index].enabled
+	_refresh_logistics_panel()
+	queue_redraw()
+
+
+func _delete_selected_route() -> void:
+	if selected_route_index < 0 or selected_route_index >= logistics_routes.size(): return
+	var route: Variant = logistics_routes[selected_route_index]
+	if villagers.has(route.villager_id): villagers[route.villager_id].clear_task()
+	logistics_routes.remove_at(selected_route_index)
+	selected_route_index = maxi(0, selected_route_index - 1)
+	_refresh_logistics_panel()
+	queue_redraw()
+
+
+func set_pause_open(value: bool) -> void:
+	pause_open = value
+	if pause_panel != null: pause_panel.visible = value
+	if player != null:
+		player.movement_enabled = not value
+		player.velocity = Vector2.ZERO
+
+
+func _save_from_menu() -> void:
+	var result: Error = physical_save.save_to_path(self, "user://physical_save.json")
+	interaction_label.text = "Game saved" if result == OK else "Save failed"
+	set_pause_open(false)
+
+
+func _load_from_menu(path: String) -> void:
+	if not FileAccess.file_exists(path):
+		interaction_label.text = "No saved game found"
+		set_pause_open(false)
+		return
+	PhysicalSaveCodecType.pending_reload = true
+	PhysicalSaveCodecType.pending_reload_path = path
+	get_tree().reload_current_scene()
 
 
 func _build_scenario_panel(layer: CanvasLayer) -> void:
@@ -650,9 +838,16 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 		villager_appearance_option.add_item(option_name)
 	villager_appearance_option.item_selected.connect(_change_selected_villager_appearance)
 	villager_panel.add_child(villager_appearance_option)
+	villager_priority_option = OptionButton.new()
+	villager_priority_option.position = Vector2(22, 148)
+	villager_priority_option.size = Vector2(376, 36)
+	for option_name: String in ["Relaxed priority", "Normal priority", "Urgent priority"]:
+		villager_priority_option.add_item(option_name)
+	villager_priority_option.item_selected.connect(_change_selected_villager_priority)
+	villager_panel.add_child(villager_priority_option)
 	villager_status_label = Label.new()
-	villager_status_label.position = Vector2(22, 152)
-	villager_status_label.size = Vector2(376, 130)
+	villager_status_label.position = Vector2(22, 194)
+	villager_status_label.size = Vector2(376, 88)
 	villager_status_label.add_theme_font_size_override("font_size", 16)
 	villager_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	villager_panel.add_child(villager_status_label)
@@ -895,6 +1090,8 @@ func _update_villager_panel() -> void:
 	var villager: Variant = villagers[selected_villager_id]
 	if villager_appearance_option != null and villager_appearance_option.selected != villager.appearance_id:
 		villager_appearance_option.select(villager.appearance_id)
+	if villager_priority_option != null and villager_priority_option.selected != villager.work_priority:
+		villager_priority_option.select(villager.work_priority)
 	var task_text := "None"
 	if not villager.task.is_empty() and str(villager.task.get("type", "transport")) == "work":
 		var work_target: Variant = placed_targets.get(str(villager.task.target))
@@ -915,6 +1112,12 @@ func _change_selected_villager_appearance(index: int) -> void:
 	villager.appearance_id = posmod(index, 6)
 	villager.color_tint = _villager_appearance_tint(villager.appearance_id)
 	villager.queue_redraw()
+
+
+func _change_selected_villager_priority(index: int) -> void:
+	if not villagers.has(selected_villager_id): return
+	villagers[selected_villager_id].work_priority = clampi(index, 0, 2)
+	_update_villager_panel()
 
 
 func _villager_appearance_tint(appearance: int) -> Color:
@@ -974,8 +1177,13 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 	if nearest != null:
 		return true
 	if villagers.has(selected_villager_id):
-		villagers[selected_villager_id].assign_move(world_position)
-		villager_order_feedback.text = "Moving to selected point."
+		var villager: Variant = villagers[selected_villager_id]
+		if Input.is_key_pressed(KEY_SHIFT):
+			villager.enqueue_move(world_position)
+			villager_order_feedback.text = "Waypoint queued (%d)." % villager.queued_task_count()
+		else:
+			villager.assign_move(world_position)
+			villager_order_feedback.text = "Moving to selected point. Shift-click queues waypoints."
 		return true
 	return false
 
@@ -1930,6 +2138,12 @@ func create_logistics_route(source_id: String, destination_id: String, villager_
 	return true
 
 
+func is_route_enabled(route_id: String) -> bool:
+	for route: Variant in logistics_routes:
+		if route.route_id == route_id: return route.enabled
+	return false
+
+
 func _route_source_inventory(source_id: String) -> Variant:
 	if storage_by_entity_id.has(source_id): return storage_by_entity_id[source_id]
 	if machines_by_entity_id.has(source_id): return machines_by_entity_id[source_id].output_inventory
@@ -2009,8 +2223,10 @@ func restore_villager(data: Dictionary) -> Variant:
 	villager.hunger = float(data.get("hunger", 100.0))
 	villager.energy = float(data.get("energy", 100.0))
 	villager.state = str(data.get("state", "available"))
+	villager.work_priority = clampi(int(data.get("priority", 1)), 0, 2)
 	villager.facing = str(data.get("facing", "south"))
 	villager.task = data.get("task", {}).duplicate(true)
+	villager.task_queue.assign(data.get("task_queue", []))
 	villager.carrying_item = str(data.get("carrying_item", ""))
 	villager.carrying_amount = int(data.get("carrying_amount", 0))
 	add_child(villager)
@@ -2261,9 +2477,15 @@ func _draw() -> void:
 			continue
 		var start: Vector2 = from_target.global_position
 		var finish: Vector2 = to_target.global_position
-		draw_line(start, finish, Color("#e1bd62"), 3.0)
+		var worker: Variant = villagers.get(route.villager_id)
+		var route_color: Color = Color("#75808a") if not route.enabled else Color("#e1bd62")
+		if worker != null and (worker.state.begins_with("blocked") or worker.state.begins_with("waiting")):
+			route_color = Color("#cf6b4d")
+		draw_dashed_line(start, finish, route_color, 3.0, 10.0 if route.enabled else 5.0)
 		var midpoint := start.lerp(finish, 0.5)
-		draw_circle(midpoint, 4.0, Color("#ffe27a"))
+		var direction: Vector2 = (finish - start).normalized()
+		var side := direction.orthogonal()
+		draw_colored_polygon(PackedVector2Array([midpoint + direction * 9.0, midpoint - direction * 7.0 + side * 6.0, midpoint - direction * 7.0 - side * 6.0]), route_color)
 	if not route_source_id.is_empty():
 		var source_target: Variant = placed_targets.get(route_source_id)
 		if source_target != null:

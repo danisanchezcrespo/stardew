@@ -26,6 +26,8 @@ var targeted := false
 var target_kind := "villager"
 var color_tint := Color.WHITE
 var appearance_id := 0
+var task_queue: Array[Dictionary] = []
+var work_priority := 1 # 0 relaxed, 1 normal, 2 urgent
 
 
 func configure(id: String, display_name: String, dwelling_id: String, spawn_position: Vector2, tint: Color = Color.WHITE, appearance: int = 0) -> void:
@@ -44,6 +46,7 @@ func configure(id: String, display_name: String, dwelling_id: String, spawn_posi
 func assign_transport(route_id: String, source_id: String, destination_id: String, item_id: String) -> void:
 	task = {"type": "transport", "route_id": route_id, "source": source_id, "destination": destination_id, "item": item_id, "repeat": true}
 	state = "to_source"
+	task_queue.clear()
 
 
 func assign_work(target_id: String) -> void:
@@ -55,8 +58,31 @@ func assign_move(destination: Vector2) -> void:
 	state = "moving"
 
 
+func enqueue_move(destination: Vector2) -> void:
+	var next: Dictionary = {"type": "move", "position": [destination.x, destination.y]}
+	if task.is_empty():
+		task = next
+		state = "moving"
+	else:
+		task_queue.append(next)
+
+
+func queued_task_count() -> int:
+	return task_queue.size()
+
+
+func _finish_task() -> void:
+	if task_queue.is_empty():
+		task.clear()
+		state = "available"
+		return
+	task = task_queue.pop_front()
+	state = _resume_state()
+
+
 func clear_task() -> void:
 	task.clear()
+	task_queue.clear()
 	carrying_item = ""
 	carrying_amount = 0
 	state = "available"
@@ -107,8 +133,7 @@ func process_life(game: Node2D, delta: float) -> void:
 	elif not task.is_empty() and str(task.get("type", "transport")) == "move":
 		var destination: Array = task.get("position", [position.x, position.y])
 		if _move_to(Vector2(float(destination[0]), float(destination[1])), delta):
-			task = {}
-			state = "available"
+			_finish_task()
 	elif not task.is_empty() and str(task.get("type", "transport")) == "work":
 		_process_work(game, delta)
 	elif not task.is_empty():
@@ -117,6 +142,9 @@ func process_life(game: Node2D, delta: float) -> void:
 
 
 func _process_transport(game: Node2D, delta: float) -> void:
+	if not game.is_route_enabled(str(task.get("route_id", ""))):
+		state = "route paused"
+		return
 	var source: Variant = game.placed_targets.get(str(task.source))
 	var destination: Variant = game.placed_targets.get(str(task.destination))
 	if source == null or destination == null:
@@ -131,7 +159,7 @@ func _process_transport(game: Node2D, delta: float) -> void:
 			var delivered: int = game.villager_deliver(self)
 			state = "to_source" if delivered > 0 else "blocked: destination full"
 		return
-	if state.begins_with("blocked"):
+	if state.begins_with("blocked") or state == "route paused":
 		state = "to_source"
 	if _move_to(source.global_position, delta):
 		var collected: int = game.villager_collect(self)
@@ -160,7 +188,8 @@ func _move_to(target: Vector2, delta: float) -> bool:
 		position = target
 		return true
 	var direction := offset.normalized()
-	var speed := WALK_SPEED * (0.6 if hunger < 30.0 else 1.0)
+	var priority_speed: float = float([0.88, 1.0, 1.12][clampi(work_priority, 0, 2)])
+	var speed: float = WALK_SPEED * priority_speed * (0.6 if hunger < 30.0 else 1.0)
 	position += direction * minf(speed * delta, offset.length())
 	if absf(direction.x) > absf(direction.y): facing = "east" if direction.x > 0 else "west"
 	else: facing = "south" if direction.y > 0 else "north"
@@ -171,6 +200,7 @@ func _move_to(target: Vector2, delta: float) -> bool:
 func status_text() -> String:
 	var result := state.capitalize().replace("_", " ")
 	if hunger <= 0.0 and not task.is_empty() and state != "seeking_food": result += " (starving; slowed)"
+	if not task_queue.is_empty(): result += "  ·  %d queued" % task_queue.size()
 	return result
 
 

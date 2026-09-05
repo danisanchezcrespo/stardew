@@ -3,6 +3,7 @@ extends RefCounted
 
 const VERSION := 2
 static var pending_reload := false
+static var pending_reload_path := "user://physical_save.json"
 
 func capture(game: Node2D) -> Dictionary:
 	var entities: Array[Dictionary] = []
@@ -24,10 +25,10 @@ func capture(game: Node2D) -> Dictionary:
 		entities.append(row)
 	var routes: Array[Dictionary] = []
 	for route: Variant in game.logistics_routes:
-		routes.append({"id": route.route_id, "source": route.source_id, "destination": route.destination_id, "villager": route.villager_id, "item": route.item_id, "progress": route.progress_seconds, "trips": route.trips_completed})
+		routes.append({"id": route.route_id, "source": route.source_id, "destination": route.destination_id, "villager": route.villager_id, "item": route.item_id, "progress": route.progress_seconds, "trips": route.trips_completed, "enabled": route.enabled, "priority": route.priority})
 	var villagers: Array[Dictionary] = []
 	for villager: Variant in game.villagers.values():
-		villagers.append({"id": villager.stable_id, "name": villager.villager_name, "appearance": villager.appearance_id, "home": villager.home_id, "home_position": [villager.home_position.x, villager.home_position.y], "position": [villager.position.x, villager.position.y], "hunger": villager.hunger, "energy": villager.energy, "state": villager.state, "facing": villager.facing, "task": villager.task.duplicate(true), "carrying_item": villager.carrying_item, "carrying_amount": villager.carrying_amount, "tint": [villager.color_tint.r, villager.color_tint.g, villager.color_tint.b, villager.color_tint.a]})
+		villagers.append({"id": villager.stable_id, "name": villager.villager_name, "appearance": villager.appearance_id, "priority": villager.work_priority, "home": villager.home_id, "home_position": [villager.home_position.x, villager.home_position.y], "position": [villager.position.x, villager.position.y], "hunger": villager.hunger, "energy": villager.energy, "state": villager.state, "facing": villager.facing, "task": villager.task.duplicate(true), "task_queue": villager.task_queue.duplicate(true), "carrying_item": villager.carrying_item, "carrying_amount": villager.carrying_amount, "tint": [villager.color_tint.r, villager.color_tint.g, villager.color_tint.b, villager.color_tint.a]})
 	var pickup_amounts: Dictionary = {}
 	for pickup: Variant in game.pickups:
 		if is_instance_valid(pickup): pickup_amounts[pickup.stable_id] = pickup.amount
@@ -136,6 +137,8 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		var route := PhysicalRoute.new(str(row.id), str(row.source), str(row.destination), 2.0, str(row.get("villager", "")), str(row.get("item", "")))
 		route.progress_seconds = float(row.progress)
 		route.trips_completed = int(row.trips)
+		route.enabled = bool(row.get("enabled", true))
+		route.priority = clampi(int(row.get("priority", 1)), 0, 2)
 		game.logistics_routes.append(route)
 		game.next_route_id = maxi(game.next_route_id, int(str(row.id).get_slice("-", 1)) + 1)
 	game.day_time_seconds = float(data.get("day_time", 60.0))

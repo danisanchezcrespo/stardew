@@ -26,6 +26,7 @@ const ACTIONS := {
 	"zoom_out": [],
 	"toggle_fullscreen": [KEY_F11],
 	"next_villager": [KEY_TAB],
+	"open_logistics": [KEY_G],
 	"building_details": [],
 }
 
