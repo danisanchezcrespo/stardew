@@ -19,6 +19,13 @@ Each era keeps its own settlement save and ordinary inventory. Only temporal
 artifacts cross a portal, and the 20-piece museum collection reveals the
 traveler's backstory in five order-independent chapters.
 
+The game opens with the `Time Quest` title screen. On a new profile, a reusable
+dialogue system introduces the traveler and then reacts to campaign milestones
+without imposing a fixed order. Prehistory, Ancient Egypt, the Medieval era,
+and Mars each contain ten era-specific narrative moments. Press `Space` to
+begin and to advance dialogue; moments already seen are saved in the museum
+metagame file and do not repeat.
+
 The Ancient Egypt campaign contains 31 chapters and a complete manual-to-
 automated production arc. Use `Space` for contextual interaction, `C` for
 crafting, `T` for the technology tree, `M` for the era collection, `Tab` for

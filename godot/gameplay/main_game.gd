@@ -58,6 +58,7 @@ var camera: Camera2D
 var position_label: Label
 var interaction_label: Label
 var inventory_label: Label
+var help_label: Label
 var inventory_icons: Array[TextureRect] = []
 var inventory_slot_labels: Array[Label] = []
 var water_cells: Dictionary = {}
@@ -191,6 +192,15 @@ var museum_story_panel: Control
 var museum_story_open := false
 var museum_story_title: Label
 var museum_story_text: Label
+var splash_panel: Control
+var splash_open := false
+var splash_prompt: Label
+var dialogue_panel: Control
+var dialogue_open := false
+var dialogue_speaker: Label
+var dialogue_text: Label
+var dialogue_queue: Array[Dictionary] = []
+var dialogue_cooldown_seconds := 0.0
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
 var feedback_audio: AudioStreamPlayer
 
@@ -229,6 +239,9 @@ func _ready() -> void:
 	_build_items()
 	_build_hud()
 	_build_time_travel_world()
+	if DisplayServer.get_name() != "headless":
+		if not TimeTravelStateType.splash_seen_session: _open_splash()
+		_queue_context_dialogues()
 	world_overlay = WorldOverlayType.new()
 	world_overlay.configure(self)
 	add_child(world_overlay)
@@ -242,7 +255,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if pause_open or day_summary_open or tech_open or collection_open: return
+	if splash_open:
+		if splash_prompt != null: splash_prompt.modulate.a = 0.82 + sin(Time.get_ticks_msec() * 0.004) * 0.18
+		return
+	if pause_open or day_summary_open or tech_open or collection_open or dialogue_open: return
 	day_time_seconds += maxf(delta, 0.0)
 	if day_time_seconds >= DAY_LENGTH_SECONDS:
 		day_time_seconds = 0.0
@@ -289,6 +305,8 @@ func _process(delta: float) -> void:
 		if structure_visuals.has(machine.instance_id):
 			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
+	dialogue_cooldown_seconds = maxf(0.0, dialogue_cooldown_seconds - delta)
+	_queue_context_dialogues()
 	if scenario.scenario_id != "time_museum":
 		var discoveries: Array[String] = TimeTravelStateType.discover_from_campaign(scenario.scenario_id, campaign.completed)
 		_sync_artifact_nodes()
@@ -344,6 +362,12 @@ func _update_route_interaction_target() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if splash_open:
+		if event.is_action_pressed("use_selected"): _close_splash()
+		return
+	if dialogue_open:
+		if event.is_action_pressed("use_selected"): _advance_dialogue()
+		return
 	if pause_open:
 		if event.is_action_pressed("cancel"):
 			set_pause_open(false)
@@ -720,19 +744,21 @@ func _build_hud() -> void:
 	_build_day_summary_panel(layer)
 	_build_portal_choice_panel(layer)
 	_build_museum_story_panel(layer)
+	_build_dialogue_panel(layer)
+	_build_splash_panel(layer)
 	_build_mobile_controls(layer)
 	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel, tech_panel, collection_panel, day_summary_panel, portal_choice_panel, museum_story_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
 		_apply_scenario_panel_palette(panel)
 	GameThemeType.decorate_panel(inventory_background, true)
 	GameThemeType.emphasize_headings(layer)
-	var help := Label.new()
-	help.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	help.position = Vector2(22, -118)
-	help.text = "Move: WASD  Action: Space  Craft: C  Tech: T  Collection: M  Routes: G  Menu: Esc"
-	help.add_theme_color_override("font_color", Color.WHITE)
-	help.add_theme_font_size_override("font_size", 16)
-	layer.add_child(help)
+	help_label = Label.new()
+	help_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	help_label.position = Vector2(22, -118)
+	help_label.text = "Move: WASD  Action: Space  Craft: C  Tech: T  Collection: M  Routes: G  Menu: Esc"
+	help_label.add_theme_color_override("font_color", Color.WHITE)
+	help_label.add_theme_font_size_override("font_size", 16)
+	layer.add_child(help_label)
 
 
 func _apply_scenario_panel_palette(node: Node) -> void:
@@ -1049,6 +1075,57 @@ func _build_museum_story_panel(layer: CanvasLayer) -> void:
 	museum_story_title = Label.new(); museum_story_title.position = Vector2(45, 38); museum_story_title.size = Vector2(590, 48); museum_story_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; museum_story_title.add_theme_font_size_override("font_size", 28); museum_story_panel.add_child(museum_story_title)
 	museum_story_text = Label.new(); museum_story_text.position = Vector2(65, 115); museum_story_text.size = Vector2(550, 210); museum_story_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; museum_story_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; museum_story_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; museum_story_text.add_theme_font_size_override("font_size", 20); museum_story_panel.add_child(museum_story_text)
 	var hint := Label.new(); hint.position = Vector2(65, 360); hint.size = Vector2(550, 30); hint.text = "Space / Esc: close"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; museum_story_panel.add_child(hint)
+
+
+func _build_dialogue_panel(layer: CanvasLayer) -> void:
+	dialogue_panel = ColorRect.new(); dialogue_panel.position = Vector2(95, 455); dialogue_panel.size = Vector2(1090, 175)
+	dialogue_panel.color = Color(str(scenario.theme.get("dark", "#101723"))); dialogue_panel.visible = false; layer.add_child(dialogue_panel)
+	dialogue_speaker = Label.new(); dialogue_speaker.position = Vector2(30, 18); dialogue_speaker.size = Vector2(700, 32); dialogue_speaker.add_theme_font_size_override("font_size", 22); dialogue_speaker.add_theme_color_override("font_color", Color(str(scenario.theme.get("accent", "#62dcff")))); dialogue_panel.add_child(dialogue_speaker)
+	dialogue_text = Label.new(); dialogue_text.position = Vector2(30, 55); dialogue_text.size = Vector2(1025, 78); dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; dialogue_text.add_theme_font_size_override("font_size", 20); dialogue_panel.add_child(dialogue_text)
+	var prompt := Label.new(); prompt.position = Vector2(820, 137); prompt.size = Vector2(235, 24); prompt.text = "SPACE  Continue"; prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT; prompt.add_theme_color_override("font_color", Color(str(scenario.theme.get("accent", "#62dcff")))); dialogue_panel.add_child(prompt)
+	GameThemeType.decorate_panel(dialogue_panel, true)
+
+
+func _build_splash_panel(layer: CanvasLayer) -> void:
+	splash_panel = ColorRect.new(); splash_panel.position = Vector2.ZERO; splash_panel.size = Vector2(1280, 720); splash_panel.color = Color.BLACK; splash_panel.visible = false; layer.add_child(splash_panel)
+	var art := TextureRect.new(); art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); art.texture = load("res://assets/generated/title/time_quest_splash.png"); art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED; splash_panel.add_child(art)
+	var shade := ColorRect.new(); shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); shade.color = Color(0.01,0.02,0.05,0.25); shade.mouse_filter = Control.MOUSE_FILTER_IGNORE; splash_panel.add_child(shade)
+	var title := Label.new(); title.position = Vector2(140,70); title.size = Vector2(1000,90); title.text = "TIME QUEST"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_override("font", GameThemeType.PIXEL); title.add_theme_font_size_override("font_size", 58); title.add_theme_color_override("font_color", Color("#ffe28a")); title.add_theme_color_override("font_shadow_color", Color("#07101c")); title.add_theme_constant_override("shadow_offset_x", 5); title.add_theme_constant_override("shadow_offset_y", 5); splash_panel.add_child(title)
+	splash_prompt = Label.new(); splash_prompt.position = Vector2(390,625); splash_prompt.size = Vector2(500,44); splash_prompt.text = "SPACE TO BEGIN"; splash_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; splash_prompt.add_theme_font_override("font", GameThemeType.PIXEL); splash_prompt.add_theme_font_size_override("font_size", 28); splash_prompt.add_theme_color_override("font_color", Color.WHITE); splash_panel.add_child(splash_prompt)
+
+
+func _open_splash() -> void:
+	splash_open = true; splash_panel.visible = true; splash_panel.move_to_front(); player.movement_enabled = false
+
+
+func _close_splash() -> void:
+	splash_open = false; splash_panel.visible = false; TimeTravelStateType.splash_seen_session = true
+	_show_next_dialogue()
+
+
+func _queue_context_dialogues() -> void:
+	if dialogue_cooldown_seconds > 0.0: return
+	var new_rows: Array[Dictionary] = TimeTravelStateType.new_dialogues(scenario.scenario_id, campaign.completed)
+	for row: Dictionary in new_rows:
+		var dialogue_id := str(row.get("id", ""))
+		if not dialogue_queue.any(func(queued: Dictionary) -> bool: return str(queued.get("id", "")) == dialogue_id): dialogue_queue.append(row)
+	if not splash_open and not dialogue_open and not dialogue_queue.is_empty(): _show_next_dialogue()
+
+
+func _show_next_dialogue() -> void:
+	if dialogue_queue.is_empty():
+		dialogue_open = false; dialogue_panel.visible = false; help_label.visible = true; player.movement_enabled = true; return
+	var row: Dictionary = dialogue_queue.pop_front(); dialogue_open = true; dialogue_panel.visible = true; player.movement_enabled = false; player.velocity = Vector2.ZERO
+	TimeTravelStateType.mark_dialogue_seen(str(row.get("id", "")))
+	help_label.visible = false
+	dialogue_panel.move_to_front()
+	dialogue_speaker.text = str(row.get("speaker", "The Traveler")); dialogue_text.text = str(row.get("text", ""))
+
+
+func _advance_dialogue() -> void:
+	dialogue_panel.visible = false; dialogue_open = false
+	if not dialogue_queue.is_empty(): _show_next_dialogue()
+	else: help_label.visible = true; player.movement_enabled = true; dialogue_cooldown_seconds = 12.0
 
 
 func _open_portal_choice(slot: int) -> void:

@@ -9,6 +9,14 @@ func _initialize() -> void:
 func _run() -> void:
 	var failures: Array[String] = []
 	StateType.persistence_enabled = false; StateType.loaded = false; StateType.ensure_loaded(); StateType.reset_for_tests()
+	for era_id: String in ["prehistory","ancient_egypt","medieval","mars_colony"]:
+		var era_dialogues: Array = StateType.dialogue_catalog.filter(func(row: Dictionary) -> bool: return str(row.era) == era_id)
+		_expect(era_dialogues.size() == 10, "%s should contain ten contextual narrative moments." % era_id, failures)
+	var arrival := StateType.new_dialogues("prehistory", {})
+	_expect(arrival.size() == 1 and str(arrival[0].id) == "pre_arrival", "Arrival should trigger its era introduction exactly once.", failures)
+	StateType.mark_dialogue_seen(str(arrival[0].id))
+	_expect(StateType.new_dialogues("prehistory", {}).is_empty(), "Seen dialogue must not repeat.", failures)
+	_expect(str(StateType.new_dialogues("prehistory", {"gather_stone_age":true})[0].id) == "pre_gather", "Campaign milestones should trigger contextual dialogue.", failures)
 	_expect(StateType.portal_is_powered(0), "The first portal should begin powered.", failures)
 	_expect(not StateType.portal_is_powered(1), "The second portal should begin dormant.", failures)
 	_expect(StateType.bind_portal(0, "mars_colony"), "The player should freely choose the first era.", failures)
@@ -29,11 +37,19 @@ func _run() -> void:
 	_expect(era_game.artifact_nodes.has("first_martian_water"), "An unlocked artifact should appear physically in its era.", failures)
 	_expect(era_game.time_targets.any(func(target: Variant) -> bool: return target.target_kind == "time_portal"), "Every era should contain a physical return portal.", failures)
 	era_root.queue_free(); await process_frame
+	StateType.splash_seen_session = false
 	ScenarioType.requested_path = "res://scenarios/physical/time_museum.json"; ScenarioType.requested_autostart = true
 	var packed: PackedScene = load("res://main.tscn"); var game_root := packed.instantiate(); root.add_child(game_root); await process_frame
 	var game: Node2D = game_root.get_node("MainGame")
 	_expect(game.scenario.scenario_id == "time_museum" and game.portal_nodes.size() == 4, "The game should open a physical museum with four portals.", failures)
 	_expect(game.time_targets.size() >= 5, "Museum portals and archive must be physical interaction targets.", failures)
+	StateType.dialogue_seen.erase("museum_intro")
+	game._open_splash()
+	var intro_rows := StateType.new_dialogues("time_museum", {})
+	for row: Dictionary in intro_rows: game.dialogue_queue.append(row)
+	_expect(game.splash_open, "A fresh application session should open on the Time Quest splash screen.", failures)
+	game._close_splash()
+	_expect(game.dialogue_open and game.dialogue_text.text.contains("traveler through time"), "First start should introduce the time traveler through the reusable dialogue system.", failures)
 	game_root.queue_free(); await process_frame; StateType.persistence_enabled = true; StateType.loaded = false
 	if failures.is_empty(): print("PASS: time travel metagame"); quit(0); return
 	for failure in failures: push_error(failure)

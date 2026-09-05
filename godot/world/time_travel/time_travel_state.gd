@@ -3,6 +3,7 @@ extends RefCounted
 
 const SAVE_PATH := "user://time_traveler_meta.json"
 const CATALOG_PATH := "res://world/time_travel/artifacts.json"
+const DIALOGUE_PATH := "res://world/time_travel/dialogues.json"
 const PORTAL_THRESHOLDS := [0, 3, 8, 15]
 const ERA_PATHS := {
 	"prehistory":"res://scenarios/physical/prehistory.json",
@@ -17,8 +18,11 @@ static var collected_artifacts: Dictionary = {}
 static var carried_artifacts: Array[String] = []
 static var exhibited_artifacts: Dictionary = {}
 static var story_chapters_seen: Dictionary = {}
+static var dialogue_seen: Dictionary = {}
 static var loaded := false
 static var catalog: Dictionary = {}
+static var dialogue_catalog: Array = []
+static var splash_seen_session := false
 static var persistence_enabled := true
 
 
@@ -26,6 +30,7 @@ static func ensure_loaded() -> void:
 	if loaded: return
 	loaded = true
 	_load_catalog()
+	_load_dialogues()
 	load_meta()
 
 
@@ -34,6 +39,29 @@ static func _load_catalog() -> void:
 	if file == null: return
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if typeof(parsed) == TYPE_DICTIONARY: catalog = parsed
+
+
+static func _load_dialogues() -> void:
+	var file := FileAccess.open(DIALOGUE_PATH, FileAccess.READ)
+	if file == null: return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) == TYPE_DICTIONARY: dialogue_catalog = parsed.get("dialogues", []).duplicate(true)
+
+
+static func new_dialogues(era_id: String, completed: Dictionary) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for row: Dictionary in dialogue_catalog:
+		var dialogue_id := str(row.get("id", "")); var trigger := str(row.get("trigger", ""))
+		if str(row.get("era", "")) != era_id or dialogue_seen.has(dialogue_id): continue
+		if trigger == "arrival" or completed.has(trigger):
+			result.append(row.duplicate(true)); break
+	return result
+
+
+static func mark_dialogue_seen(dialogue_id: String) -> void:
+	if dialogue_id.is_empty() or dialogue_seen.has(dialogue_id): return
+	dialogue_seen[dialogue_id] = true
+	save_meta()
 
 
 static func artifact(id: String) -> Dictionary:
@@ -108,7 +136,7 @@ static func save_meta() -> Error:
 	if not persistence_enabled: return OK
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null: return FileAccess.get_open_error()
-	file.store_string(JSON.stringify({"version":1,"portals":portal_bindings,"available":available_artifacts,"collected":collected_artifacts,"carried":carried_artifacts,"exhibited":exhibited_artifacts,"story":story_chapters_seen}))
+	file.store_string(JSON.stringify({"version":1,"portals":portal_bindings,"available":available_artifacts,"collected":collected_artifacts,"carried":carried_artifacts,"exhibited":exhibited_artifacts,"story":story_chapters_seen,"dialogues":dialogue_seen}))
 	return OK
 
 
@@ -128,9 +156,10 @@ static func load_meta() -> Error:
 	for value: Variant in data.get("carried", []): carried_artifacts.append(str(value))
 	exhibited_artifacts = data.get("exhibited", {}).duplicate(true)
 	story_chapters_seen = data.get("story", {}).duplicate(true)
+	dialogue_seen = data.get("dialogues", {}).duplicate(true)
 	return OK
 
 
 static func reset_for_tests() -> void:
 	portal_bindings = ["", "", "", ""]
-	available_artifacts.clear(); collected_artifacts.clear(); carried_artifacts.clear(); exhibited_artifacts.clear(); story_chapters_seen.clear()
+	available_artifacts.clear(); collected_artifacts.clear(); carried_artifacts.clear(); exhibited_artifacts.clear(); story_chapters_seen.clear(); dialogue_seen.clear()

@@ -1,0 +1,49 @@
+{
+  "dialogues":[
+    {"id":"museum_intro","era":"time_museum","trigger":"arrival","speaker":"The Traveler","text":"I am a traveler through time. These portals can carry me across history, but the museum has forgotten every journey I made. If I help the people beyond them, their stories may return as artifacts—and perhaps my own story will return with them."},
+
+    {"id":"pre_arrival","era":"prehistory","trigger":"arrival","speaker":"The Traveler","text":"The first fires of humanity. No cities, no written names—only a small clan trying to see another sunrise."},
+    {"id":"pre_gather","era":"prehistory","trigger":"gather_stone_age","speaker":"The Traveler","text":"Branches and flint: ordinary things that become survival in practiced hands."},
+    {"id":"pre_spear","era":"prehistory","trigger":"craft_spear","speaker":"The Traveler","text":"A sharpened stone on a wooden shaft. Simple, dangerous, and one of humanity's first great advantages."},
+    {"id":"pre_hunt","era":"prehistory","trigger":"first_hunt","speaker":"The Traveler","text":"The mammoth will feed the clan, but the hunt is not merely violence. Every piece must be used, and every risk remembered."},
+    {"id":"pre_shelter","era":"prehistory","trigger":"build_shelter","speaker":"The Traveler","text":"A shelter changes everything. For the first time, tomorrow can be planned instead of merely survived."},
+    {"id":"pre_clan","era":"prehistory","trigger":"grow_clan","speaker":"The Traveler","text":"A fire becomes a home when another person chooses to sit beside it."},
+    {"id":"pre_workshop","era":"prehistory","trigger":"build_workshop","speaker":"The Traveler","text":"Knowledge now has a place to live. Tools made here will outlast the hands that invented them."},
+    {"id":"pre_smoker","era":"prehistory","trigger":"build_smoker","speaker":"The Traveler","text":"Preserved food turns one successful hunt into weeks of security. This is how wandering becomes settlement."},
+    {"id":"pre_routes","era":"prehistory","trigger":"secure_supplies","speaker":"The Traveler","text":"The clan is learning to divide its work. Cooperation may be the greatest tool they ever create."},
+    {"id":"pre_legacy","era":"prehistory","trigger":"found_tribe","speaker":"The Traveler","text":"They carved memory into stone before they had words for history. Somehow, one of the figures looks like me."},
+
+    {"id":"egypt_arrival","era":"ancient_egypt","trigger":"arrival","speaker":"The Traveler","text":"Ancient Egypt, beneath the reign of the great pharaohs. Here the Nile measures time more faithfully than any clock."},
+    {"id":"egypt_gather","era":"ancient_egypt","trigger":"gather","speaker":"The Traveler","text":"Clay, timber, and the river. An empire can begin with materials small enough to carry by hand."},
+    {"id":"egypt_kiln","era":"ancient_egypt","trigger":"build_kiln","speaker":"The Traveler","text":"The kiln gives permanence to river mud. These bricks will let the settlement endure beyond the next flood."},
+    {"id":"egypt_bricks","era":"ancient_egypt","trigger":"fire_bricks","speaker":"The Traveler","text":"The first bricks are ready. Heat has transformed the landscape into architecture."},
+    {"id":"egypt_home","era":"ancient_egypt","trigger":"build_home","speaker":"The Traveler","text":"A dwelling is more than capacity. It promises that the people building this place will have a future here."},
+    {"id":"egypt_farm","era":"ancient_egypt","trigger":"build_farm","speaker":"The Traveler","text":"Irrigation makes the river predictable. Grain from this farm will free the settlement from living harvest to harvest."},
+    {"id":"egypt_coop","era":"ancient_egypt","trigger":"build_coop","speaker":"The Traveler","text":"Animals turn grain and care into a steady food supply. The chickens will need feeding, water, and a keeper."},
+    {"id":"egypt_bakery","era":"ancient_egypt","trigger":"build_bakery","speaker":"The Traveler","text":"This bakery will feed the population. A reliable meal may matter more to a city than any monument."},
+    {"id":"egypt_kitchen","era":"ancient_egypt","trigger":"build_kitchen","speaker":"The Traveler","text":"A communal kitchen turns separate harvests into shared security. Nobody builds a civilization while hungry."},
+    {"id":"egypt_temple","era":"ancient_egypt","trigger":"monument","speaker":"The Traveler","text":"The River Temple is complete. They built it for their gods—but one hidden chamber bears the symbol of my portal."},
+
+    {"id":"med_arrival","era":"medieval","trigger":"arrival","speaker":"The Traveler","text":"A medieval valley: scattered households, old roads, and enough ambition to become a town."},
+    {"id":"med_gather","era":"medieval","trigger":"gather_village","speaker":"The Traveler","text":"Oak, stone, and wheat. The village's entire future is already here; it only needs patient hands."},
+    {"id":"med_granary","era":"medieval","trigger":"build_granary","speaker":"The Traveler","text":"A granary protects food from bad weather and worse luck. Surplus is the beginning of stability."},
+    {"id":"med_cottage","era":"medieval","trigger":"build_cottage","speaker":"The Traveler","text":"A warm cottage will attract another family. More people mean more possibilities—and more mouths to feed."},
+    {"id":"med_windmill","era":"medieval","trigger":"build_windmill","speaker":"The Traveler","text":"The windmill borrows power from the sky. Once staffed, it will turn wheat into flour without exhausting the village."},
+    {"id":"med_flour","era":"medieval","trigger":"make_flour","speaker":"The Traveler","text":"Fresh flour. With bread on the table, specialists can spend their days doing more than searching for food."},
+    {"id":"med_forge","era":"medieval","trigger":"build_forge","speaker":"The Traveler","text":"The forge is the heart of skilled work. Better tools will make every other craft more capable."},
+    {"id":"med_market","era":"medieval","trigger":"build_market","speaker":"The Traveler","text":"A market turns excess into opportunity. Soon goods—and rumors—will travel farther than any villager."},
+    {"id":"med_coin","era":"medieval","trigger":"earn_coin","speaker":"The Traveler","text":"The first silver changes hands. Value is another shared story, powerful because everyone agrees to believe it."},
+    {"id":"med_keep","era":"medieval","trigger":"seat_of_power","speaker":"The Traveler","text":"The keep dominates the valley. In its chronicle, a nameless visitor is described arriving in a circle of blue fire."},
+
+    {"id":"mars_arrival","era":"mars_colony","trigger":"arrival","speaker":"The Traveler","text":"Mars. Humanity has crossed an ocean wider than history itself, and discovered that survival still begins with shelter and water."},
+    {"id":"mars_survey","era":"mars_colony","trigger":"survey_mars","speaker":"The Traveler","text":"Iron beneath the dust and ice beneath the stone. This empty world already contains the beginnings of a home."},
+    {"id":"mars_plates","era":"mars_colony","trigger":"make_first_plates","speaker":"The Traveler","text":"The first metal plates are crude, but enough to begin rebuilding the technology the landing consumed."},
+    {"id":"mars_solar","era":"mars_colony","trigger":"build_solar","speaker":"The Traveler","text":"Solar power is the colony's first heartbeat. Every machine that follows will depend on it."},
+    {"id":"mars_habitat","era":"mars_colony","trigger":"build_habitat","speaker":"The Traveler","text":"A pressurized habitat: a tiny piece of Earth held together against an entire planet."},
+    {"id":"mars_water","era":"mars_colony","trigger":"melt_ice","speaker":"The Traveler","text":"Liquid water on Mars. Ancient ice has become the colony's most precious daily resource."},
+    {"id":"mars_oxygen","era":"mars_colony","trigger":"make_oxygen","speaker":"The Traveler","text":"The extractor has produced breathable oxygen. For a moment, this hostile world feels almost negotiable."},
+    {"id":"mars_greenhouse","era":"mars_colony","trigger":"build_greenhouse","speaker":"The Traveler","text":"Life under glass. The greenhouse will turn water, oxygen, and attention into the colony's first renewable food."},
+    {"id":"mars_fabricator","era":"mars_colony","trigger":"build_fabricator","speaker":"The Traveler","text":"With the fabricator online, Mars can replace what breaks instead of waiting for Earth. That is the beginning of independence."},
+    {"id":"mars_signal","era":"mars_colony","trigger":"mars_outpost","speaker":"The Traveler","text":"The array has found a signal beyond Mars. It repeats the museum's coordinates—and a message recorded in my own voice."}
+  ]
+}
