@@ -89,6 +89,12 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	var temple_cells: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(0, 2), Vector2i(1, 2)]
 	temple_visual.configure("SHRINE", temple_cells)
 	_expect(temple_visual.sprite_size == Vector2(224, 232), "Temple should render at twice its previous visual scale.", failures)
+	for economy_id: String in ["BAKERY", "BREWERY", "KITCHEN", "SAWMILL"]:
+		var economy_visual: Variant = shrine_visual_script.new()
+		var economy_cells: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]
+		economy_visual.configure(economy_id, economy_cells)
+		_expect(economy_visual.sprite_size == Vector2(168, 184), "%s should render at twice its previous visual scale." % economy_id, failures)
+		economy_visual.free()
 	dwelling_visual.free()
 	temple_visual.free()
 	_expect(game.world_grid.occupant_at(origin) == instance_id, "Completion must not replace the spatial entity ID.", failures)
