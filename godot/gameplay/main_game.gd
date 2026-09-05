@@ -18,6 +18,7 @@ const PhysicalSaveCodecType = preload("res://world/persistence/physical_save_cod
 const PhysicalScenarioType = preload("res://world/scenario/physical_scenario.gd")
 const BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_buildings_sheet.png")
 const ECONOMY_BUILDING_TEXTURE = preload("res://assets/generated/buildings/egypt_economy_buildings_sheet.png")
+const SHRINE_TEXTURE = preload("res://assets/generated/buildings/egypt_shrine_v2.png")
 const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
@@ -999,11 +1000,14 @@ func _handle_order_endpoint(instance_id: String) -> bool:
 				villager_resource_option.add_item(item_registry.get_item(output_id).label)
 				villager_resource_option.set_item_metadata(villager_resource_option.item_count - 1, output_id)
 		elif storage_by_entity_id.has(instance_id):
-			for resource_id: String in item_registry.item_order:
-				var definition: Variant = item_registry.get_item(resource_id)
+			var added: Dictionary = {}
+			for slot: Dictionary in storage_by_entity_id[instance_id].slots:
+				if slot.is_empty() or added.has(slot.item_id): continue
+				var definition: Variant = item_registry.get_item(str(slot.item_id))
 				if definition == null or not definition.placeable_entity_id.is_empty(): continue
 				villager_resource_option.add_item(definition.label)
-				villager_resource_option.set_item_metadata(villager_resource_option.item_count - 1, resource_id)
+				villager_resource_option.set_item_metadata(villager_resource_option.item_count - 1, str(slot.item_id))
+				added[slot.item_id] = true
 		elif source_inventory != null:
 			var added: Dictionary = {}
 			for slot: Dictionary in source_inventory.slots:
@@ -1025,11 +1029,17 @@ func _handle_order_endpoint(instance_id: String) -> bool:
 	if not _destination_accepts(instance_id, item_id):
 		villager_order_feedback.text = "Destination does not accept %s." % item_registry.get_item(item_id).label
 		return true
-	create_logistics_route(pending_order_source_id, instance_id, selected_villager_id, item_id)
+	var source_id := pending_order_source_id
+	var created := create_logistics_route(source_id, instance_id, selected_villager_id, item_id)
+	if not created:
+		villager_order_feedback.text = "That transport order already exists or is no longer valid."
+		return true
 	villager_order_mode = ""
 	pending_order_source_id = ""
 	villager_resource_option.visible = false
-	villager_order_feedback.text = "Transport order assigned."
+	var source_inventory: Variant = _route_source_inventory(source_id)
+	var currently_available: bool = _is_water_source_id(source_id) or (source_inventory != null and source_inventory.count(item_id) > 0)
+	villager_order_feedback.text = "Transport order assigned." if currently_available else "Transport assigned; waiting for source output."
 	return true
 
 
@@ -2252,12 +2262,14 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 		maximum = Vector2i(maxi(maximum.x, cell.x), maxi(maximum.y, cell.y))
 	var footprint_size := Vector2(maximum - minimum + Vector2i.ONE) * CELL_SIZE
 	var sprite_size := Vector2(maxf(48.0, footprint_size.x + 20.0), maxf(56.0, footprint_size.y + 28.0))
-	if definition_id == "SHRINE": sprite_size.y += 20.0
+	if definition_id == "SHRINE": sprite_size = Vector2(maxf(112.0, footprint_size.x + 36.0), maxf(116.0, footprint_size.y + 20.0))
 	var bottom_center := Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
 	var destination := Rect2(bottom_center - Vector2(sprite_size.x * 0.5, sprite_size.y), sprite_size)
 	var tint := Color(0.45, 1.0, 0.55, 0.62) if valid else Color(1.0, 0.35, 0.35, 0.62)
 	if economy_columns.has(definition_id):
 		var cell_width := ECONOMY_BUILDING_TEXTURE.get_width() / 5.0
 		draw_texture_rect_region(ECONOMY_BUILDING_TEXTURE, destination, Rect2(int(economy_columns[definition_id]) * cell_width, 0, cell_width, ECONOMY_BUILDING_TEXTURE.get_height()), tint if ghost else Color.WHITE)
+	elif definition_id == "SHRINE":
+		draw_texture_rect(SHRINE_TEXTURE, destination, false, tint if ghost else Color.WHITE)
 	else:
 		draw_texture_rect_region(BUILDING_TEXTURE, destination, Rect2(int(columns[definition_id]) * 256, 0, 256, 256), tint if ghost else Color.WHITE)

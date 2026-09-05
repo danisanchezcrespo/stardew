@@ -79,6 +79,8 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	game.player.position = visual.global_position - Vector2(0, 20)
 	game.player._physics_process(0.0)
 	_expect(game.player.z_index < visual.z_index, "Player above a building base should render behind.", failures)
+	var shrine_visual_script: Script = load("res://world/placement/structure_visual.gd")
+	_expect(shrine_visual_script.SHRINE_TEXTURE.resource_path.ends_with("egypt_shrine_v2.png"), "Temple should use the perspective-matched standalone sprite.", failures)
 	_expect(game.world_grid.occupant_at(origin) == instance_id, "Completion must not replace the spatial entity ID.", failures)
 	game_root.queue_free()
 	await process_frame

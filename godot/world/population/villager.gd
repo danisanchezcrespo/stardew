@@ -114,13 +114,17 @@ func _process_transport(game: Node2D, delta: float) -> void:
 	if source == null or destination == null:
 		state = "blocked: endpoint missing"
 		return
+	# Carrying cargo is authoritative, including recovery from a full destination,
+	# a loaded save, sleep, hunger, or any previous transient waiting state.
+	if carrying_amount > 0:
+		state = "to_destination"
 	if state == "to_destination":
 		if _move_to(destination.global_position, delta):
 			var delivered: int = game.villager_deliver(self)
 			state = "to_source" if delivered > 0 else "blocked: destination full"
 		return
 	if state.begins_with("blocked"):
-		state = "to_destination" if carrying_amount > 0 else "to_source"
+		state = "to_source"
 	if _move_to(source.global_position, delta):
 		var collected: int = game.villager_collect(self)
 		state = "to_destination" if collected > 0 else "waiting: source empty"
@@ -167,7 +171,7 @@ func _draw() -> void:
 	if facing == "west" or facing == "east":
 		texture = LATERAL_TEXTURE
 		row = 0 if facing == "west" else 1
-	var moving := state in ["to_source", "to_destination", "to_work", "going_home", "seeking_food"]
+	var moving := state in ["to_source", "to_destination", "to_work", "going_home", "seeking_food", "waiting: source empty"]
 	var frame := int(animation_time * FRAME_RATE) % 10 if moving else 0
 	draw_texture_rect_region(texture, Rect2(-32, -64, 64, 80), Rect2(frame * 64, row * 80, 64, 80), color_tint)
 	if selected or targeted:

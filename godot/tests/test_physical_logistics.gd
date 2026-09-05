@@ -46,6 +46,13 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 		game.deliver_selected_to_construction(kiln_id)
 	game.apply_construction_work(kiln_id, 10.0)
 	game.storage_by_entity_id[input_crate].add("clay", 2)
+	game.select_villager(inbound_villager.stable_id)
+	game.begin_villager_transport_order()
+	game._handle_order_endpoint(input_crate)
+	_expect(game.villager_resource_option.item_count == 1 and str(game.villager_resource_option.get_item_metadata(0)) == "clay", "A crate source picker should only offer resources that are physically present.", failures)
+	game.villager_order_mode = ""
+	game.pending_order_source_id = ""
+	game.villager_resource_option.visible = false
 	game.player.position = Vector2(8.5, 7.5) * game.CELL_SIZE
 	game.player.facing = "east"
 	game._input(route_key)
