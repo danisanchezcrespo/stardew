@@ -24,6 +24,10 @@ const PhysicalWorkforceType = preload("res://world/population/physical_workforce
 const VillagerType = preload("res://world/population/villager.gd")
 const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
 const WorldOverlayType = preload("res://world/interaction/world_overlay.gd")
+const TreeCropType = preload("res://world/crops/tree_crop.gd")
+const SAND_TEXTURE = preload("res://assets/generated/terrain/sand_tile.png")
+const WATER_TEXTURE = preload("res://assets/generated/terrain/water_tile.png")
+const TREE_GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_sheet.png")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -45,6 +49,8 @@ var item_registry: Variant
 var inventory: Variant
 var pickups: Array = []
 var resource_sources: Array = []
+var crops: Array = []
+var water_interaction_target: Variant
 var interaction_target: Variant = null
 var recipe_registry: Variant
 var crafting: Variant
@@ -119,6 +125,7 @@ var building_details_body: Label
 var building_details_controls: Label
 var construction_delivery_popup: ColorRect
 var construction_delivery_label: Label
+var construction_delivery_icons: Array[TextureRect] = []
 var world_overlay: Node2D
 var active_player_build_id := ""
 var day_time_seconds := 60.0
@@ -160,6 +167,9 @@ func _process(delta: float) -> void:
 		villager.process_life(self, delta)
 	for source: Variant in resource_sources:
 		if is_instance_valid(source): source.process_source(delta)
+	for crop: Variant in crops:
+		if is_instance_valid(crop) and crop.process_growth(delta):
+			queue_redraw()
 	_update_population_hud()
 	if player != null and position_label != null:
 		var cell := Vector2i(floori(player.position.x / CELL_SIZE), floori(player.position.y / CELL_SIZE))
@@ -320,6 +330,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			collect_target()
 		elif interaction_target != null and interaction_target.target_kind == "resource_source":
 			collect_resource_source(interaction_target)
+		elif interaction_target != null and interaction_target.target_kind == "water":
+			collect_water()
+		elif interaction_target != null and interaction_target.target_kind == "crop":
+			interact_with_crop(interaction_target)
 		elif interaction_target != null and interaction_target.target_kind == "construction":
 			open_building_details(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
@@ -379,6 +393,7 @@ func _build_player() -> void:
 	player = PlayerScene.instantiate()
 	player.position = Vector2(6.5, 6.5) * CELL_SIZE
 	add_child(player)
+	player.z_index = 100
 	camera = player.get_node("Camera2D")
 	camera.limit_left = 0
 	camera.limit_top = 0
@@ -423,6 +438,12 @@ func _build_items() -> void:
 		_spawn_pickup(str(pickup.id), str(pickup.item), int(pickup.amount), Vector2(float(pickup.cell[0]), float(pickup.cell[1])) * CELL_SIZE)
 	for source: Dictionary in scenario.resource_sources:
 		_spawn_resource_source(source)
+	for crop_data: Dictionary in scenario.crops:
+		_spawn_crop(str(crop_data.id), Vector2i(int(crop_data.cell[0]), int(crop_data.cell[1])), int(crop_data.get("stage", 3)))
+	water_interaction_target = PlacedTargetType.new()
+	water_interaction_target.configure("water-body", "Water", Vector2.ZERO, Vector2.ZERO, "water")
+	water_interaction_target.visible = false
+	add_child(water_interaction_target)
 
 
 func _spawn_pickup(stable_id: String, item_id: String, amount: int, world_position: Vector2) -> Variant:
@@ -445,6 +466,18 @@ func _spawn_resource_source(data: Dictionary) -> Variant:
 	add_child(source)
 	resource_sources.append(source)
 	return source
+
+
+func _spawn_crop(stable_id: String, cell: Vector2i, stage: int = 0, occupy_grid: bool = true) -> Variant:
+	var crop := TreeCropType.new()
+	crop.position = Vector2(cell * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5)
+	crop.configure(stable_id, cell, stage)
+	add_child(crop)
+	crops.append(crop)
+	if occupy_grid and world_grid.occupant_at(cell).is_empty():
+		var definition: Variant = placement_registry.get_entity("TREE_CROP")
+		world_grid.place(stable_id, "TREE_CROP", definition.spatial_footprint, cell, 0, definition.allowed_terrain)
+	return crop
 
 
 func _build_hud() -> void:
@@ -655,18 +688,22 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_controls.add_theme_color_override("font_color", Color("#6b3e20"))
 	building_details_panel.add_child(building_details_controls)
 	construction_delivery_popup = ColorRect.new()
-	construction_delivery_popup.position = Vector2(18, 270)
-	construction_delivery_popup.size = Vector2(384, 150)
-	construction_delivery_popup.color = Color("#3b281b")
+	construction_delivery_popup.position = Vector2(18, 248)
+	construction_delivery_popup.size = Vector2(384, 174)
+	construction_delivery_popup.color = Color("#f1dda9")
 	construction_delivery_popup.visible = false
 	building_details_panel.add_child(construction_delivery_popup)
 	construction_delivery_label = Label.new()
-	construction_delivery_label.position = Vector2(18, 14)
-	construction_delivery_label.size = Vector2(348, 122)
+	construction_delivery_label.position = Vector2(18, 12)
+	construction_delivery_label.size = Vector2(348, 150)
 	construction_delivery_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	construction_delivery_label.add_theme_font_size_override("font_size", 16)
-	construction_delivery_label.add_theme_color_override("font_color", Color("#fffaf0"))
+	construction_delivery_label.add_theme_color_override("font_color", Color("#3b281b"))
 	construction_delivery_popup.add_child(construction_delivery_label)
+	for index in range(4):
+		var icon := _make_item_icon(Vector2(20, 48 + index * 27), Vector2(22, 22))
+		construction_delivery_popup.add_child(icon)
+		construction_delivery_icons.append(icon)
 
 
 func _hide_subject_panels() -> void:
@@ -751,8 +788,14 @@ func _update_building_details() -> void:
 		construction_delivery_popup.visible = not deliverable.is_empty()
 		if not deliverable.is_empty():
 			var delivery_rows: Array[String] = []
-			for row: Dictionary in deliverable: delivery_rows.append("%s x%d" % [item_registry.get_item(str(row.item)).label, int(row.amount)])
-			construction_delivery_label.text = "DELIVER?\n\n%s\n\nSpace = deliver" % "\n".join(delivery_rows)
+			for index in range(deliverable.size()):
+				var row: Dictionary = deliverable[index]
+				delivery_rows.append("      %s  x%d" % [item_registry.get_item(str(row.item)).label, int(row.amount)])
+				if index < construction_delivery_icons.size():
+					construction_delivery_icons[index].texture = ItemIconAtlasType.icon(str(row.item))
+					construction_delivery_icons[index].visible = true
+			for index in range(deliverable.size(), construction_delivery_icons.size()): construction_delivery_icons[index].visible = false
+			construction_delivery_label.text = "DELIVER MATERIALS\n\n%s\n\nSPACE  Deliver all available" % "\n".join(delivery_rows)
 		building_details_controls.text = "Space: %s    Esc: close" % ("deliver shown materials" if not deliverable.is_empty() else ("start building" if site.materials_complete() else "select a required material"))
 		return
 	construction_delivery_popup.visible = false
@@ -1198,6 +1241,13 @@ func confirm_placement() -> bool:
 	var removed: int = inventory.remove(selected_item, 1)
 	assert(removed == 1, "Validated placement must consume exactly one item.")
 	next_placed_id += 1
+	if definition.entity_id == "TREE_CROP":
+		_spawn_crop(instance_id, placement_cursor, 0, false)
+		cancel_placement()
+		_update_inventory_hud()
+		interaction_label.text = "Planted Tree seed"
+		queue_redraw()
+		return true
 	_add_placed_collision(instance_id, result.cells)
 	if not definition.construction_cost.is_empty() or definition.construction_work_seconds > 0.0:
 		construction_by_entity_id[instance_id] = ConstructionSiteType.new(
@@ -1385,6 +1435,10 @@ func _update_interaction_target() -> void:
 			active.append(pickup)
 	for source: Variant in resource_sources:
 		if is_instance_valid(source): active.append(source)
+	for crop: Variant in crops:
+		if is_instance_valid(crop): active.append(crop)
+	_update_water_interaction_target()
+	if water_interaction_target != null and water_interaction_target.visible: active.append(water_interaction_target)
 	for target: Variant in placed_targets.values():
 		if is_instance_valid(target):
 			active.append(target)
@@ -1405,6 +1459,10 @@ func _update_interaction_target() -> void:
 			interaction_label.text = "%s x%d   Space = Pick up" % [interaction_target.item_label, interaction_target.amount]
 		elif interaction_target.target_kind == "resource_source":
 			interaction_label.text = "%s source %d/%d | Space to gather" % [interaction_target.item_label, interaction_target.current_amount, interaction_target.max_amount]
+		elif interaction_target.target_kind == "water":
+			interaction_label.text = "Water | Space to gather"
+		elif interaction_target.target_kind == "crop":
+			interaction_label.text = _crop_prompt(interaction_target)
 		elif interaction_target.target_kind == "construction":
 			interaction_label.text = _construction_prompt(interaction_target.stable_id)
 		elif interaction_target.target_kind == "machine":
@@ -1417,6 +1475,59 @@ func _update_interaction_target() -> void:
 			interaction_label.text = "ROUTE SOURCE SET | Approach destination and press R | " + interaction_label.text
 
 
+func _update_water_interaction_target() -> void:
+	if water_interaction_target == null: return
+	var best_cell := Vector2i(-999, -999)
+	var best_distance := INF
+	for cell: Vector2i in water_cells:
+		var center := Vector2(cell * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5)
+		var distance := player.global_position.distance_to(center)
+		if distance <= INTERACTION_REACH_PX and distance < best_distance:
+			best_cell = cell; best_distance = distance
+	water_interaction_target.visible = best_distance < INF
+	if water_interaction_target.visible:
+		water_interaction_target.global_position = Vector2(best_cell * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5)
+
+
+func collect_water() -> int:
+	var accepted: int = inventory.add("water", 12)
+	if accepted > 0:
+		campaign.record_pickup("water")
+		_update_inventory_hud()
+	return accepted
+
+
+func _crop_prompt(crop: Variant) -> String:
+	if crop.stage >= 3: return "Mature tree | Space to harvest"
+	if crop.watered: return "%s growing %d%%" % [crop.stage_label(), roundi(crop.progress() * 100.0)]
+	return "%s | Select Water and press Space" % crop.stage_label()
+
+
+func interact_with_crop(crop: Variant) -> bool:
+	if crop == null: return false
+	if crop.stage >= 3:
+		if inventory.capacity_for("wood") < 8 or inventory.capacity_for("tree_seed") < 2:
+			interaction_label.text = "Need inventory room for Wood x8 and Tree seed x2"
+			return false
+		inventory.add("wood", 8); inventory.add("tree_seed", 2)
+		world_grid.remove(crop.stable_id)
+		crops.erase(crop)
+		crop.queue_free()
+		interaction_target = null
+		_update_inventory_hud(); queue_redraw()
+		return true
+	if crop.watered:
+		interaction_label.text = "This plant is already watered"
+		return false
+	if inventory.slots[selected_slot].get("item_id", "") != "water":
+		interaction_label.text = "Select Water first"
+		return false
+	inventory.remove("water", 1)
+	crop.water()
+	_update_inventory_hud()
+	return true
+
+
 func collect_target() -> int:
 	_update_interaction_target()
 	if interaction_target == null:
@@ -1424,6 +1535,8 @@ func collect_target() -> int:
 	if interaction_target.target_kind == "storage":
 		open_storage(interaction_target.stable_id)
 		return 0
+	if interaction_target.target_kind == "water": return collect_water()
+	if interaction_target.target_kind == "crop": return 1 if interact_with_crop(interaction_target) else 0
 	if interaction_target.target_kind == "construction":
 		return deliver_selected_to_construction(interaction_target.stable_id)
 	if interaction_target.target_kind == "building":
@@ -1995,10 +2108,14 @@ func _draw() -> void:
 		for x in range(WORLD_SIZE.x):
 			var cell := Vector2i(x, y)
 			var rect := Rect2(Vector2(cell * CELL_SIZE), Vector2.ONE * CELL_SIZE)
-			draw_rect(rect, water_color if water_cells.has(cell) else sand_color)
-			draw_rect(rect, GRID_LINE, false, 1.0)
+			var terrain_texture: Texture2D = WATER_TEXTURE if water_cells.has(cell) else SAND_TEXTURE
+			var sample_size := Vector2(64, 64)
+			var sample_x := float((x * 53 + y * 17) % maxi(1, terrain_texture.get_width() - 64))
+			var sample_y := float((y * 47 + x * 11) % maxi(1, terrain_texture.get_height() - 64))
+			draw_texture_rect_region(terrain_texture, rect, Rect2(Vector2(sample_x, sample_y), sample_size))
 	if world_grid != null:
 		for placed: Variant in world_grid.entities_by_id.values():
+			if placed.definition_id == "TREE_CROP": continue
 			var site: Variant = construction_by_entity_id.get(placed.instance_id)
 			var machine: Variant = machines_by_entity_id.get(placed.instance_id)
 			var placed_color := Color("#8c7a66") if site != null and not site.complete else (Color("#8f302b") if machine != null and machine.broken else (Color("#db6b35") if machine != null and machine.is_running() else Color("#71472b")))
@@ -2036,6 +2153,11 @@ func _draw() -> void:
 
 
 func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost: bool = false, valid: bool = true) -> void:
+	if definition_id == "TREE_CROP" and not cells.is_empty():
+		var center := Vector2(cells[0] * CELL_SIZE) + Vector2(CELL_SIZE * 0.5, CELL_SIZE)
+		var crop_tint := Color(0.45, 1.0, 0.55, 0.72) if valid else Color(1.0, 0.35, 0.35, 0.72)
+		draw_texture_rect_region(TREE_GROWTH_TEXTURE, Rect2(center - Vector2(28, 42), Vector2(56, 42)), Rect2(0, 0, TREE_GROWTH_TEXTURE.get_width() / 4.0, TREE_GROWTH_TEXTURE.get_height()), crop_tint if ghost else Color.WHITE)
+		return
 	var columns := {"STORAGE_CRATE": 0, "BRICK_KILN": 1, "DWELLING": 2, "SHRINE": 3}
 	var economy_columns := {"GRAIN_FARM": 0, "BAKERY": 1, "BREWERY": 2, "KITCHEN": 3, "SAWMILL": 4}
 	if (not columns.has(definition_id) and not economy_columns.has(definition_id)) or cells.is_empty(): return

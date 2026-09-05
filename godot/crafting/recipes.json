@@ -5,11 +5,12 @@
     {"id": "brick_kiln_plan", "label": "Brick Kiln Plan", "inputs": {"wood": 5}, "outputs": {"brick_kiln_plan": 1}},
     {"id": "dwelling_plan", "label": "Dwelling Plan", "inputs": {"wood": 4, "mud_bricks": 4}, "outputs": {"dwelling_plan": 1}},
     {"id": "food_ration", "label": "Food Ration", "inputs": {"grain": 2}, "outputs": {"food_ration": 1}},
-    {"id": "shrine_plan", "label": "Shrine Plan", "inputs": {"wood": 8, "mud_bricks": 12, "grain": 6}, "outputs": {"shrine_plan": 1}},
+    {"id": "shrine_plan", "label": "Temple Plan", "inputs": {"wood": 8, "mud_bricks": 12, "grain": 6}, "outputs": {"shrine_plan": 1}},
     {"id": "grain_farm_plan", "label": "Grain Farm Plan", "inputs": {"wood": 6, "mud_bricks": 4}, "outputs": {"grain_farm_plan": 1}},
     {"id": "bakery_plan", "label": "Bakery Plan", "inputs": {"wood": 4, "mud_bricks": 8}, "outputs": {"bakery_plan": 1}},
     {"id": "brewery_plan", "label": "Brewery Plan", "inputs": {"wood": 4, "mud_bricks": 8}, "outputs": {"brewery_plan": 1}},
     {"id": "kitchen_plan", "label": "Kitchen Plan", "inputs": {"wood": 5, "mud_bricks": 10}, "outputs": {"kitchen_plan": 1}},
-    {"id": "sawmill_plan", "label": "Sawmill Plan", "inputs": {"wood": 10, "mud_bricks": 4}, "outputs": {"sawmill_plan": 1}}
+    {"id": "sawmill_plan", "label": "Sawmill Plan", "inputs": {"wood": 10, "mud_bricks": 4}, "outputs": {"sawmill_plan": 1}},
+    {"id": "planks", "label": "Wood Planks x2", "inputs": {"wood": 2}, "outputs": {"planks": 2}}
   ]
 }

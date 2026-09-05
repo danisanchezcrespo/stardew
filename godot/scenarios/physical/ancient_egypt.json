@@ -14,5 +14,10 @@
     {"id": "source-water-nile", "item": "water", "cell": [32.5, 8.5], "initial": 600, "max": 1200, "grant": 12, "regen_amount": 24, "regen_seconds": 10.0},
     {"id": "source-grain-nile", "item": "grain", "cell": [20.5, 6.5], "initial": 500, "max": 500, "grant": 10, "regen_amount": 10, "regen_seconds": 12.0},
     {"id": "source-clay-nile", "item": "clay", "cell": [27.5, 12.5], "initial": 300, "max": 300, "grant": 8, "regen_amount": 8, "regen_seconds": 15.0}
+  ],
+  "crops": [
+    {"id": "tree-initial-1", "cell": [18, 13], "stage": 3},
+    {"id": "tree-initial-2", "cell": [22, 16], "stage": 3},
+    {"id": "tree-initial-3", "cell": [26, 7], "stage": 3}
   ]
 }

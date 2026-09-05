@@ -41,7 +41,7 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	game.inventory.add("wood", 10)
 	game.select_quick_slot(_find_slot(game.inventory, "wood"))
 	_expect(game.open_building_details(instance_id), "Space flow should open construction details.", failures)
-	_expect(game.construction_delivery_popup.visible and game.construction_delivery_label.text.contains("Wood x8") and game.construction_delivery_label.text.contains("Space = deliver"), "Compatible inventory should open a delivery confirmation with its exact amount.", failures)
+	_expect(game.construction_delivery_popup.visible and game.construction_delivery_label.text.contains("Wood  x8") and game.construction_delivery_label.text.contains("SPACE  Deliver"), "Compatible inventory should open a polished delivery confirmation with its exact amount.", failures)
 	game.building_details_context_action()
 	game.close_building_details()
 	_expect(game.inventory.count("wood") == 2, "Excess delivered wood should remain with the player.", failures)

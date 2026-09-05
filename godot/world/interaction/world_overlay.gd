@@ -15,7 +15,10 @@ func _draw() -> void:
 		var machine: Variant = game.machines_by_entity_id[instance_id]
 		var machine_target: Variant = game.placed_targets.get(instance_id)
 		if machine_target != null and machine.is_running():
-			_draw_machine_progress(machine_target.global_position + Vector2(0, -98), machine.progress())
+			_draw_machine_progress(machine_target.global_position + Vector2(0, -98), machine.progress(), machine_target.item_label)
+	for crop: Variant in game.crops:
+		if is_instance_valid(crop) and crop.watered:
+			_draw_crop_progress(crop.global_position + Vector2(0, -58), crop.stage_label(), crop.progress())
 	if game.placement_mode:
 		var definition: Variant = game._selected_placeable_definition()
 		if definition != null:
@@ -30,6 +33,12 @@ func _draw() -> void:
 	elif target.target_kind == "resource_source":
 		var status := "%d / %d available" % [target.current_amount, target.max_amount]
 		_draw_hint(anchor, ["%s source" % target.item_label, status, "Space: take up to %d" % target.grant_amount])
+	elif target.target_kind == "water":
+		_draw_hint(anchor, ["Water", "Infinite source", "Space to gather"])
+	elif target.target_kind == "crop":
+		if target.stage >= 3: _draw_hint(anchor, ["Mature tree", "Space to harvest", "Wood x8 + Tree seed x2"])
+		elif target.watered: pass # Persistent growth bar is already drawn above.
+		else: _draw_hint(anchor, [target.stage_label(), "Needs Water", "Space to water"])
 	elif target.target_kind == "construction":
 		_draw_construction(anchor, target)
 	elif target.target_kind == "villager":
@@ -88,13 +97,23 @@ func _draw_progress_hint(anchor: Vector2, progress: float) -> void:
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(progress, 0.0, 1.0), bar.size.y)), Color("#e5b84b"))
 	draw_rect(bar, Color.WHITE, false, 1.0)
 
-func _draw_machine_progress(anchor: Vector2, progress: float) -> void:
-	var rect := Rect2(anchor - Vector2(54, 18), Vector2(108, 18))
+func _draw_machine_progress(anchor: Vector2, progress: float, label: String) -> void:
+	var rect := Rect2(anchor - Vector2(78, 36), Vector2(156, 36))
 	_panel(rect)
-	var bar := Rect2(rect.position + Vector2(5, 5), Vector2(98, 8))
+	draw_string(ThemeDB.fallback_font, rect.position + Vector2(8, 14), "%s  %d%%" % [label, roundi(progress * 100.0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	var bar := Rect2(rect.position + Vector2(8, 21), Vector2(140, 9))
 	draw_rect(bar, Color("#2b211b"))
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(progress, 0.0, 1.0), bar.size.y)), Color("#e56f35"))
-	draw_rect(bar, Color.WHITE, false, 1.0)
+	draw_rect(bar, Color("#f0cc72"), false, 1.0)
+
+func _draw_crop_progress(anchor: Vector2, label: String, progress: float) -> void:
+	var rect := Rect2(anchor - Vector2(75, 42), Vector2(150, 42))
+	_panel(rect)
+	draw_string(ThemeDB.fallback_font, rect.position + Vector2(8, 15), "%s growing  %d%%" % [label, roundi(progress * 100.0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	var bar := Rect2(rect.position + Vector2(8, 25), Vector2(134, 9))
+	draw_rect(bar, Color("#172016"))
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * clampf(progress, 0.0, 1.0), bar.size.y)), Color("#70b84a"))
+	draw_rect(bar, Color("#d8efab"), false, 1.0)
 
 func _panel(rect: Rect2) -> void:
 	draw_rect(rect, Color(0.04, 0.035, 0.025, 0.94))

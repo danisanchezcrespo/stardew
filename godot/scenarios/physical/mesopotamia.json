@@ -13,5 +13,10 @@
     {"id": "source-water-meso", "item": "water", "cell": [10.5, 12.5], "initial": 600, "max": 1200, "grant": 12, "regen_amount": 24, "regen_seconds": 10.0},
     {"id": "source-grain-meso", "item": "grain", "cell": [23.5, 6.5], "initial": 500, "max": 500, "grant": 10, "regen_amount": 10, "regen_seconds": 12.0},
     {"id": "source-clay-meso", "item": "clay", "cell": [30.5, 10.5], "initial": 320, "max": 320, "grant": 8, "regen_amount": 8, "regen_seconds": 15.0}
+  ],
+  "crops": [
+    {"id": "tree-initial-1", "cell": [17, 14], "stage": 3},
+    {"id": "tree-initial-2", "cell": [23, 16], "stage": 3},
+    {"id": "tree-initial-3", "cell": [29, 8], "stage": 3}
   ]
 }

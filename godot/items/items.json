@@ -8,7 +8,7 @@
     {"id": "brick_kiln_plan", "label": "Brick kiln plan", "color": "#d7c7a2", "max_stack": 5, "placeable_entity_id": "BRICK_KILN"},
     {"id": "dwelling_plan", "label": "Dwelling plan", "color": "#e4d5b1", "max_stack": 5, "placeable_entity_id": "DWELLING"},
     {"id": "food_ration", "label": "Food ration", "color": "#d99b45", "max_stack": 20},
-    {"id": "shrine_plan", "label": "Shrine plan", "color": "#e8d38b", "max_stack": 1, "placeable_entity_id": "SHRINE"},
+    {"id": "shrine_plan", "label": "Temple plan", "color": "#e8d38b", "max_stack": 1, "placeable_entity_id": "SHRINE"},
     {"id": "water", "label": "Water", "color": "#4aa7c7", "max_stack": 50},
     {"id": "bread", "label": "Bread", "color": "#d99b45", "max_stack": 50},
     {"id": "beer", "label": "Beer", "color": "#c98232", "max_stack": 50},
@@ -17,6 +17,7 @@
     {"id": "bakery_plan", "label": "Bakery plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "BAKERY"},
     {"id": "brewery_plan", "label": "Brewery plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "BREWERY"},
     {"id": "kitchen_plan", "label": "Kitchen plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "KITCHEN"},
-    {"id": "sawmill_plan", "label": "Sawmill plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "SAWMILL"}
+    {"id": "sawmill_plan", "label": "Sawmill plan", "color": "#e6d39a", "max_stack": 5, "placeable_entity_id": "SAWMILL"},
+    {"id": "tree_seed", "label": "Tree seed", "color": "#7f9b3c", "max_stack": 50, "placeable_entity_id": "TREE_CROP"}
   ]
 }

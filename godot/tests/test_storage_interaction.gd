@@ -26,8 +26,9 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 	var crate_slot := _find_slot(game.inventory, "storage_crate")
 	game.select_quick_slot(crate_slot)
 	game.begin_placement()
+	var crate_origin: Vector2i = game.placement_cursor
 	_expect(game.confirm_placement(), "Storage test should place the crate.", failures)
-	var instance_id: String = game.world_grid.entities_by_id.keys()[0]
+	var instance_id: String = game.world_grid.occupant_at(crate_origin)
 	_expect(game.storage_by_entity_id.has(instance_id), "Placed storage definition should create an independent container.", failures)
 
 	game._update_interaction_target()

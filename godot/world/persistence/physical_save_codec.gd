@@ -8,6 +8,11 @@ func capture(game: Node2D) -> Dictionary:
 	var entities: Array[Dictionary] = []
 	for placed: Variant in game.world_grid.entities_by_id.values():
 		var row := {"id": placed.instance_id, "definition_id": placed.definition_id, "origin": [placed.origin.x, placed.origin.y], "rotation": placed.rotation}
+		if placed.definition_id == "TREE_CROP":
+			for crop: Variant in game.crops:
+				if is_instance_valid(crop) and crop.stable_id == placed.instance_id:
+					row.crop = {"stage": crop.stage, "elapsed": crop.growth_elapsed, "watered": crop.watered}
+					break
 		var site: Variant = game.construction_by_entity_id.get(placed.instance_id)
 		if site != null:
 			row.construction = {"delivered": site.delivered.duplicate(true), "work_done_seconds": site.work_done_seconds, "complete": site.complete}
@@ -59,6 +64,11 @@ func load_from_path(game: Node2D, path: String) -> Error:
 	return restore(game, data)
 
 func restore(game: Node2D, data: Dictionary) -> Error:
+	for crop: Variant in game.crops:
+		if is_instance_valid(crop):
+			game.world_grid.remove(crop.stable_id)
+			crop.queue_free()
+	game.crops.clear()
 	if not game.world_grid.entities_by_id.is_empty(): return ERR_ALREADY_IN_USE
 	game.inventory.slots = _slots(data.get("inventory", []), game.inventory.slot_count)
 	var player_position: Array = data.get("player_position", [208, 208])
@@ -79,6 +89,12 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		var origin := Vector2i(int(row.origin[0]), int(row.origin[1]))
 		var result: Variant = game.world_grid.place(str(row.id), definition.entity_id, definition.spatial_footprint, origin, int(row.rotation), definition.allowed_terrain)
 		if not result.valid: return ERR_INVALID_DATA
+		if definition.entity_id == "TREE_CROP":
+			var crop: Variant = game._spawn_crop(str(row.id), origin, int(row.get("crop", {}).get("stage", 0)), false)
+			crop.growth_elapsed = float(row.get("crop", {}).get("elapsed", 0.0))
+			crop.watered = bool(row.get("crop", {}).get("watered", false))
+			if str(row.id).begins_with("placed-"): game.next_placed_id = maxi(game.next_placed_id, int(str(row.id).get_slice("-", 1)) + 1)
+			continue
 		game._add_placed_collision(str(row.id), result.cells)
 		if row.has("construction"):
 			var site := ConstructionSite.new(str(row.id), definition.construction_cost, definition.construction_work_seconds)

@@ -8,6 +8,12 @@ func _initialize() -> void:
 	await process_frame
 	var game: Node2D = game_root.get_node("MainGame")
 	_expect(game.resource_sources.size() >= 2, "Each physical map should include configured renewable sources.", failures)
+	var water_cell: Vector2i = game.water_cells.keys()[0]
+	game.player.position = Vector2(water_cell * game.CELL_SIZE) + Vector2(16 + game.CELL_SIZE, 16)
+	game._update_water_interaction_target()
+	_expect(game.water_interaction_target.visible, "Any reachable body-of-water cell should expose an infinite Water interaction.", failures)
+	var water_before: int = game.inventory.count("water")
+	_expect(game.collect_water() == 12 and game.inventory.count("water") == water_before + 12, "Natural water should grant Water without depleting.", failures)
 	var source: Variant = game.resource_sources[0]
 	var before: int = source.current_amount
 	var collected: int = game.collect_resource_source(source)
