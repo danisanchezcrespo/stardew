@@ -1,6 +1,7 @@
 {"recipes":[
  {"id":"granary_plan","label":"Granary","inputs":{"oak_wood":5,"field_stone":3},"outputs":{"granary_plan":1}},
  {"id":"cottage_plan","label":"Cottage","inputs":{"oak_wood":10,"field_stone":6},"outputs":{"cottage_plan":1}},
+ {"id":"coarse_flatbread","label":"Coarse Flatbread","inputs":{"wheat":3},"outputs":{"loaf":1}},
  {"id":"windmill_plan","label":"Windmill","inputs":{"oak_wood":12,"field_stone":8},"outputs":{"windmill_plan":1},"unlock_after":"build_cottage"},
  {"id":"forge_plan","label":"Forge","inputs":{"oak_wood":8,"field_stone":12},"outputs":{"forge_plan":1},"unlock_after":"make_flour"},
  {"id":"market_plan","label":"Market","inputs":{"oak_wood":12,"field_stone":10,"iron_tools":2},"outputs":{"market_plan":1},"unlock_after":"forge_tools"},

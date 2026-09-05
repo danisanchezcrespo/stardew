@@ -43,6 +43,12 @@ func _initialize() -> void:
 	medieval_placeables.load_from_path(medieval.placeables_path)
 	var granary: Variant = medieval_placeables.get_entity("GRANARY")
 	_expect(granary != null and not granary.construction_cost.is_empty() and granary.construction_work_seconds > 0.0, "The medieval granary must pass through blueprint construction so its completion quest can fire.", failures)
+	var medieval_items := ItemRegistryType.new()
+	medieval_items.load_from_path(medieval.items_path)
+	var medieval_recipes := RecipeRegistryType.new()
+	medieval_recipes.load_from_path(medieval.recipes_path, medieval_items)
+	var recovery_food: Variant = medieval_recipes.get_recipe("coarse_flatbread")
+	_expect(recovery_food != null and int(recovery_food.inputs.get("wheat", 0)) > 0 and int(recovery_food.outputs.get("loaf", 0)) > 0 and recovery_food.unlock_after.is_empty(), "Medieval villagers need an always-available manual food recipe to prevent a hungry-worker deadlock.", failures)
 	if failures.is_empty():
 		print("PASS: four era content")
 		quit(0)
