@@ -15,6 +15,12 @@ Calendar, collections, building upgrades, and technology trees:
 godot --headless --path godot --script res://tests/test_settlement_progression.gd
 ```
 
+Museum, freely bound portals, artifacts, and traveler story:
+
+```bash
+godot --headless --path godot --script res://tests/test_time_travel_metagame.gd
+```
+
 Spatial primitives can be checked independently with:
 
 ```powershell

@@ -1,0 +1,34 @@
+{
+  "artifacts":[
+    {"id":"prehistoric_handprint","era":"prehistory","label":"Ochre Handprint","objective":"gather_stone_age","cell":[12,6],"story":"A handprint made for someone who had not yet arrived."},
+    {"id":"ivory_pendant","era":"prehistory","label":"Ivory Sky Pendant","objective":"first_hunt","cell":[23,8],"story":"Its spiral matches the dormant portals."},
+    {"id":"ember_vessel","era":"prehistory","label":"Keeper's Ember Vessel","objective":"build_shelter","cell":[17,12],"story":"The clan kept one flame alive for generations."},
+    {"id":"first_spearhead","era":"prehistory","label":"First Flint Spearhead","objective":"preserve_food","cell":[30,15],"story":"A tool became an heirloom when survival became memory."},
+    {"id":"ritual_stone_shard","era":"prehistory","label":"Ritual Stone Shard","objective":"found_tribe","cell":[20,18],"story":"The carved figure resembles the traveler."},
+
+    {"id":"nile_tablet","era":"ancient_egypt","label":"Tablet of the First Flood","objective":"fire_bricks","cell":[10,9],"story":"The river record mentions a stranger arriving through light."},
+    {"id":"reed_sun_charm","era":"ancient_egypt","label":"Reed Sun Charm","objective":"build_home","cell":[16,11],"story":"A household charm offered to the settlement's absent founder."},
+    {"id":"royal_grain_seal","era":"ancient_egypt","label":"Royal Grain Seal","objective":"harvest_grain","cell":[21,7],"story":"Proof that scarcity had become abundance."},
+    {"id":"scribe_palette","era":"ancient_egypt","label":"Scribe's Traveling Palette","objective":"make_papyrus","cell":[29,19],"story":"Its hidden inscription is written in the traveler's hand."},
+    {"id":"river_temple_eye","era":"ancient_egypt","label":"Eye of the River Temple","objective":"monument","cell":[25,14],"story":"It was made to watch over every age at once."},
+
+    {"id":"village_foundation_coin","era":"medieval","label":"Foundation Coin","objective":"build_granary","cell":[11,8],"story":"Buried beneath the village on the day it began."},
+    {"id":"miller_wind_token","era":"medieval","label":"Miller's Wind Token","objective":"make_flour","cell":[18,9],"story":"The scratched date should not exist in this calendar."},
+    {"id":"guild_hammer","era":"medieval","label":"Guildmaster's Hammer","objective":"forge_tools","cell":[25,13],"story":"Its maker claimed the design came to him in a dream."},
+    {"id":"silver_town_seal","era":"medieval","label":"Silver Town Seal","objective":"earn_coin","cell":[30,17],"story":"The traveler's silhouette stands at the seal's center."},
+    {"id":"keep_chronicle","era":"medieval","label":"Chronicle of the Empty Museum","objective":"seat_of_power","cell":[20,19],"story":"A history of a building that will not exist for centuries."},
+
+    {"id":"first_martian_water","era":"mars_colony","label":"First Martian Water Sample","objective":"melt_ice","cell":[13,8],"story":"Its container bears the museum inventory number 001."},
+    {"id":"oxygen_membrane","era":"mars_colony","label":"First Oxygen Membrane","objective":"make_oxygen","cell":[18,11],"story":"The material remembers an atmosphere it never touched."},
+    {"id":"red_algae_culture","era":"mars_colony","label":"Red Algae Culture","objective":"grow_algae","cell":[23,8],"story":"The first life cultivated on a second world."},
+    {"id":"fabricator_core","era":"mars_colony","label":"Prototype Fabricator Core","objective":"fabricate_metal","cell":[29,14],"story":"Its blueprint contains a component from the portal."},
+    {"id":"deep_space_message","era":"mars_colony","label":"Message From Deep Space","objective":"mars_outpost","cell":[24,18],"story":"The message is addressed to the traveler by name."}
+  ],
+  "story":[
+    {"requires":1,"title":"The Empty Hall","text":"You remember cataloguing this object before. The museum was not abandoned when you found it; you were here when it closed."},
+    {"requires":3,"title":"A Deliberate Silence","text":"A recording bears your voice: ‘If I forget, let the civilizations choose what returns.’ You erased the collection yourself."},
+    {"requires":8,"title":"The First Intervention","text":"You once tried to perfect every age. Each correction created another fracture. The people in the portals remember different versions of you."},
+    {"requires":15,"title":"The Other Traveler","text":"Someone traveled beside you. Every surviving record has removed their face, but not their shadow."},
+    {"requires":20,"title":"Curator of Possible Worlds","text":"The museum never preserved one true history. It preserved the worlds people built after being given a choice. You returned to finish that promise."}
+  ]
+}

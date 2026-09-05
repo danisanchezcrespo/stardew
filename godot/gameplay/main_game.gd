@@ -32,6 +32,10 @@ const TreeCropType = preload("res://world/crops/tree_crop.gd")
 const StructureVisualType = preload("res://world/placement/structure_visual.gd")
 const GameThemeType = preload("res://ui/game_theme.gd")
 const SettlementProgressionType = preload("res://world/progression/settlement_progression.gd")
+const TimeTravelStateType = preload("res://world/time_travel/time_travel_state.gd")
+const TimePortalType = preload("res://world/time_travel/time_portal.gd")
+const TimeArtifactType = preload("res://world/time_travel/time_artifact.gd")
+const MuseumArchiveType = preload("res://world/time_travel/museum_archive.gd")
 const SAND_TEXTURE = preload("res://assets/generated/terrain/sand_v2.png")
 const WATER_TEXTURE = preload("res://assets/generated/terrain/water_v2.png")
 const SHORELINE_TEXTURE = preload("res://assets/generated/terrain/shoreline_v2.png")
@@ -110,7 +114,7 @@ var population_label: Label
 var campaign: Variant
 var objective_label: Label
 var physical_save: Variant
-@export_file("*.json") var scenario_path := "res://scenarios/physical/ancient_egypt.json"
+@export_file("*.json") var scenario_path := "res://scenarios/physical/time_museum.json"
 var scenario: Variant
 var sand_color := Color("#cdbb7d")
 var water_color := Color("#4d8fbd")
@@ -163,7 +167,7 @@ var storage_upgrade_button: Button
 var world_overlay: Node2D
 var terrain_renderer: Node2D
 var active_player_build_id := ""
-var day_time_seconds := 60.0
+var day_time_seconds := 180.0
 const DAY_LENGTH_SECONDS := 720.0
 var meta_progression: Variant
 var tech_panel: Control
@@ -177,14 +181,27 @@ var collection_feedback_label: Label
 var day_summary_panel: Control
 var day_summary_open := false
 var day_summary_label: Label
+var time_targets: Array = []
+var portal_nodes: Dictionary = {}
+var artifact_nodes: Dictionary = {}
+var portal_choice_panel: Control
+var portal_choice_open := false
+var active_portal_slot := -1
+var museum_story_panel: Control
+var museum_story_open := false
+var museum_story_title: Label
+var museum_story_text: Label
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
 var feedback_audio: AudioStreamPlayer
 
 
 func _ready() -> void:
+	TimeTravelStateType.ensure_loaded()
 	scenario = PhysicalScenarioType.new()
 	var auto_start := PhysicalScenarioType.requested_autostart
 	PhysicalScenarioType.requested_autostart = false
+	# Legacy headless tests exercise Egypt unless they explicitly request a scenario.
+	if DisplayServer.get_name() == "headless" and PhysicalScenarioType.requested_path.is_empty(): scenario_path = "res://scenarios/physical/ancient_egypt.json"
 	if not PhysicalScenarioType.requested_path.is_empty():
 		scenario_path = PhysicalScenarioType.requested_path
 		PhysicalScenarioType.requested_path = ""
@@ -211,10 +228,11 @@ func _ready() -> void:
 	_build_player()
 	_build_items()
 	_build_hud()
+	_build_time_travel_world()
 	world_overlay = WorldOverlayType.new()
 	world_overlay.configure(self)
 	add_child(world_overlay)
-	if DisplayServer.get_name() != "headless" and not auto_start:
+	if DisplayServer.get_name() != "headless" and not auto_start and scenario.scenario_id != "time_museum":
 		set_scenario_select_open(true)
 	if PhysicalSaveCodecType.pending_reload:
 		PhysicalSaveCodecType.pending_reload = false
@@ -271,8 +289,12 @@ func _process(delta: float) -> void:
 		if structure_visuals.has(machine.instance_id):
 			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
+	if scenario.scenario_id != "time_museum":
+		var discoveries: Array[String] = TimeTravelStateType.discover_from_campaign(scenario.scenario_id, campaign.completed)
+		_sync_artifact_nodes()
+		if not discoveries.is_empty(): interaction_label.text = "A temporal artifact has appeared nearby."
 	if objective_label != null:
-		objective_label.text = campaign.current_text()
+		objective_label.text = _museum_objective_text() if scenario.scenario_id == "time_museum" else campaign.current_text()
 	if machine_open:
 		_update_machine_panel()
 	if not selected_villager_id.is_empty():
@@ -329,6 +351,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if logistics_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_logistics"):
 			set_logistics_open(false)
+		return
+	if portal_choice_open:
+		if event.is_action_pressed("cancel"): _close_portal_choice()
+		return
+	if museum_story_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("use_selected"): _close_museum_story()
 		return
 	if tech_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_tech_tree"): set_tech_open(false)
@@ -447,6 +475,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			interact_with_crop(interaction_target)
 		elif interaction_target != null and interaction_target.target_kind == "dependent":
 			interact_with_dependent(interaction_target)
+		elif interaction_target != null and interaction_target.target_kind == "artifact":
+			_collect_time_artifact(interaction_target)
+		elif interaction_target != null and interaction_target.target_kind == "time_portal":
+			_interact_time_portal(interaction_target)
+		elif interaction_target != null and interaction_target.target_kind == "museum_archive":
+			_exhibit_carried_artifacts()
 		elif interaction_target != null and interaction_target.target_kind == "construction":
 			open_building_details(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
@@ -684,8 +718,10 @@ func _build_hud() -> void:
 	_build_tech_panel(layer)
 	_build_collection_panel(layer)
 	_build_day_summary_panel(layer)
+	_build_portal_choice_panel(layer)
+	_build_museum_story_panel(layer)
 	_build_mobile_controls(layer)
-	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel, tech_panel, collection_panel, day_summary_panel]:
+	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel, tech_panel, collection_panel, day_summary_panel, portal_choice_panel, museum_story_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
 		_apply_scenario_panel_palette(panel)
 	GameThemeType.decorate_panel(inventory_background, true)
@@ -938,6 +974,14 @@ func set_collection_open(value: bool) -> void:
 func _refresh_collection_panel() -> void:
 	if collection_list == null: return
 	for child: Node in collection_list.get_children(): child.queue_free()
+	if scenario.scenario_id == "time_museum":
+		for entry: Dictionary in TimeTravelStateType.catalog.get("artifacts", []):
+			var artifact_id := str(entry.id); var exhibited: bool = TimeTravelStateType.exhibited_artifacts.has(artifact_id)
+			var row := HBoxContainer.new(); row.custom_minimum_size = Vector2(520, 38); collection_list.add_child(row)
+			var marker := Label.new(); marker.custom_minimum_size = Vector2(40, 34); marker.text = "◆" if exhibited else "◇"; marker.add_theme_font_size_override("font_size", 24); row.add_child(marker)
+			var label := Label.new(); label.custom_minimum_size = Vector2(450, 34); label.text = "%s · %s" % [str(entry.label) if exhibited else "Unknown artifact", _era_label(str(entry.era)) if exhibited else "Undiscovered"]; label.modulate = Color.WHITE if exhibited else Color(0.4,0.45,0.5); row.add_child(label)
+		collection_feedback_label.text = "%d / 20 artifacts exhibited · Recover them in the eras and place them at the central archive." % TimeTravelStateType.exhibited_artifacts.size()
+		return
 	for entry: Dictionary in meta_progression.collection_items():
 		var item_id := str(entry.item); var item: Variant = item_registry.get_item(item_id)
 		var row := HBoxContainer.new(); row.custom_minimum_size = Vector2(520, 38); collection_list.add_child(row)
@@ -951,6 +995,9 @@ func _refresh_collection_panel() -> void:
 
 
 func donate_selected_item() -> bool:
+	if scenario.scenario_id == "time_museum":
+		collection_feedback_label.text = "Close this record and press Space beside the central archive to exhibit carried artifacts."
+		return false
 	var slot: Dictionary = inventory.slots[selected_slot]
 	if slot.is_empty(): collection_feedback_label.text = "Select an item in your inventory first."; return false
 	var item_id := str(slot.item_id)
@@ -976,6 +1023,151 @@ func _open_day_summary(summary: Dictionary) -> void:
 
 func close_day_summary() -> void:
 	day_summary_open = false; day_summary_panel.visible = false; player.movement_enabled = true
+
+
+func _build_portal_choice_panel(layer: CanvasLayer) -> void:
+	portal_choice_panel = ColorRect.new(); portal_choice_panel.position = Vector2(310, 90); portal_choice_panel.size = Vector2(660, 540)
+	portal_choice_panel.color = Color(str(scenario.theme.get("dark", "#101723"))); portal_choice_panel.visible = false; layer.add_child(portal_choice_panel)
+	var title := Label.new(); title.position = Vector2(35, 25); title.size = Vector2(590, 44); title.text = "CHOOSE A DESTINATION"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 28); portal_choice_panel.add_child(title)
+	var descriptions := {
+		"prehistory":"Survival, the hunt, and the first shared memories",
+		"ancient_egypt":"Irrigation, settlement, and monumental legacy",
+		"medieval":"Skilled trades, commerce, and a growing village",
+		"mars_colony":"Energy, life support, and humanity's next home"
+	}
+	var labels := {"prehistory":"PREHISTORY","ancient_egypt":"ANCIENT EGYPT","medieval":"MEDIEVAL","mars_colony":"MARS COLONY"}
+	var index := 0
+	for era_id: String in ["prehistory","ancient_egypt","medieval","mars_colony"]:
+		var button := Button.new(); button.name = "Destination_%s" % era_id; button.position = Vector2(65, 92 + index * 92); button.size = Vector2(530, 72)
+		button.text = "%s\n%s" % [labels[era_id], descriptions[era_id]]; button.pressed.connect(func() -> void: _bind_active_portal(era_id)); portal_choice_panel.add_child(button); index += 1
+	var hint := Label.new(); hint.position = Vector2(55, 480); hint.size = Vector2(550, 30); hint.text = "This choice binds the portal permanently · Esc to decide later"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; portal_choice_panel.add_child(hint)
+
+
+func _build_museum_story_panel(layer: CanvasLayer) -> void:
+	museum_story_panel = ColorRect.new(); museum_story_panel.position = Vector2(300, 125); museum_story_panel.size = Vector2(680, 430)
+	museum_story_panel.color = Color(str(scenario.theme.get("dark", "#101723"))); museum_story_panel.visible = false; layer.add_child(museum_story_panel)
+	museum_story_title = Label.new(); museum_story_title.position = Vector2(45, 38); museum_story_title.size = Vector2(590, 48); museum_story_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; museum_story_title.add_theme_font_size_override("font_size", 28); museum_story_panel.add_child(museum_story_title)
+	museum_story_text = Label.new(); museum_story_text.position = Vector2(65, 115); museum_story_text.size = Vector2(550, 210); museum_story_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; museum_story_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; museum_story_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; museum_story_text.add_theme_font_size_override("font_size", 20); museum_story_panel.add_child(museum_story_text)
+	var hint := Label.new(); hint.position = Vector2(65, 360); hint.size = Vector2(550, 30); hint.text = "Space / Esc: close"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; museum_story_panel.add_child(hint)
+
+
+func _open_portal_choice(slot: int) -> void:
+	active_portal_slot = slot; portal_choice_open = true; portal_choice_panel.visible = true; player.movement_enabled = false
+	for era_id: String in ["prehistory","ancient_egypt","medieval","mars_colony"]:
+		var button := portal_choice_panel.get_node("Destination_%s" % era_id) as Button
+		button.visible = era_id in TimeTravelStateType.unbound_eras()
+
+
+func _close_portal_choice() -> void:
+	active_portal_slot = -1; portal_choice_open = false; portal_choice_panel.visible = false; player.movement_enabled = true
+
+
+func _bind_active_portal(era_id: String) -> void:
+	if TimeTravelStateType.bind_portal(active_portal_slot, era_id):
+		_close_portal_choice(); _refresh_portals(); interaction_label.text = "Portal bound. Press Space to travel."
+
+
+func _close_museum_story() -> void:
+	museum_story_open = false; museum_story_panel.visible = false; player.movement_enabled = true
+
+
+func _show_story_chapter(chapter: Dictionary) -> void:
+	if chapter.is_empty(): return
+	museum_story_open = true; museum_story_panel.visible = true; player.movement_enabled = false
+	museum_story_title.text = str(chapter.title); museum_story_text.text = str(chapter.text)
+
+
+func _build_time_travel_world() -> void:
+	if scenario.scenario_id == "time_museum":
+		player.position = Vector2(25.5, 15.5) * CELL_SIZE
+		var cells := [Vector2i(12,8), Vector2i(25,6), Vector2i(38,8), Vector2i(25,23)]
+		for slot in range(4):
+			var portal := TimePortalType.new(); portal.global_position = Vector2(cells[slot]) * CELL_SIZE + Vector2.ONE * 16.0; portal_nodes[slot] = portal; time_targets.append(portal); add_child(portal)
+		var archive := MuseumArchiveType.new(); archive.global_position = Vector2(25.5, 13.5) * CELL_SIZE; time_targets.append(archive); add_child(archive)
+		_refresh_portals(); _build_museum_exhibits()
+	else:
+		var return_portal := TimePortalType.new(); return_portal.global_position = Vector2(5.5, 5.5) * CELL_SIZE; return_portal.configure(0, "Return to the museum", true, "time_museum"); time_targets.append(return_portal); add_child(return_portal)
+		_sync_artifact_nodes()
+
+
+func _refresh_portals() -> void:
+	for slot: int in portal_nodes:
+		var era_id := str(TimeTravelStateType.portal_bindings[slot])
+		var powered: bool = TimeTravelStateType.portal_is_powered(slot)
+		var label := "Unbound portal" if era_id.is_empty() and powered else ("Dormant portal · %d artifacts needed" % int(TimeTravelStateType.PORTAL_THRESHOLDS[slot]) if era_id.is_empty() else _era_label(era_id))
+		portal_nodes[slot].configure(slot, label, powered, era_id)
+
+
+func _era_label(era_id: String) -> String:
+	return {"prehistory":"Prehistory","ancient_egypt":"Ancient Egypt","medieval":"Medieval","mars_colony":"Mars Colony","time_museum":"Museum"}.get(era_id, era_id)
+
+
+func _interact_time_portal(portal: Variant) -> void:
+	if scenario.scenario_id != "time_museum":
+		_travel_to("time_museum", "res://scenarios/physical/time_museum.json")
+		return
+	if not portal.powered:
+		interaction_label.text = "This portal needs %d exhibited artifacts." % int(TimeTravelStateType.PORTAL_THRESHOLDS[portal.slot])
+	elif portal.bound_era.is_empty(): _open_portal_choice(portal.slot)
+	else: _travel_to(portal.bound_era, str(TimeTravelStateType.ERA_PATHS[portal.bound_era]))
+
+
+func _travel_to(destination_id: String, destination_path: String) -> void:
+	if scenario.scenario_id != "time_museum": physical_save.save_to_path(self, _manual_save_path())
+	TimeTravelStateType.save_meta()
+	PhysicalScenarioType.requested_path = destination_path; PhysicalScenarioType.requested_autostart = true
+	var destination_save := "user://%s_save.json" % destination_id
+	if FileAccess.file_exists(destination_save):
+		PhysicalSaveCodecType.pending_reload = true; PhysicalSaveCodecType.pending_reload_path = destination_save
+	else: PhysicalSaveCodecType.pending_reload = false
+	get_tree().reload_current_scene()
+
+
+func _sync_artifact_nodes() -> void:
+	if scenario.scenario_id == "time_museum": return
+	for artifact_id: String in TimeTravelStateType.available_artifacts:
+		var data := TimeTravelStateType.artifact(artifact_id)
+		if data.is_empty() or str(data.era) != scenario.scenario_id or artifact_nodes.has(artifact_id): continue
+		var artifact_node := TimeArtifactType.new(); artifact_node.configure(data)
+		var cell: Array = data.get("cell", [10,10]); artifact_node.global_position = Vector2(float(cell[0]), float(cell[1])) * CELL_SIZE + Vector2.ONE * 16.0
+		artifact_nodes[artifact_id] = artifact_node; time_targets.append(artifact_node); add_child(artifact_node)
+
+
+func _collect_time_artifact(artifact_node: Variant) -> void:
+	if not TimeTravelStateType.collect_artifact(artifact_node.artifact_id): return
+	interaction_label.text = "%s recovered · carry it back through the portal" % artifact_node.label
+	time_targets.erase(artifact_node); artifact_nodes.erase(artifact_node.artifact_id); artifact_node.queue_free(); interaction_target = null
+
+
+func _exhibit_carried_artifacts() -> void:
+	var placed: Array[String] = TimeTravelStateType.exhibit_carried()
+	if placed.is_empty():
+		var waiting_chapter: Dictionary = TimeTravelStateType.newly_unlocked_story_chapter()
+		if not waiting_chapter.is_empty(): _show_story_chapter(waiting_chapter)
+		else: interaction_label.text = "The archive awaits artifacts recovered from another era."
+		return
+	_build_museum_exhibits(); _refresh_portals()
+	interaction_label.text = "%d artifacts added to the museum." % placed.size()
+	_show_story_chapter(TimeTravelStateType.newly_unlocked_story_chapter())
+
+
+func _build_museum_exhibits() -> void:
+	for child: Node in get_tree().get_nodes_in_group("museum_exhibit"): child.queue_free()
+	var index := 0
+	for artifact_id: String in TimeTravelStateType.exhibited_artifacts:
+		var data := TimeTravelStateType.artifact(artifact_id); if data.is_empty(): continue
+		var exhibit := TimeArtifactType.new(); exhibit.configure(data); exhibit.add_to_group("museum_exhibit")
+		var column := index % 10; var row := index / 10
+		exhibit.global_position = Vector2(10.5 + column * 3.1, 17.5 + row * 3.0) * CELL_SIZE; add_child(exhibit); index += 1
+
+
+func _museum_objective_text() -> String:
+	var count := TimeTravelStateType.exhibited_artifacts.size()
+	var next_text := "All portals restored"
+	for slot in range(4):
+		if TimeTravelStateType.portal_bindings[slot].is_empty():
+			next_text = "Next portal: %d / %d artifacts" % [count, int(TimeTravelStateType.PORTAL_THRESHOLDS[slot])]; break
+	return "MUSEUM OF THE TIME TRAVELER · %d / 20 artifacts\n%s · Carrying %d" % [count, next_text, TimeTravelStateType.carried_artifacts.size()]
 
 
 func set_logistics_open(value: bool) -> void:
@@ -1056,7 +1248,9 @@ func _load_from_menu(path: String) -> void:
 
 func _back_to_main_menu() -> void:
 	set_pause_open(false)
-	set_scenario_select_open(true)
+	if DisplayServer.get_name() == "headless": set_scenario_select_open(true)
+	elif scenario.scenario_id == "time_museum": interaction_label.text = "Choose a destination through one of the museum portals."
+	else: _travel_to("time_museum", "res://scenarios/physical/time_museum.json")
 
 
 func _manual_save_path() -> String:
@@ -2037,6 +2231,7 @@ func restore_water_route_target(instance_id: String) -> bool:
 
 
 func select_recipe(direction: int) -> void:
+	if recipe_registry.recipe_order.is_empty(): return
 	selected_recipe_index = posmod(selected_recipe_index + direction, recipe_registry.recipe_order.size())
 	_update_crafting_ui()
 	_scroll_selected_recipe_into_view()
@@ -2059,6 +2254,7 @@ func _on_recipe_button_hovered(index: int) -> void:
 
 
 func craft_selected_recipe() -> bool:
+	if recipe_registry.recipe_order.is_empty(): return false
 	var recipe_id: String = recipe_registry.recipe_order[selected_recipe_index]
 	var recipe: Variant = recipe_registry.get_recipe(recipe_id)
 	if not campaign.is_unlocked(recipe.unlock_after):
@@ -2080,6 +2276,10 @@ func craft_selected_recipe() -> bool:
 
 func _update_crafting_ui(feedback: String = "") -> void:
 	if crafting_list_label == null:
+		return
+	if recipe_registry.recipe_order.is_empty():
+		crafting_list_label.text = "No crafting in the museum."
+		crafting_detail_label.text = "Artifacts belong in the central archive."
 		return
 	var rows: Array[String] = []
 	for index in range(recipe_registry.recipe_order.size()):
@@ -2165,6 +2365,8 @@ func _update_interaction_target() -> void:
 		if is_instance_valid(villager): active.append(villager)
 	for dependent: Variant in dependents.values():
 		if is_instance_valid(dependent): active.append(dependent)
+	for target: Variant in time_targets:
+		if is_instance_valid(target): active.append(target)
 	var selected: Variant = TargetingType.select_target(player.global_position, player.facing, active, INTERACTION_REACH_PX)
 	if selected != interaction_target:
 		if is_instance_valid(interaction_target):
@@ -2192,6 +2394,12 @@ func _update_interaction_target() -> void:
 			interaction_label.text = "%s | Space to open" % interaction_target.villager_name
 		elif interaction_target.target_kind == "dependent":
 			interaction_label.text = "%s | Space to interact" % interaction_target.display_name
+		elif interaction_target.target_kind == "artifact":
+			interaction_label.text = "%s | Space to recover" % interaction_target.label
+		elif interaction_target.target_kind == "time_portal":
+			interaction_label.text = "%s | Space to enter" % interaction_target.label
+		elif interaction_target.target_kind == "museum_archive":
+			interaction_label.text = "Museum archive | Space to exhibit carried artifacts"
 		else:
 			interaction_label.text = "Space to Open %s" % interaction_target.item_label
 		if not route_source_id.is_empty() and interaction_target != null:

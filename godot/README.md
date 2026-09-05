@@ -12,6 +12,13 @@ Main structure:
 
 Open `project.godot` with Godot 4.x.
 
+New games begin in the Museum of the Time Traveler. Its first portal can be
+bound to any era; later portals awaken after 3, 8, and 15 artifacts have been
+physically recovered from campaign milestones and exhibited in the archive.
+Each era keeps its own settlement save and ordinary inventory. Only temporal
+artifacts cross a portal, and the 20-piece museum collection reveals the
+traveler's backstory in five order-independent chapters.
+
 The Ancient Egypt campaign contains 31 chapters and a complete manual-to-
 automated production arc. Use `Space` for contextual interaction, `C` for
 crafting, `T` for the technology tree, `M` for the era collection, `Tab` for

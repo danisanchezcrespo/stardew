@@ -1,0 +1,9 @@
+{
+  "id":"time_museum","label":"Museum of the Time Traveler","save_key":"time_museum",
+  "campaign_path":"res://world/progression/museum_campaign.json",
+  "items_path":"res://scenarios/museum/items.json","recipes_path":"res://scenarios/museum/recipes.json","placeables_path":"res://scenarios/museum/placeables.json",
+  "ground_texture":"res://assets/generated/museum/museum_floor.svg","path_texture":"",
+  "palette":{"ground":"#35404b","water":"#182331"},"terminology":{"people":"visitors","person":"visitor","water":"water","home":"gallery"},
+  "theme":{"ink":"#eaf7ff","text":"#eaf7ff","accent":"#62dcff","button":"#334d70","dark":"#101723","panel":"#25354a"},
+  "water_rects":[],"path_rects":[],"pickups":[],"resource_sources":[],"crops":[],"dependents":[],"wildlife":[]
+}

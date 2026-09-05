@@ -1,4 +1,10 @@
 {
+  "time_museum": {
+    "seasons":["Present Day","Present Day","Present Day","Present Day"],
+    "collection_name":"Museum of the Time Traveler",
+    "collection":[],
+    "tech":[{"id":"memory","label":"Fragmented Memory","cost":0,"requires":[],"recipes":[]}]
+  },
   "ancient_egypt": {
     "seasons":["Akhet · Flood","Peret · Growing","Shemu · Harvest","Dry Season"],
     "collection_name":"House of Records",

@@ -154,7 +154,8 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		route.priority = clampi(int(row.get("priority", 1)), 0, 2)
 		game.logistics_routes.append(route)
 		game.next_route_id = maxi(game.next_route_id, int(str(row.id).get_slice("-", 1)) + 1)
-	game.day_time_seconds = float(data.get("day_time", 60.0))
+	game.day_time_seconds = float(data.get("day_time", 180.0))
+	if int(data.get("version", VERSION)) < 4: game.day_time_seconds *= 3.0
 	game._refresh_population_capacity()
 	var campaign_data: Dictionary = data.get("campaign", {})
 	game.campaign.completed = campaign_data.get("completed", {}).duplicate(true)

@@ -2,6 +2,7 @@ class_name WorldOverlay
 extends Node2D
 
 const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
+const TimeTravelStateType = preload("res://world/time_travel/time_travel_state.gd")
 var game: Node2D
 
 func configure(owner_game: Node2D) -> void:
@@ -45,6 +46,12 @@ func _draw() -> void:
 		_draw_hint(anchor + Vector2(0, -18), [target.villager_name, target.status_text(), "Space to open"])
 	elif target.target_kind == "dependent":
 		_draw_hint(anchor + Vector2(0, -28), [target.display_name, target.status_text(), "Space to interact"])
+	elif target.target_kind == "artifact":
+		_draw_hint(anchor, [target.label, "Temporal artifact", "Space to recover"])
+	elif target.target_kind == "time_portal":
+		_draw_hint(anchor + Vector2(0, -38), [target.label, "Space to enter"])
+	elif target.target_kind == "museum_archive":
+		_draw_hint(anchor, ["Museum archive", "%d artifacts carried" % TimeTravelStateType.carried_artifacts.size(), "Space to exhibit"])
 	elif target.target_kind == "storage":
 		_draw_hint(anchor, [target.item_label, "Space to open"])
 	elif target.target_kind == "machine":
