@@ -1,0 +1,9 @@
+{"recipes":[
+ {"id":"spear","label":"Flint Spear","inputs":{"branches":2,"flint":2},"outputs":{"spear":1}},
+ {"id":"campfire_plan","label":"Campfire","inputs":{"branches":4,"flint":2},"outputs":{"campfire_plan":1}},
+ {"id":"food_cache_plan","label":"Food Cache","inputs":{"branches":5,"hide":1},"outputs":{"food_cache_plan":1},"unlock_after":"first_hunt"},
+ {"id":"hide_shelter_plan","label":"Hide Shelter","inputs":{"branches":8,"hide":3},"outputs":{"hide_shelter_plan":1},"unlock_after":"first_hunt"},
+ {"id":"flint_workshop_plan","label":"Flint Workshop","inputs":{"branches":6,"flint":8},"outputs":{"flint_workshop_plan":1},"unlock_after":"build_shelter"},
+ {"id":"smoking_rack_plan","label":"Smoking Rack","inputs":{"branches":7,"flint":3},"outputs":{"smoking_rack_plan":1},"unlock_after":"build_workshop"},
+ {"id":"ritual_stones_plan","label":"Ritual Stones","inputs":{"flint":20,"hide":6,"smoked_meat":8},"outputs":{"ritual_stones_plan":1},"unlock_after":"preserve_food"}
+]}

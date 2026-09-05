@@ -55,7 +55,7 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	var starving_start: Vector2 = villager.position
 	villager.process_life(game, 0.25)
 	_expect(villager.position.distance_to(starving_start) > 0.0, "A starving villager with an assigned route should move slowly instead of deadlocking when no food exists.", failures)
-	for _step in range(160): game._process(0.1)
+	for _step in range(260): game._process(0.1)
 	_expect(game.storage_by_entity_id[source_id].count("clay") == 0, "Physical trips should empty the ordered resource from the source.", failures)
 	_expect(game.storage_by_entity_id[destination_id].count("clay") == 5, "The villager should physically deliver carried resources.", failures)
 

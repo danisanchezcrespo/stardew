@@ -1,0 +1,16 @@
+{"id":"medieval_campaign","objectives":[
+ {"id":"gather_village","label":"Gather timber, stone and wheat","type":"gather","items":["oak_wood","field_stone","wheat"]},
+ {"id":"build_granary","label":"Raise a granary","type":"complete","entity":"GRANARY"},
+ {"id":"build_cottage","label":"Build the first cottage","type":"complete","entity":"COTTAGE"},
+ {"id":"welcome_villagers","label":"Grow the village to three people","type":"population","count":3},
+ {"id":"build_windmill","label":"Build a windmill","type":"complete","entity":"WINDMILL"},
+ {"id":"staff_miller","label":"Assign the first specialist","type":"staffed_count","count":1},
+ {"id":"make_flour","label":"Mill wheat into flour","type":"produce","item":"flour"},
+ {"id":"bake_bread","label":"Bake hearth bread","type":"craft","recipe":"hand_loaf"},
+ {"id":"build_forge","label":"Build a blacksmith forge","type":"complete","entity":"FORGE"},
+ {"id":"forge_tools","label":"Forge iron tools","type":"produce","item":"iron_tools"},
+ {"id":"trade_routes","label":"Establish two supply routes","type":"route_count","count":2},
+ {"id":"build_market","label":"Open the village market","type":"complete","entity":"MARKET"},
+ {"id":"earn_coin","label":"Trade goods for silver","type":"produce","item":"coin"},
+ {"id":"seat_of_power","label":"Complete the stone keep","type":"complete","entity":"KEEP"}
+]}

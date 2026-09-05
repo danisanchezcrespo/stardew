@@ -1,7 +1,7 @@
 class_name PhysicalSaveCodec
 extends RefCounted
 
-const VERSION := 2
+const VERSION := 3
 static var pending_reload := false
 static var pending_reload_path := "user://physical_save.json"
 
@@ -28,14 +28,17 @@ func capture(game: Node2D) -> Dictionary:
 		routes.append({"id": route.route_id, "source": route.source_id, "destination": route.destination_id, "villager": route.villager_id, "item": route.item_id, "progress": route.progress_seconds, "trips": route.trips_completed, "enabled": route.enabled, "priority": route.priority})
 	var villagers: Array[Dictionary] = []
 	for villager: Variant in game.villagers.values():
-		villagers.append({"id": villager.stable_id, "name": villager.villager_name, "appearance": villager.appearance_id, "priority": villager.work_priority, "home": villager.home_id, "home_position": [villager.home_position.x, villager.home_position.y], "position": [villager.position.x, villager.position.y], "hunger": villager.hunger, "energy": villager.energy, "state": villager.state, "facing": villager.facing, "task": villager.task.duplicate(true), "task_queue": villager.task_queue.duplicate(true), "carrying_item": villager.carrying_item, "carrying_amount": villager.carrying_amount, "tint": [villager.color_tint.r, villager.color_tint.g, villager.color_tint.b, villager.color_tint.a]})
+		villagers.append({"id": villager.stable_id, "name": villager.villager_name, "appearance": villager.appearance_id, "priority": villager.work_priority, "profession": villager.profession, "experience": villager.experience.duplicate(true), "inside_workplace": villager.inside_workplace, "home": villager.home_id, "home_position": [villager.home_position.x, villager.home_position.y], "position": [villager.position.x, villager.position.y], "hunger": villager.hunger, "energy": villager.energy, "state": villager.state, "facing": villager.facing, "task": villager.task.duplicate(true), "task_queue": villager.task_queue.duplicate(true), "carrying_item": villager.carrying_item, "carrying_amount": villager.carrying_amount, "tint": [villager.color_tint.r, villager.color_tint.g, villager.color_tint.b, villager.color_tint.a]})
 	var pickup_amounts: Dictionary = {}
 	for pickup: Variant in game.pickups:
 		if is_instance_valid(pickup): pickup_amounts[pickup.stable_id] = pickup.amount
 	var source_states: Dictionary = {}
 	for source: Variant in game.resource_sources:
 		if is_instance_valid(source): source_states[source.stable_id] = {"amount": source.current_amount, "regen_elapsed": source.regen_elapsed}
-	return {"version": VERSION, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
+	var dependents: Array[Dictionary] = []
+	for actor: Variant in game.dependents.values():
+		dependents.append({"id":actor.stable_id,"species":actor.species_id,"home":actor.home_id,"position":[actor.position.x,actor.position.y],"hunger":actor.hunger,"thirst":actor.thirst,"health":actor.health,"age":actor.age_seconds,"product_elapsed":actor.product_elapsed,"stored_product":actor.stored_product})
+	return {"version": VERSION, "scenario_id":game.scenario.scenario_id, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "dependents":dependents, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
 	var absolute_path := ProjectSettings.globalize_path(path)
@@ -61,10 +64,14 @@ func load_from_path(game: Node2D, path: String) -> Error:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null: return FileAccess.get_open_error()
 	var data: Variant = JSON.parse_string(file.get_as_text())
-	if typeof(data) != TYPE_DICTIONARY or int(data.get("version", -1)) not in [1, VERSION]: return ERR_INVALID_DATA
+	if typeof(data) != TYPE_DICTIONARY or int(data.get("version", -1)) not in [1, 2, VERSION]: return ERR_INVALID_DATA
+	if data.has("scenario_id") and str(data.scenario_id) != game.scenario.scenario_id: return ERR_INVALID_DATA
 	return restore(game, data)
 
 func restore(game: Node2D, data: Dictionary) -> Error:
+	for dependent: Variant in game.dependents.values():
+		if is_instance_valid(dependent): dependent.queue_free()
+	game.dependents.clear()
 	for crop: Variant in game.crops:
 		if is_instance_valid(crop):
 			game.world_grid.remove(crop.stable_id)
@@ -126,11 +133,13 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 		game.next_placed_id = maxi(game.next_placed_id, int(str(row.id).get_slice("-", 1)) + 1)
 	for villager_data: Dictionary in data.get("villagers", []):
 		game.restore_villager(villager_data)
+	for dependent_data: Dictionary in data.get("dependents", []):
+		game.restore_dependent(dependent_data)
 	if data.get("villagers", []).is_empty():
 		for placed: Variant in game.world_grid.entities_by_id.values():
 			var definition: Variant = game.placement_registry.get_entity(placed.definition_id)
 			var site: Variant = game.construction_by_entity_id.get(placed.instance_id)
-			if definition != null and definition.entity_id == "DWELLING" and site != null and site.complete:
+			if definition != null and definition.population_capacity > 0 and site != null and site.complete:
 				game.spawn_villagers_for_home(placed.instance_id, definition.population_capacity)
 	for row: Dictionary in data.get("routes", []):
 		game.restore_water_route_target(str(row.source))

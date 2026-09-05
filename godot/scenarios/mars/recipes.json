@@ -1,0 +1,14 @@
+{
+  "recipes": [
+    {"id":"refine_plate","label":"Hand-refine Metal Plate x2","inputs":{"iron_ore":3},"outputs":{"metal_plate":2}},
+    {"id":"mars_storage","label":"Storage Module","inputs":{"metal_plate":4},"outputs":{"mars_storage":1}},
+    {"id":"solar_array_plan","label":"Solar Array Plan","inputs":{"metal_plate":5},"outputs":{"solar_array_plan":1}},
+    {"id":"habitat_plan","label":"Pressurized Habitat Plan","inputs":{"metal_plate":8},"outputs":{"habitat_plan":1}},
+    {"id":"ice_melter_plan","label":"Ice Melter Plan","inputs":{"metal_plate":5},"outputs":{"ice_melter_plan":1},"unlock_after":"build_solar"},
+    {"id":"oxygen_extractor_plan","label":"Oxygen Extractor Plan","inputs":{"metal_plate":7,"mars_water":2},"outputs":{"oxygen_extractor_plan":1},"unlock_after":"melt_ice"},
+    {"id":"greenhouse_plan","label":"Greenhouse Plan","inputs":{"metal_plate":8,"mars_water":3},"outputs":{"greenhouse_plan":1},"unlock_after":"make_oxygen"},
+    {"id":"fabricator_plan","label":"Materials Fabricator Plan","inputs":{"metal_plate":10},"outputs":{"fabricator_plan":1},"unlock_after":"grow_algae"},
+    {"id":"mars_ration","label":"Colony Ration","inputs":{"algae":3,"mars_water":1},"outputs":{"mars_ration":2},"unlock_after":"grow_algae"},
+    {"id":"comms_array_plan","label":"Communications Array Plan","inputs":{"metal_plate":20,"energy_cell":8,"oxygen":4},"outputs":{"comms_array_plan":1},"unlock_after":"fabricate_metal"}
+  ]
+}

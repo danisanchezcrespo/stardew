@@ -1,0 +1,12 @@
+{"items":[
+ {"id":"water","label":"River water","color":"#4b8ba7","max_stack":50},{"id":"oak_wood","label":"Oak wood","color":"#79502f","max_stack":50},{"id":"field_stone","label":"Field stone","color":"#85847d","max_stack":50},
+ {"id":"wheat","label":"Wheat","color":"#d7ad48","max_stack":50},{"id":"flour","label":"Flour","color":"#eee1b4","max_stack":50},
+ {"id":"iron_ore_medieval","label":"Iron ore","color":"#66686a","max_stack":50},{"id":"iron_tools","label":"Iron tools","color":"#abb0af","max_stack":20},
+ {"id":"coin","label":"Silver coin","color":"#d5d7ce","max_stack":99},{"id":"loaf","label":"Bread loaf","color":"#c9833c","max_stack":30},
+ {"id":"granary_plan","label":"Granary","color":"#d7b276","max_stack":5,"placeable_entity_id":"GRANARY"},
+ {"id":"cottage_plan","label":"Cottage","color":"#d7b276","max_stack":5,"placeable_entity_id":"COTTAGE"},
+ {"id":"windmill_plan","label":"Windmill","color":"#d7b276","max_stack":5,"placeable_entity_id":"WINDMILL"},
+ {"id":"forge_plan","label":"Forge","color":"#d7b276","max_stack":5,"placeable_entity_id":"FORGE"},
+ {"id":"market_plan","label":"Market","color":"#d7b276","max_stack":5,"placeable_entity_id":"MARKET"},
+ {"id":"keep_plan","label":"Stone keep","color":"#d7b276","max_stack":1,"placeable_entity_id":"KEEP"}
+]}

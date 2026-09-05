@@ -32,6 +32,12 @@
     {"id":"copper_mine_plan","label":"Copper mine plan","color":"#bb7950","max_stack":5,"placeable_entity_id":"COPPER_MINE"},
     {"id":"smelter_plan","label":"Smelter plan","color":"#bf7042","max_stack":5,"placeable_entity_id":"COPPER_SMELTER"},
     {"id":"weaver_plan","label":"Weaver plan","color":"#d9c99f","max_stack":5,"placeable_entity_id":"WEAVER"},
-    {"id":"papyrus_workshop_plan","label":"Papyrus workshop plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"PAPYRUS_WORKSHOP"}
+    {"id":"papyrus_workshop_plan","label":"Papyrus workshop plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"PAPYRUS_WORKSHOP"},
+    {"id":"egg","label":"Egg","color":"#f2dfad","max_stack":30},
+    {"id":"milk","label":"Milk","color":"#f5efe0","max_stack":30},
+    {"id":"meat","label":"Meat","color":"#b95f56","max_stack":30},
+    {"id":"manure","label":"Manure","color":"#6e5432","max_stack":30},
+    {"id":"chicken_coop_plan","label":"Chicken coop plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"CHICKEN_COOP"},
+    {"id":"cattle_barn_plan","label":"Cattle barn plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"CATTLE_BARN"}
   ]
 }

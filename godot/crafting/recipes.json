@@ -18,6 +18,10 @@
     {"id":"smelter_plan","label":"Copper Smelter Plan","inputs":{"stone_blocks":8,"mud_bricks":8},"outputs":{"smelter_plan":1},"unlock_after":"mine_copper"},
     {"id":"bronze_tools","label":"Bronze Tools","inputs":{"copper_ingot":2,"planks":1},"outputs":{"bronze_tools":1},"unlock_after":"smelt_copper"},
     {"id":"weaver_plan","label":"Linen Weaver Plan","inputs":{"planks":8,"bronze_tools":1},"outputs":{"weaver_plan":1},"unlock_after":"forge_tools"},
-    {"id":"papyrus_workshop_plan","label":"Papyrus Workshop Plan","inputs":{"planks":8,"linen":4,"bronze_tools":1},"outputs":{"papyrus_workshop_plan":1},"unlock_after":"weave_linen"}
+    {"id":"papyrus_workshop_plan","label":"Papyrus Workshop Plan","inputs":{"planks":8,"linen":4,"bronze_tools":1},"outputs":{"papyrus_workshop_plan":1},"unlock_after":"weave_linen"},
+    {"id":"chicken_coop_plan","label":"Chicken Coop Plan","inputs":{"planks":6,"mud_bricks":4},"outputs":{"chicken_coop_plan":1},"unlock_after":"harvest_grain"},
+    {"id":"cattle_barn_plan","label":"Cattle Barn Plan","inputs":{"planks":10,"mud_bricks":8},"outputs":{"cattle_barn_plan":1},"unlock_after":"bake_bread"},
+    {"id":"egg_meal","label":"Egg Meal x2","inputs":{"egg":2,"bread":1},"outputs":{"food_ration":2},"unlock_after":"raise_chickens"},
+    {"id":"meat_stew","label":"Meat Stew x4","inputs":{"meat":2,"water":1},"outputs":{"food_ration":4},"unlock_after":"raise_cattle"}
   ]
 }

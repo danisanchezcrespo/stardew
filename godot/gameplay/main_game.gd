@@ -24,6 +24,7 @@ const PhysicalMachineType = preload("res://world/machines/physical_machine.gd")
 const PhysicalRouteType = preload("res://world/logistics/physical_route.gd")
 const PhysicalWorkforceType = preload("res://world/population/physical_workforce.gd")
 const VillagerType = preload("res://world/population/villager.gd")
+const DependentActorType = preload("res://world/population/dependent_actor.gd")
 const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
 const WorldOverlayType = preload("res://world/interaction/world_overlay.gd")
 const TreeCropType = preload("res://world/crops/tree_crop.gd")
@@ -111,6 +112,8 @@ var physical_save: Variant
 var scenario: Variant
 var sand_color := Color("#cdbb7d")
 var water_color := Color("#4d8fbd")
+var ground_texture: Texture2D
+var path_texture: Texture2D
 var scenario_panel: Control
 var scenario_select_open := false
 var pause_panel: Control
@@ -128,6 +131,8 @@ var machine_panel: Control
 var machine_status_label: Label
 var machine_title_label: Label
 var villagers: Dictionary = {}
+var dependents: Dictionary = {}
+var next_dependent_id := 1
 var next_villager_id := 1
 var selected_villager_id := ""
 var villager_panel: Control
@@ -157,16 +162,20 @@ var feedback_audio: AudioStreamPlayer
 
 
 func _ready() -> void:
-	get_tree().root.theme = GameThemeType.create()
 	scenario = PhysicalScenarioType.new()
+	var auto_start := PhysicalScenarioType.requested_autostart
+	PhysicalScenarioType.requested_autostart = false
 	if not PhysicalScenarioType.requested_path.is_empty():
 		scenario_path = PhysicalScenarioType.requested_path
 		PhysicalScenarioType.requested_path = ""
 	assert(scenario.load_from_path(scenario_path) == OK, "Physical scenario must load")
+	get_tree().root.theme = GameThemeType.create(scenario.theme)
+	ground_texture = load(scenario.ground_texture_path) as Texture2D
+	path_texture = load(scenario.path_texture_path) as Texture2D if not scenario.path_texture_path.is_empty() else null
 	sand_color = scenario.sand_color
 	water_color = scenario.water_color
 	workforce = PhysicalWorkforceType.new()
-	campaign = EgyptCampaignType.new()
+	campaign = EgyptCampaignType.new(scenario.campaign_path)
 	physical_save = PhysicalSaveCodecType.new()
 	feedback_audio = AudioStreamPlayer.new()
 	add_child(feedback_audio)
@@ -178,12 +187,12 @@ func _ready() -> void:
 	world_overlay = WorldOverlayType.new()
 	world_overlay.configure(self)
 	add_child(world_overlay)
-	if DisplayServer.get_name() != "headless":
+	if DisplayServer.get_name() != "headless" and not auto_start:
 		set_scenario_select_open(true)
 	if PhysicalSaveCodecType.pending_reload:
 		PhysicalSaveCodecType.pending_reload = false
 		physical_save.load_from_path(self, PhysicalSaveCodecType.pending_reload_path)
-		PhysicalSaveCodecType.pending_reload_path = "user://physical_save.json"
+		PhysicalSaveCodecType.pending_reload_path = _manual_save_path()
 	queue_redraw()
 
 
@@ -193,10 +202,13 @@ func _process(delta: float) -> void:
 	autosave_elapsed += maxf(delta, 0.0)
 	if autosave_elapsed >= AUTOSAVE_INTERVAL_SECONDS and not scenario_select_open:
 		autosave_elapsed = 0.0
-		physical_save.save_to_path(self, "user://autosave.json")
+		physical_save.save_to_path(self, _autosave_path())
 	workforce.process(delta)
 	for villager: Variant in villagers.values():
+		villager.environment_speed_multiplier = environment_multiplier("worker_speed")
 		villager.process_life(self, delta)
+	for dependent: Variant in dependents.values():
+		if is_instance_valid(dependent): dependent.process_life(self, delta)
 	for source: Variant in resource_sources:
 		if is_instance_valid(source): source.process_source(delta)
 	for crop: Variant in crops:
@@ -220,8 +232,10 @@ func _process(delta: float) -> void:
 		else:
 			apply_construction_work(active_player_build_id, delta)
 	for machine: Variant in machines_by_entity_id.values():
-		machine.staffed = machine.manually_activated or assigned_villagers_to(machine.instance_id) > 0
-		machine.process(delta)
+		var definition: Variant = definition_for_instance(machine.instance_id)
+		var required_workers := ceili(definition.workers_required) if definition != null else 1
+		machine.staffed = required_workers <= 0 or assigned_villagers_to(machine.instance_id) >= required_workers
+		machine.process(delta * worker_efficiency_at(machine.instance_id) * environment_multiplier("production_speed"))
 		if structure_visuals.has(machine.instance_id):
 			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
@@ -316,9 +330,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if scenario_select_open:
 		if event.is_action_pressed("quick_slot_1"):
-			select_scenario("res://scenarios/physical/ancient_egypt.json")
+			select_scenario("res://scenarios/physical/prehistory.json")
 		elif event.is_action_pressed("quick_slot_2"):
-			select_scenario("res://scenarios/physical/mesopotamia.json")
+			select_scenario("res://scenarios/physical/ancient_egypt.json")
+		elif event.is_action_pressed("quick_slot_3"):
+			select_scenario("res://scenarios/physical/medieval.json")
+		elif event.is_action_pressed("quick_slot_4"):
+			select_scenario("res://scenarios/physical/mars_colony.json")
 		return
 	if machine_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
@@ -327,12 +345,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			machine_context_action(active_machine_id)
 		return
 	if event.is_action_pressed("save_game"):
-		var result: Error = physical_save.save_to_path(self, "user://physical_save.json")
+		var result: Error = physical_save.save_to_path(self, _manual_save_path())
 		interaction_label.text = "Game saved" if result == OK else "Save failed"
 		return
 	if event.is_action_pressed("load_game"):
 		if world_grid.entities_by_id.is_empty():
-			var result: Error = physical_save.load_from_path(self, "user://physical_save.json")
+			var result: Error = physical_save.load_from_path(self, _manual_save_path())
 			interaction_label.text = "Game loaded" if result == OK else "Load failed"
 		else:
 			PhysicalSaveCodecType.pending_reload = true
@@ -379,6 +397,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			collect_water()
 		elif interaction_target != null and interaction_target.target_kind == "crop":
 			interact_with_crop(interaction_target)
+		elif interaction_target != null and interaction_target.target_kind == "dependent":
+			interact_with_dependent(interaction_target)
 		elif interaction_target != null and interaction_target.target_kind == "construction":
 			open_building_details(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "machine":
@@ -450,6 +470,7 @@ func _build_player() -> void:
 	player = PlayerScene.instantiate()
 	player.position = Vector2(6.5, 6.5) * CELL_SIZE
 	add_child(player)
+	player.configure_character(scenario.character_sheet_path)
 	camera = player.get_node("Camera2D")
 	camera.limit_left = 0
 	camera.limit_top = 0
@@ -480,15 +501,15 @@ func toggle_fullscreen() -> void:
 
 func _build_items() -> void:
 	item_registry = ItemRegistryType.new()
-	var result: Error = item_registry.load_from_path("res://items/items.json")
+	var result: Error = item_registry.load_from_path(scenario.items_path)
 	assert(result == OK, "Item definitions must load: %s" % str(item_registry.errors))
 	inventory = PlayerInventoryType.new(item_registry, 12)
 	recipe_registry = RecipeRegistryType.new()
-	result = recipe_registry.load_from_path("res://crafting/recipes.json", item_registry)
+	result = recipe_registry.load_from_path(scenario.recipes_path, item_registry)
 	assert(result == OK, "Recipe definitions must load: %s" % str(recipe_registry.errors))
 	crafting = CraftingSystemType.new(recipe_registry)
 	placement_registry = DefinitionRegistryType.new()
-	result = placement_registry.load_from_path("res://world/placeables.json")
+	result = placement_registry.load_from_path(scenario.placeables_path)
 	assert(result == OK, "Placeable definitions must load: %s" % str(placement_registry.errors))
 	for pickup: Dictionary in scenario.pickups:
 		_spawn_pickup(str(pickup.id), str(pickup.item), int(pickup.amount), Vector2(float(pickup.cell[0]), float(pickup.cell[1])) * CELL_SIZE)
@@ -496,6 +517,8 @@ func _build_items() -> void:
 		_spawn_resource_source(source)
 	for crop_data: Dictionary in scenario.crops:
 		_spawn_crop(str(crop_data.id), Vector2i(int(crop_data.cell[0]), int(crop_data.cell[1])), int(crop_data.get("stage", 3)))
+	for wildlife_data: Dictionary in scenario.wildlife:
+		_spawn_wildlife(wildlife_data)
 	water_interaction_target = PlacedTargetType.new()
 	water_interaction_target.configure("water-body", "Water", Vector2.ZERO, Vector2.ZERO, "water")
 	water_interaction_target.visible = false
@@ -613,6 +636,7 @@ func _build_hud() -> void:
 	_build_mobile_controls(layer)
 	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
+		_apply_scenario_panel_palette(panel)
 	GameThemeType.decorate_panel(inventory_background, true)
 	GameThemeType.emphasize_headings(layer)
 	var help := Label.new()
@@ -622,6 +646,16 @@ func _build_hud() -> void:
 	help.add_theme_color_override("font_color", Color.WHITE)
 	help.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help)
+
+
+func _apply_scenario_panel_palette(node: Node) -> void:
+	var panel_color := Color(str(scenario.theme.get("panel", "#d8bd83")))
+	var ink_color := Color(str(scenario.theme.get("ink", "#30241d")))
+	if node is ColorRect and node != scenario_panel and node != pause_panel:
+		(node as ColorRect).color = panel_color
+	if node is Label or node is RichTextLabel:
+		(node as Control).add_theme_color_override("font_color", ink_color)
+	for child: Node in node.get_children(): _apply_scenario_panel_palette(child)
 
 
 func _build_mobile_controls(layer: CanvasLayer) -> void:
@@ -686,8 +720,8 @@ func _build_pause_panel(layer: CanvasLayer) -> void:
 	var actions: Array[Dictionary] = [
 		{"label": "Continue", "call": func() -> void: set_pause_open(false)},
 		{"label": "Save game", "call": func() -> void: _save_from_menu()},
-		{"label": "Load last save", "call": func() -> void: _load_from_menu("user://physical_save.json")},
-		{"label": "Load autosave", "call": func() -> void: _load_from_menu("user://autosave.json")},
+		{"label": "Load last save", "call": func() -> void: _load_from_menu(_manual_save_path())},
+		{"label": "Load autosave", "call": func() -> void: _load_from_menu(_autosave_path())},
 		{"label": "Toggle fullscreen", "call": func() -> void: toggle_fullscreen()},
 		{"label": "Quit to desktop", "call": func() -> void: get_tree().quit()}
 	]
@@ -803,7 +837,7 @@ func set_pause_open(value: bool) -> void:
 
 
 func _save_from_menu() -> void:
-	var result: Error = physical_save.save_to_path(self, "user://physical_save.json")
+	var result: Error = physical_save.save_to_path(self, _manual_save_path())
 	interaction_label.text = "Game saved" if result == OK else "Save failed"
 	set_pause_open(false)
 
@@ -818,49 +852,63 @@ func _load_from_menu(path: String) -> void:
 	get_tree().reload_current_scene()
 
 
+func _manual_save_path() -> String:
+	return "user://%s_save.json" % scenario.save_key
+
+
+func _autosave_path() -> String:
+	return "user://%s_autosave.json" % scenario.save_key
+
+
 func _build_scenario_panel(layer: CanvasLayer) -> void:
 	scenario_panel = ColorRect.new()
-	scenario_panel.position = Vector2(290, 115)
-	scenario_panel.size = Vector2(700, 490)
+	scenario_panel.position = Vector2(250, 82)
+	scenario_panel.size = Vector2(780, 570)
 	scenario_panel.color = Color(0.05, 0.06, 0.08, 0.97)
 	scenario_panel.visible = false
 	layer.add_child(scenario_panel)
 	var title := Label.new()
 	title.position = Vector2(44, 36)
-	title.text = "CHOOSE A SETTLEMENT"
+	title.size = Vector2(612, 42)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.text = "WHERE DO YOU WANT TO GO TODAY?"
 	title.add_theme_font_size_override("font_size", 28)
 	scenario_panel.add_child(title)
 	var intro := Label.new()
 	intro.position = Vector2(70, 92)
 	intro.size = Vector2(560, 70)
-	intro.text = "Build a small living colony: gather, craft, irrigate, feed your people and raise a monument that survives the ages."
+	intro.text = "One traveller. Four eras. Build a society whose resources, professions, dangers and survival rules belong to its time."
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	intro.add_theme_color_override("font_color", Color("#fff3d2"))
 	scenario_panel.add_child(intro)
-	var nile := Button.new()
-	nile.position = Vector2(100, 185)
-	nile.size = Vector2(500, 58)
-	nile.text = "New game  ·  Settlement on the Nile"
-	nile.pressed.connect(func() -> void: select_scenario("res://scenarios/physical/ancient_egypt.json"))
-	scenario_panel.add_child(nile)
-	var rivers := Button.new()
-	rivers.position = Vector2(100, 260)
-	rivers.size = Vector2(500, 58)
-	rivers.text = "New game  ·  Settlement between the Rivers"
-	rivers.pressed.connect(func() -> void: select_scenario("res://scenarios/physical/mesopotamia.json"))
-	scenario_panel.add_child(rivers)
-	var continue_game := Button.new()
-	continue_game.position = Vector2(100, 335)
-	continue_game.size = Vector2(500, 58)
-	continue_game.text = "Continue saved settlement"
-	continue_game.disabled = not FileAccess.file_exists("user://physical_save.json")
-	continue_game.pressed.connect(func() -> void: _load_from_menu("user://physical_save.json"))
-	scenario_panel.add_child(continue_game)
+	var destinations: Array[Dictionary] = [
+		{"label":"1  PREHISTORY\nMaster fire, tools and the hunt", "path":"res://scenarios/physical/prehistory.json", "save":"user://prehistory_save.json"},
+		{"label":"2  ANCIENT EGYPT\nFound a settlement on the Nile", "path":"res://scenarios/physical/ancient_egypt.json", "save":"user://ancient_egypt_save.json"},
+		{"label":"3  MEDIEVAL\nGrow a village of skilled trades", "path":"res://scenarios/physical/medieval.json", "save":"user://medieval_save.json"},
+		{"label":"4  MARS COLONY\nSurvive the first sols", "path":"res://scenarios/physical/mars_colony.json", "save":"user://mars_colony_save.json"}
+	]
+	for index in range(destinations.size()):
+		var row: Dictionary = destinations[index]
+		var column := index % 2
+		var line := index / 2
+		var destination := Button.new()
+		destination.position = Vector2(42 + column * 364, 170 + line * 142)
+		destination.size = Vector2(332, 76)
+		destination.text = str(row.label)
+		destination.pressed.connect(func() -> void: select_scenario(str(row.path)))
+		scenario_panel.add_child(destination)
+		var resume := Button.new()
+		resume.position = Vector2(92 + column * 364, 252 + line * 142)
+		resume.size = Vector2(232, 34)
+		resume.text = "Continue this timeline"
+		resume.disabled = not FileAccess.file_exists(str(row.save))
+		resume.pressed.connect(func() -> void: continue_scenario(str(row.path), str(row.save)))
+		scenario_panel.add_child(resume)
 	var shortcut := Label.new()
-	shortcut.position = Vector2(100, 420)
-	shortcut.size = Vector2(500, 28)
-	shortcut.text = "Keyboard shortcuts: 1 Nile  ·  2 Between the Rivers"
+	shortcut.position = Vector2(80, 510)
+	shortcut.size = Vector2(620, 28)
+	shortcut.text = "Keyboard: 1 Prehistory  ·  2 Egypt  ·  3 Medieval  ·  4 Mars"
 	shortcut.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shortcut.add_theme_color_override("font_color", Color("#f0cc72"))
 	scenario_panel.add_child(shortcut)
@@ -918,7 +966,10 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_appearance_option = OptionButton.new()
 	villager_appearance_option.position = Vector2(22, 106)
 	villager_appearance_option.size = Vector2(376, 36)
-	for option_name: String in ["Woman · Nile blue", "Man · Nile blue", "Woman · Desert ochre", "Man · Desert ochre", "Woman · Reed green", "Man · Reed green"]:
+	var appearance_names: Array[String] = ["Woman · Nile blue", "Man · Nile blue", "Woman · Desert ochre", "Man · Desert ochre", "Woman · Reed green", "Man · Reed green"]
+	if not scenario.character_sheet_paths.is_empty():
+		appearance_names = ["Man · Azure", "Woman · Azure", "Man · Ochre", "Woman · Ochre", "Man · Green", "Woman · Green"]
+	for option_name: String in appearance_names:
 		villager_appearance_option.add_item(option_name)
 	villager_appearance_option.item_selected.connect(_change_selected_villager_appearance)
 	villager_panel.add_child(villager_appearance_option)
@@ -1117,7 +1168,7 @@ func _update_building_details() -> void:
 		for item_id: String in machine.recipe_outputs: outputs.append("%s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
 		building_details_body.text = "KILN\n\nState: %s\nHealth: %d / %d\nProgress: %d%%\n\nInput\n%s\n\nOutput\n%s" % ["broken" if machine.broken else ("working" if machine.is_running() else "ready"), machine.durability, machine.max_durability, roundi(machine.progress() * 100.0), "\n".join(inputs), "\n".join(outputs)]
 		return
-	if definition.entity_id == "DWELLING":
+	if definition.population_capacity > 0:
 		var resident_rows: Array[String] = []
 		for villager: Variant in villagers.values():
 			if villager.home_id == building_details_id:
@@ -1187,7 +1238,9 @@ func _update_villager_panel() -> void:
 		var source_target: Variant = placed_targets.get(str(villager.task.source))
 		var destination_target: Variant = placed_targets.get(str(villager.task.destination))
 		task_text = "Carry %s\n%s → %s" % [resource.label if resource != null else str(villager.task.item), source_target.item_label if source_target != null else str(villager.task.source), destination_target.item_label if destination_target != null else str(villager.task.destination)]
-	villager_status_label.text = "Home: %s\nStatus: %s\n\nHunger   %d%%\nEnergy   %d%%\n\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
+	var skill_seconds := float(villager.experience.get(villager.profession, 0.0))
+	var level := 1 + floori(skill_seconds / 120.0)
+	villager_status_label.text = "Home: %s\nStatus: %s\nRole: %s · level %d\nHunger %d%%  Energy %d%%\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), villager.profession.capitalize(), level, roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
 
 
 func _change_selected_villager_appearance(index: int) -> void:
@@ -1297,7 +1350,8 @@ func _sync_item_icon(icon: TextureRect, slot: Dictionary) -> void:
 func _placed_target_at(world_position: Vector2) -> Variant:
 	for target: Variant in placed_targets.values():
 		if villager_order_mode == "work":
-			if target.target_kind != "construction" and target.target_kind != "machine": continue
+			var work_definition: Variant = definition_for_instance(target.stable_id)
+			if target.target_kind != "construction" and target.target_kind != "machine" and (work_definition == null or work_definition.workers_required <= 0): continue
 		elif villager_order_mode == "source":
 			if target.target_kind != "storage" and target.target_kind != "machine" and target.target_kind != "water": continue
 		elif target.target_kind != "storage" and target.target_kind != "machine": continue
@@ -1380,6 +1434,15 @@ func select_scenario(path: String) -> void:
 		set_scenario_select_open(false)
 		return
 	PhysicalScenarioType.requested_path = path
+	PhysicalScenarioType.requested_autostart = true
+	get_tree().reload_current_scene()
+
+
+func continue_scenario(path: String, save_path: String) -> void:
+	PhysicalSaveCodecType.pending_reload = true
+	PhysicalSaveCodecType.pending_reload_path = save_path
+	if path != scenario_path: PhysicalScenarioType.requested_path = path
+	PhysicalScenarioType.requested_autostart = true
 	get_tree().reload_current_scene()
 
 
@@ -1682,7 +1745,8 @@ func _add_placed_target(instance_id: String, definition: Variant, origin: Vector
 func _add_structure_visual(instance_id: String, definition_id: String, cells: Array[Vector2i]) -> void:
 	if structure_visuals.has(instance_id) or cells.is_empty(): return
 	var visual := StructureVisualType.new()
-	visual.configure(definition_id, cells)
+	var definition: Variant = placement_registry.get_entity(definition_id)
+	visual.configure(definition_id, cells, definition.visual if definition != null else {})
 	add_child(visual)
 	structure_visuals[instance_id] = visual
 
@@ -1851,6 +1915,8 @@ func _update_interaction_target() -> void:
 			active.append(target)
 	for villager: Variant in villagers.values():
 		if is_instance_valid(villager): active.append(villager)
+	for dependent: Variant in dependents.values():
+		if is_instance_valid(dependent): active.append(dependent)
 	var selected: Variant = TargetingType.select_target(player.global_position, player.facing, active, INTERACTION_REACH_PX)
 	if selected != interaction_target:
 		if is_instance_valid(interaction_target):
@@ -1986,11 +2052,11 @@ func collect_resource_source(source: Variant) -> int:
 func feed_settlement() -> int:
 	if inventory.slots[selected_slot].is_empty(): return 0
 	var slot: Dictionary = inventory.slots[selected_slot]
-	if slot.item_id != "food_ration":
+	if slot.item_id != scenario.food_item_id:
 		interaction_label.text = "Select a Food ration to support the settlement"
 		return 0
 	var amount := int(slot.amount)
-	inventory.remove("food_ration", amount)
+	inventory.remove(scenario.food_item_id, amount)
 	workforce.add_food(amount)
 	_update_inventory_hud()
 	interaction_label.text = "Delivered %d food rations" % amount
@@ -2030,14 +2096,121 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		if definition != null:
 			_add_structure_visual(instance_id, definition.entity_id, placed.cells)
 			campaign.record_completion(definition.entity_id)
-			if definition.entity_id == "DWELLING":
+			if definition.population_capacity > 0:
 				spawn_villagers_for_home(instance_id, definition.population_capacity)
+			for dependent_id: Variant in definition.dependent_spawns:
+				spawn_dependent(str(dependent_id), instance_id)
 		_refresh_population_capacity()
 		interaction_label.text = "%s completed" % (target.item_label if target != null else "Building")
 	else:
 		interaction_label.text = _construction_prompt(instance_id)
 	queue_redraw()
 	return applied
+
+
+func spawn_dependent(species_id: String, home_id: String) -> Variant:
+	var definition: Dictionary = {}
+	for row: Dictionary in scenario.dependents:
+		if str(row.get("id", "")) == species_id: definition = row; break
+	if definition.is_empty() or not placed_targets.has(home_id): return null
+	var actor: Variant = DependentActorType.new()
+	var dependent_id := "dependent-%04d" % next_dependent_id
+	actor.configure(dependent_id, definition, home_id, placed_targets[home_id].global_position + Vector2(next_dependent_id % 3 * 12 - 12, 30))
+	add_child(actor)
+	dependents[dependent_id] = actor
+	next_dependent_id += 1
+	return actor
+
+
+func _spawn_wildlife(data: Dictionary) -> Variant:
+	var species_id := str(data.get("species", ""))
+	var definition: Dictionary = {}
+	for row: Dictionary in scenario.dependents:
+		if str(row.get("id", "")) == species_id: definition = row; break
+	if definition.is_empty(): return null
+	var cell: Array = data.get("cell", [10, 10])
+	var actor: Variant = DependentActorType.new()
+	var dependent_id := str(data.get("id", "wild-%04d" % next_dependent_id))
+	actor.configure(dependent_id, definition, "", Vector2(float(cell[0]), float(cell[1])) * CELL_SIZE + Vector2.ONE * CELL_SIZE * 0.5)
+	actor.age_seconds = actor.mature_seconds
+	add_child(actor)
+	dependents[dependent_id] = actor
+	next_dependent_id += 1
+	return actor
+
+
+func restore_dependent(data: Dictionary) -> Variant:
+	var saved_id := str(data.get("id", ""))
+	var actor: Variant = dependents.get(saved_id)
+	if actor == null:
+		var home_id := str(data.get("home", ""))
+		if home_id.is_empty():
+			var species_id := str(data.get("species", ""))
+			var definition: Dictionary = {}
+			for row: Dictionary in scenario.dependents:
+				if str(row.get("id", "")) == species_id: definition = row; break
+			if not definition.is_empty():
+				actor = DependentActorType.new()
+				actor.configure(saved_id, definition, "", Vector2.ZERO)
+				add_child(actor)
+		else:
+			actor = spawn_dependent(str(data.get("species", "")), home_id)
+	if actor == null: return null
+	dependents.erase(actor.stable_id)
+	actor.stable_id = str(data.get("id", actor.stable_id))
+	var values: Array = data.get("position", [actor.position.x, actor.position.y])
+	actor.position = Vector2(float(values[0]), float(values[1]))
+	actor.hunger = float(data.get("hunger", 70.0))
+	actor.thirst = float(data.get("thirst", 70.0))
+	actor.health = float(data.get("health", 100.0))
+	actor.age_seconds = float(data.get("age", 0.0))
+	actor.product_elapsed = float(data.get("product_elapsed", 0.0))
+	actor.stored_product = int(data.get("stored_product", 0))
+	dependents[actor.stable_id] = actor
+	if actor.stable_id.begins_with("dependent-"): next_dependent_id = maxi(next_dependent_id, int(actor.stable_id.get_slice("-", 1)) + 1)
+	return actor
+
+
+func interact_with_dependent(actor: Variant) -> int:
+	if actor == null: return 0
+	var selected_item := ""
+	if not inventory.slots[selected_slot].is_empty(): selected_item = str(inventory.slots[selected_slot].item_id)
+	if actor.wild and not actor.required_tool.is_empty() and selected_item != actor.required_tool:
+		actor.harvest_armed = false
+		interaction_label.text = "%s requires %s selected" % [actor.display_name, item_registry.get_item(actor.required_tool).label]
+		return 0
+	var consumed: int = actor.feed(selected_item, inventory.count(selected_item))
+	if consumed > 0:
+		inventory.remove(selected_item, consumed)
+		interaction_label.text = "%s cared for · food %d%% · water %d%%" % [actor.display_name, roundi(actor.hunger), roundi(actor.thirst)]
+		_update_inventory_hud()
+		return consumed
+	if actor.stored_product > 0:
+		var accepted: int = inventory.add(actor.product_item, actor.stored_product)
+		actor.stored_product -= accepted
+		if accepted > 0: campaign.record_pickup(actor.product_item)
+		interaction_label.text = "Collected %s x%d" % [item_registry.get_item(actor.product_item).label, accepted]
+		_update_inventory_hud()
+		return accepted
+	if actor.is_mature() and actor.harvest_armed:
+		var produced := 0
+		for item_id: String in actor.harvest_outputs:
+			var accepted: int = inventory.add(item_id, int(actor.harvest_outputs[item_id]))
+			produced += accepted
+			if accepted > 0: campaign.record_pickup(item_id)
+		actor.set_targeted(false)
+		dependents.erase(actor.stable_id)
+		actor.queue_free()
+		interaction_target = null
+		interaction_label.text = "%s · %d items recovered" % ["Hunt complete" if actor.wild else "Animal processed", produced]
+		_update_inventory_hud()
+		return produced
+	if actor.is_mature():
+		actor.harvest_armed = true
+		interaction_label.text = actor.status_text() + (" · Space again to hunt" if actor.wild else " · Space again to process into meat")
+		return 0
+	interaction_label.text = actor.status_text() + " · select %s or %s to care" % [item_registry.get_item(actor.feed_item).label, item_registry.get_item(actor.drink_item).label]
+	return 0
 
 
 func _play_feedback(stream: AudioStream) -> void:
@@ -2292,11 +2465,13 @@ func spawn_villagers_for_home(home_id: String, count: int) -> void:
 	if home_target == null: return
 	for index in range(existing, count):
 		var villager_id := "villager-%04d" % next_villager_id
-		var display_name := VILLAGER_NAMES[(next_villager_id - 1) % VILLAGER_NAMES.size()]
+		var name_pool: Array[String] = scenario.resident_names if not scenario.resident_names.is_empty() else VILLAGER_NAMES
+		var display_name := name_pool[(next_villager_id - 1) % name_pool.size()]
 		var appearance := (next_villager_id - 1) % 6
 		var tint: Color = _villager_appearance_tint(appearance)
 		var villager: Variant = VillagerType.new()
-		villager.configure(villager_id, display_name, home_id, home_target.global_position + Vector2((index * 14) - 7, 28), tint, appearance)
+		var character_options: Variant = scenario.character_sheet_paths if not scenario.character_sheet_paths.is_empty() else scenario.character_sheet_path
+		villager.configure(villager_id, display_name, home_id, home_target.global_position + Vector2((index * 14) - 7, 28), tint, appearance, character_options)
 		add_child(villager)
 		villagers[villager_id] = villager
 		next_villager_id += 1
@@ -2312,12 +2487,17 @@ func restore_villager(data: Dictionary) -> Variant:
 	var values: Array = data.get("position", [fallback_position.x, fallback_position.y])
 	var tint_values: Array = data.get("tint", [1.0, 1.0, 1.0, 1.0])
 	var villager: Variant = VillagerType.new()
-	villager.configure(villager_id, str(data.get("name", "Villager")), home_id, Vector2(float(values[0]), float(values[1])), Color(float(tint_values[0]), float(tint_values[1]), float(tint_values[2]), float(tint_values[3])), int(data.get("appearance", 0)))
+	var character_options: Variant = scenario.character_sheet_paths if not scenario.character_sheet_paths.is_empty() else scenario.character_sheet_path
+	villager.configure(villager_id, str(data.get("name", "Villager")), home_id, Vector2(float(values[0]), float(values[1])), Color(float(tint_values[0]), float(tint_values[1]), float(tint_values[2]), float(tint_values[3])), int(data.get("appearance", 0)), character_options)
 	villager.home_position = Vector2(float(data.get("home_position", [fallback_position.x, fallback_position.y])[0]), float(data.get("home_position", [fallback_position.x, fallback_position.y])[1]))
 	villager.hunger = float(data.get("hunger", 100.0))
 	villager.energy = float(data.get("energy", 100.0))
 	villager.state = str(data.get("state", "available"))
 	villager.work_priority = clampi(int(data.get("priority", 1)), 0, 2)
+	villager.profession = str(data.get("profession", "generalist"))
+	villager.experience = data.get("experience", {}).duplicate(true)
+	villager.inside_workplace = bool(data.get("inside_workplace", false))
+	villager.visible = not villager.inside_workplace
 	villager.facing = str(data.get("facing", "south"))
 	villager.task = data.get("task", {}).duplicate(true)
 	villager.task_queue.assign(data.get("task_queue", []))
@@ -2334,11 +2514,35 @@ func is_sleep_time() -> bool:
 	return fraction >= 0.78 or fraction < 0.16
 
 
+func active_environment_event() -> Dictionary:
+	var fraction := day_time_seconds / DAY_LENGTH_SECONDS
+	for event: Dictionary in scenario.environmental_events:
+		var start := float(event.get("starts_at", 0.0))
+		var duration := float(event.get("duration", 0.0))
+		if fraction >= start and fraction < start + duration: return event
+	return {}
+
+
+func environment_multiplier(property_name: String) -> float:
+	var event := active_environment_event()
+	return float(event.get(property_name, 1.0)) if not event.is_empty() else 1.0
+
+
+func is_work_time() -> bool:
+	var fraction := day_time_seconds / DAY_LENGTH_SECONDS
+	return fraction >= 0.18 and fraction < 0.75
+
+
+func definition_for_instance(instance_id: String) -> Variant:
+	var placed: Variant = world_grid.entities_by_id.get(instance_id)
+	return placement_registry.get_entity(placed.definition_id) if placed != null else null
+
+
 func find_food_storage_for(villager: Variant) -> Variant:
 	var nearest: Variant = null
 	var distance := INF
 	for instance_id: String in storage_by_entity_id:
-		if storage_by_entity_id[instance_id].count("food_ration") <= 0: continue
+		if storage_by_entity_id[instance_id].count(scenario.food_item_id) <= 0: continue
 		var target: Variant = placed_targets.get(instance_id)
 		if target == null: continue
 		var candidate: float = villager.global_position.distance_squared_to(target.global_position)
@@ -2348,7 +2552,7 @@ func find_food_storage_for(villager: Variant) -> Variant:
 
 func consume_food_from_storage(storage_id: String) -> bool:
 	if not storage_by_entity_id.has(storage_id): return false
-	return storage_by_entity_id[storage_id].remove("food_ration", 1) == 1
+	return storage_by_entity_id[storage_id].remove(scenario.food_item_id, 1) == 1
 
 
 func assigned_villagers_to(instance_id: String) -> int:
@@ -2357,6 +2561,17 @@ func assigned_villagers_to(instance_id: String) -> int:
 		if villager.state == "working" and not villager.task.is_empty() and str(villager.task.get("type", "")) == "work" and str(villager.task.get("target", "")) == instance_id:
 			count += 1
 	return count
+
+
+func worker_efficiency_at(instance_id: String) -> float:
+	var total := 0.0
+	var count := 0
+	for villager: Variant in villagers.values():
+		if villager.state != "working" or villager.task.is_empty() or str(villager.task.get("target", "")) != instance_id: continue
+		var skill := float(villager.experience.get(villager.profession, 0.0))
+		total += 1.0 + minf(0.5, floorf(skill / 120.0) * 0.1)
+		count += 1
+	return total / count if count > 0 else 1.0
 
 
 func villager_work(villager: Variant, delta: float) -> void:
@@ -2526,9 +2741,12 @@ func _update_population_hud() -> void:
 		var food := 0
 		for villager: Variant in villagers.values():
 			if not villager.task.is_empty(): active += 1
-		for storage: Variant in storage_by_entity_id.values(): food += storage.count("food_ration")
+		for storage: Variant in storage_by_entity_id.values(): food += storage.count(scenario.food_item_id)
 		var total_minutes := roundi(day_time_seconds / DAY_LENGTH_SECONDS * 24.0 * 60.0)
-		population_label.text = "%d people | %d assigned | %d meals | Day %02d:%02d" % [1 + villagers.size(), active, food, (total_minutes / 60) % 24, total_minutes % 60]
+		var people_word := str(scenario.terminology.get("people", "people"))
+		var event := active_environment_event()
+		var event_text := " | ⚠ %s" % str(event.label) if not event.is_empty() else ""
+		population_label.text = "%d %s | %d assigned | %d meals | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, (total_minutes / 60) % 24, total_minutes % 60, event_text]
 
 
 func _refresh_population_capacity() -> void:
@@ -2541,7 +2759,7 @@ func _draw() -> void:
 		for x in range(WORLD_SIZE.x):
 			var cell := Vector2i(x, y)
 			var rect := Rect2(Vector2(cell * CELL_SIZE), Vector2.ONE * CELL_SIZE)
-			var terrain_texture: Texture2D = WATER_TEXTURE if water_cells.has(cell) else SAND_TEXTURE
+			var terrain_texture: Texture2D = WATER_TEXTURE if water_cells.has(cell) else (ground_texture if ground_texture != null else SAND_TEXTURE)
 			var source_position := Vector2((x * CELL_SIZE) % terrain_texture.get_width(), (y * CELL_SIZE) % terrain_texture.get_height())
 			draw_texture_rect_region(terrain_texture, rect, Rect2(source_position, Vector2.ONE * CELL_SIZE))
 			if path_cells.has(cell) and not water_cells.has(cell): _draw_path_cell(cell, rect)
@@ -2603,6 +2821,10 @@ func _draw_shoreline(cell: Vector2i, destination: Rect2) -> void:
 
 
 func _draw_path_cell(cell: Vector2i, destination: Rect2) -> void:
+	if path_texture != null:
+		var source_position := Vector2((cell.x * CELL_SIZE) % path_texture.get_width(), (cell.y * CELL_SIZE) % path_texture.get_height())
+		draw_texture_rect_region(path_texture, destination, Rect2(source_position, Vector2.ONE * CELL_SIZE))
+		return
 	draw_rect(destination, Color("#b89559") if (cell.x + cell.y) % 2 == 0 else Color("#bea064"))
 	var seed_value := cell.x * 92821 + cell.y * 68917
 	for index in range(3):
@@ -2620,7 +2842,9 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 	var columns := {"STORAGE_CRATE": 0, "BRICK_KILN": 1, "DWELLING": 2, "SHRINE": 3}
 	var economy_columns := {"GRAIN_FARM": 0, "BAKERY": 1, "BREWERY": 2, "KITCHEN": 3, "SAWMILL": 4}
 	var industry_columns := {"QUARRY": 0, "COPPER_MINE": 1, "COPPER_SMELTER": 2, "WEAVER": 3, "PAPYRUS_WORKSHOP": 4}
-	if (not columns.has(definition_id) and not economy_columns.has(definition_id) and not industry_columns.has(definition_id)) or cells.is_empty(): return
+	var definition: Variant = placement_registry.get_entity(definition_id)
+	var visual: Dictionary = definition.visual if definition != null else {}
+	if (not columns.has(definition_id) and not economy_columns.has(definition_id) and not industry_columns.has(definition_id) and visual.is_empty()) or cells.is_empty(): return
 	var minimum := cells[0]
 	var maximum := cells[0]
 	for cell: Vector2i in cells:
@@ -2633,7 +2857,14 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 	var bottom_center := Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
 	var destination := Rect2(bottom_center - Vector2(sprite_size.x * 0.5, sprite_size.y), sprite_size)
 	var tint := Color(0.45, 1.0, 0.55, 0.62) if valid else Color(1.0, 0.35, 0.35, 0.62)
-	if industry_columns.has(definition_id):
+	if not visual.is_empty():
+		var texture := load(str(visual.texture)) as Texture2D
+		var columns_count := maxi(1, int(visual.get("columns", 1)))
+		var rows_count := maxi(1, int(visual.get("rows", 1)))
+		var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
+		var source := Rect2(Vector2(int(visual.get("column", 0)), int(visual.get("row", 0))) * region_size, region_size)
+		draw_texture_rect_region(texture, destination, source, tint if ghost else Color.WHITE)
+	elif industry_columns.has(definition_id):
 		var cell_width := INDUSTRY_BUILDING_TEXTURE.get_width() / 5.0
 		draw_texture_rect_region(INDUSTRY_BUILDING_TEXTURE, destination, Rect2(int(industry_columns[definition_id]) * cell_width, 0, cell_width, INDUSTRY_BUILDING_TEXTURE.get_height()), tint if ghost else Color.WHITE)
 	elif economy_columns.has(definition_id):

@@ -14,6 +14,12 @@ const FRAME_SIZE := Vector2(64, 80)
 var facing := "south"
 var movement_enabled := true
 var animation_time := 0.0
+var scenario_sheet: Texture2D = null
+
+
+func configure_character(sheet_path: String) -> void:
+	scenario_sheet = load(sheet_path) as Texture2D if not sheet_path.is_empty() else null
+	queue_redraw()
 
 
 func _ready() -> void:
@@ -59,6 +65,10 @@ func apply_movement_intent(intent: Vector2) -> void:
 func _draw() -> void:
 	_draw_shadow_ellipse(Vector2(0, 9), Vector2(13, 6), Color(0.0, 0.0, 0.0, 0.25))
 	var column := current_animation_frame()
+	if scenario_sheet != null:
+		var scenario_row: int = int({"west": 0, "east": 1, "south": 2, "north": 3}.get(facing, 2))
+		draw_texture_rect_region(scenario_sheet, Rect2(Vector2(-32, -64), FRAME_SIZE), Rect2(Vector2(column * 64, scenario_row * 80), FRAME_SIZE))
+		return
 	var texture := VERTICAL_CHARACTER_TEXTURE
 	var row := 0 if facing == "south" else 1
 	if facing == "west" or facing == "east":

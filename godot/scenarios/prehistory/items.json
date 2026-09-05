@@ -1,0 +1,16 @@
+{"items":[
+ {"id":"water","label":"Spring water","color":"#4b9bb5","max_stack":50},
+ {"id":"branches","label":"Branches","color":"#8e5b32","max_stack":50},
+ {"id":"flint","label":"Flint","color":"#718087","max_stack":50},
+ {"id":"spear","label":"Flint spear","color":"#bd8b4f","max_stack":1},
+ {"id":"mammoth_meat","label":"Mammoth meat","color":"#a94c45","max_stack":30},
+ {"id":"hide","label":"Mammoth hide","color":"#8b6546","max_stack":30},
+ {"id":"smoked_meat","label":"Smoked meat","color":"#8f4436","max_stack":30},
+ {"id":"berries","label":"Wild berries","color":"#a94272","max_stack":30},
+ {"id":"campfire_plan","label":"Campfire","color":"#e58c42","max_stack":5,"placeable_entity_id":"CAMPFIRE"},
+ {"id":"hide_shelter_plan","label":"Hide shelter","color":"#d2aa72","max_stack":5,"placeable_entity_id":"HIDE_SHELTER"},
+ {"id":"food_cache_plan","label":"Food cache","color":"#b98755","max_stack":5,"placeable_entity_id":"FOOD_CACHE"},
+ {"id":"flint_workshop_plan","label":"Flint workshop","color":"#91a0a4","max_stack":5,"placeable_entity_id":"FLINT_WORKSHOP"},
+ {"id":"smoking_rack_plan","label":"Smoking rack","color":"#a56d43","max_stack":5,"placeable_entity_id":"SMOKING_RACK"},
+ {"id":"ritual_stones_plan","label":"Ritual stones","color":"#829092","max_stack":1,"placeable_entity_id":"RITUAL_STONES"}
+]}

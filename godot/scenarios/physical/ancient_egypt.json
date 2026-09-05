@@ -1,6 +1,19 @@
 {
   "id": "ancient_egypt",
   "label": "Settlement on the Nile",
+  "save_key": "ancient_egypt",
+  "campaign_path": "res://world/progression/ancient_egypt_campaign.json",
+  "ground_texture": "res://assets/generated/terrain/sand_v2.png",
+  "terminology": {"people":"villagers","person":"villager","water":"water","home":"dwelling"},
+  "theme": {"ink":"#30241d","text":"#fff3d2","accent":"#d9ae54","button":"#17637a","dark":"#171b22","panel":"#d8bd83"},
+  "environmental_events": [
+    {"id":"heat_wave","label":"Desert heat wave","starts_at":0.34,"duration":0.08,"worker_speed":0.82,"description":"Workers tire faster in the midday heat."},
+    {"id":"cool_evening","label":"Cool river breeze","starts_at":0.68,"duration":0.08,"worker_speed":1.08,"description":"The evening breeze restores the settlement's pace."}
+  ],
+  "dependents": [
+    {"id":"chicken","label":"Chicken","feed_item":"grain","drink_item":"water","product_item":"egg","mature_seconds":75.0,"product_interval":35.0,"harvest_outputs":{"meat":2},"texture":"res://assets/generated/animals/livestock.png","juvenile_row":1,"adult_row":0,"wander_radius":34.0},
+    {"id":"cow","label":"Cow","feed_item":"grain","drink_item":"water","product_item":"milk","mature_seconds":120.0,"product_interval":50.0,"harvest_outputs":{"meat":6},"texture":"res://assets/generated/animals/livestock.png","juvenile_row":3,"adult_row":2,"wander_radius":42.0}
+  ],
   "palette": {"ground": "#cdbb7d", "water": "#4d8fbd"},
   "water_rects": [[34, 4, 6, 22], [8, 10, 10, 1]],
   "water_gaps": [[13, 10], [14, 10]],

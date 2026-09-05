@@ -1,5 +1,7 @@
 extends SceneTree
 
+const VillagerType = preload("res://world/population/villager.gd")
+
 func _initialize() -> void:
 	var failures: Array[String] = []
 	await _test_kiln(failures)
@@ -43,8 +45,13 @@ func _test_kiln(failures: Array[String]) -> void:
 	game.inventory.add("clay", 4)
 	game.select_quick_slot(_find_slot(game.inventory, "clay"))
 	_expect(game.deliver_selected_to_machine(instance_id) == 4, "Kiln should accept carried clay.", failures)
+	var worker := VillagerType.new()
+	worker.configure("test-worker", "Worker", "", game.placed_targets[instance_id].global_position)
+	game.add_child(worker)
+	game.villagers[worker.stable_id] = worker
+	worker.assign_work(instance_id)
 	game._process(0.1)
-	_expect(machine.manually_activated and machine.is_running(), "Supplying compatible input should start a timed batch without a villager assignment.", failures)
+	_expect(machine.manually_activated and machine.is_running(), "A supplied and staffed machine should start a timed batch.", failures)
 	game.player.position += Vector2(500, 0)
 	game._process(4.0)
 	_expect(machine.output_inventory.count("mud_bricks") == 1, "Finished batch should store its output.", failures)

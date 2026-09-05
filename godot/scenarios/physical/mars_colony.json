@@ -1,0 +1,36 @@
+{
+  "id":"mars_colony",
+  "label":"Mars Colony — Sol 1",
+  "save_key":"mars_colony",
+  "campaign_path":"res://world/progression/mars_campaign.json",
+  "items_path":"res://scenarios/mars/items.json",
+  "recipes_path":"res://scenarios/mars/recipes.json",
+  "placeables_path":"res://scenarios/mars/placeables.json",
+  "food_item_id":"mars_ration",
+  "ground_texture":"res://assets/generated/mars/mars_ground.png",
+  "path_texture":"res://assets/generated/mars/mars_path.png",
+  "character_sheet":"res://assets/generated/mars/mars_colonist.png",
+  "character_sheets":["res://assets/generated/mars/mars_colonist.png","res://assets/generated/mars/mars_colonist_female.png"],
+  "palette":{"ground":"#a9472d","water":"#83dafa"},
+  "terminology":{"people":"colonists","person":"colonist","water":"processed water","home":"habitat"},
+  "resident_names":["Amina","Chen","Ilya","Noor","Mateo","Keiko","Samira","Jonas"],
+  "theme":{"ink":"#d8f4ff","text":"#edfaff","accent":"#46d7ee","button":"#174d66","dark":"#111c29","panel":"#20384b"},
+  "environmental_events":[
+    {"id":"dust_storm","label":"Dust storm","starts_at":0.44,"duration":0.12,"worker_speed":0.78,"production_speed":0.55,"description":"Dust reduces solar output and outdoor movement."},
+    {"id":"clear_skies","label":"Clear skies","starts_at":0.70,"duration":0.10,"worker_speed":1.05,"production_speed":1.18,"description":"Strong sunlight boosts the array."}
+  ],
+  "water_rects":[],
+  "water_gaps":[],
+  "path_rects":[[4,10,30,2],[18,5,2,18],[31,8,2,12]],
+  "pickups":[
+    {"id":"landing-iron","item":"iron_ore","amount":90,"cell":[8.5,7.5]},
+    {"id":"landing-ice","item":"martian_ice","amount":30,"cell":[12.5,8.5]},
+    {"id":"landing-oxygen","item":"oxygen","amount":8,"cell":[6.5,10.5]},
+    {"id":"landing-plates","item":"metal_plate","amount":8,"cell":[10.5,12.5]}
+  ],
+  "resource_sources":[
+    {"id":"source-mars-ice","item":"martian_ice","cell":[34.5,8.5],"initial":300,"max":500,"grant":8,"regen_amount":2,"regen_seconds":25.0},
+    {"id":"source-iron-ridge","item":"iron_ore","cell":[28.5,19.5],"initial":400,"max":600,"grant":10,"regen_amount":3,"regen_seconds":30.0}
+  ],
+  "crops":[]
+}

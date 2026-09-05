@@ -1,0 +1,24 @@
+{
+  "id":"mars_colony_campaign",
+  "objectives":[
+    {"id":"survey_mars","label":"Recover iron and exposed Martian ice","type":"gather","items":["iron_ore","martian_ice"],"hint":"Walk the landing zone and recover supplies with Space."},
+    {"id":"make_first_plates","label":"Hand-refine the first metal plates","type":"craft","recipe":"refine_plate"},
+    {"id":"build_solar","label":"Deploy a solar array","type":"complete","entity":"SOLAR_ARRAY"},
+    {"id":"collect_power","label":"Store the first generated energy cells","type":"produce","item":"energy_cell"},
+    {"id":"build_habitat","label":"Raise a pressurized habitat","type":"complete","entity":"HABITAT"},
+    {"id":"welcome_colonists","label":"Welcome two colonists","type":"population","count":2},
+    {"id":"plan_melter","label":"Draft an ice melter","type":"craft","recipe":"ice_melter_plan"},
+    {"id":"build_melter","label":"Build the ice melter","type":"complete","entity":"ICE_MELTER"},
+    {"id":"melt_ice","label":"Process Martian ice into water","type":"produce","item":"mars_water"},
+    {"id":"build_oxygen","label":"Build an oxygen extractor","type":"complete","entity":"OXYGEN_EXTRACTOR"},
+    {"id":"make_oxygen","label":"Produce the colony's first oxygen","type":"produce","item":"oxygen"},
+    {"id":"staff_station","label":"Assign a colonist to a workstation","type":"staffed_count","count":1},
+    {"id":"build_greenhouse","label":"Build a hydroponic greenhouse","type":"complete","entity":"GREENHOUSE"},
+    {"id":"grow_algae","label":"Harvest hydroponic algae","type":"produce","item":"algae"},
+    {"id":"feed_colony","label":"Prepare colony rations","type":"craft","recipe":"mars_ration"},
+    {"id":"automate_mars","label":"Establish two physical supply routes","type":"route_count","count":2},
+    {"id":"build_fabricator","label":"Build the materials fabricator","type":"complete","entity":"FABRICATOR"},
+    {"id":"fabricate_metal","label":"Fabricate a fresh batch of metal plates","type":"produce","item":"metal_plate"},
+    {"id":"mars_outpost","label":"Complete the deep-space communications array","type":"complete","entity":"COMMS_ARRAY"}
+  ]
+}

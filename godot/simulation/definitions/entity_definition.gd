@@ -25,6 +25,9 @@ var allowed_terrain: Array[String] = []
 var storage_slots: int = 0
 var construction_work_seconds: float = 0.0
 var population_capacity: int = 0
+var profession := "worker"
+var visual: Dictionary = {}
+var dependent_spawns: Array = []
 
 
 func is_placeable() -> bool:

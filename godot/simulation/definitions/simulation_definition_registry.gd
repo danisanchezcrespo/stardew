@@ -132,6 +132,9 @@ func _parse_entity(item: Dictionary, index: int) -> Variant:
 		errors.append("construction_work_seconds must not be negative for entity '%s'." % definition.entity_id)
 		return null
 	definition.population_capacity = int(item.get("population_capacity", 0))
+	definition.profession = str(item.get("profession", "worker"))
+	definition.visual = item.get("visual", {}).duplicate(true)
+	definition.dependent_spawns = item.get("dependent_spawns", []).duplicate(true)
 	if definition.population_capacity < 0:
 		errors.append("population_capacity must not be negative for entity '%s'." % definition.entity_id)
 		return null

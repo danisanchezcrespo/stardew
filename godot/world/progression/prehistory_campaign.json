@@ -1,0 +1,13 @@
+{"id":"prehistory_campaign","objectives":[
+ {"id":"gather_stone_age","label":"Gather branches and flint","type":"gather","items":["branches","flint"],"hint":"Collect enough material to shape your first hunting tool."},
+ {"id":"craft_spear","label":"Craft a flint spear","type":"craft","recipe":"spear"},
+ {"id":"first_hunt","label":"Hunt a mammoth with the spear selected","type":"gather","items":["mammoth_meat","hide"],"hint":"Select the spear, approach a mammoth and press Space twice."},
+ {"id":"build_shelter","label":"Build a hide shelter","type":"complete","entity":"HIDE_SHELTER"},
+ {"id":"grow_clan","label":"Welcome two clan members","type":"population","count":2},
+ {"id":"build_workshop","label":"Build and staff the flint workshop","type":"complete","entity":"FLINT_WORKSHOP"},
+ {"id":"staff_craft","label":"Assign a clan member to an occupation","type":"staffed_count","count":1},
+ {"id":"build_smoker","label":"Build a smoking rack","type":"complete","entity":"SMOKING_RACK"},
+ {"id":"preserve_food","label":"Preserve mammoth meat","type":"produce","item":"smoked_meat"},
+ {"id":"secure_supplies","label":"Create two gathering routes","type":"route_count","count":2},
+ {"id":"found_tribe","label":"Raise the ritual stones","type":"complete","entity":"RITUAL_STONES"}
+]}

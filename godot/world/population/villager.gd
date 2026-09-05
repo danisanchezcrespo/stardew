@@ -28,9 +28,15 @@ var color_tint := Color.WHITE
 var appearance_id := 0
 var task_queue: Array[Dictionary] = []
 var work_priority := 1 # 0 relaxed, 1 normal, 2 urgent
+var profession := "generalist"
+var experience: Dictionary = {}
+var inside_workplace := false
+var environment_speed_multiplier := 1.0
+var scenario_character_sheet: Texture2D = null
+var scenario_character_sheets: Array[Texture2D] = []
 
 
-func configure(id: String, display_name: String, dwelling_id: String, spawn_position: Vector2, tint: Color = Color.WHITE, appearance: int = 0) -> void:
+func configure(id: String, display_name: String, dwelling_id: String, spawn_position: Vector2, tint: Color = Color.WHITE, appearance: int = 0, character_sheet_path: Variant = "") -> void:
 	stable_id = id
 	villager_name = display_name
 	home_id = dwelling_id
@@ -40,6 +46,11 @@ func configure(id: String, display_name: String, dwelling_id: String, spawn_posi
 	z_index = roundi(global_position.y + 10.0)
 	color_tint = tint
 	appearance_id = posmod(appearance, 6)
+	scenario_character_sheets.clear()
+	var paths: Array = character_sheet_path if character_sheet_path is Array else [character_sheet_path]
+	for path: Variant in paths:
+		if not str(path).is_empty(): scenario_character_sheets.append(load(str(path)) as Texture2D)
+	scenario_character_sheet = scenario_character_sheets[appearance_id % scenario_character_sheets.size()] if not scenario_character_sheets.is_empty() else null
 	queue_redraw()
 
 
@@ -81,6 +92,7 @@ func _finish_task() -> void:
 
 
 func clear_task() -> void:
+	_leave_workplace()
 	task.clear()
 	task_queue.clear()
 	carrying_item = ""
@@ -109,8 +121,10 @@ func process_life(game: Node2D, delta: float) -> void:
 		queue_redraw()
 		return
 	if (game.is_sleep_time() or energy <= 12.0) and carrying_amount == 0:
+		_leave_workplace()
 		state = "going_home"
 	if hunger <= 30.0 and carrying_amount == 0 and game.find_food_storage_for(self) != null:
+		_leave_workplace()
 		state = "seeking_food"
 	elif hunger <= 0.0 and carrying_amount == 0 and task.is_empty():
 		state = "hungry"
@@ -169,11 +183,28 @@ func _process_transport(game: Node2D, delta: float) -> void:
 func _process_work(game: Node2D, delta: float) -> void:
 	var target: Variant = game.placed_targets.get(str(task.target))
 	if target == null:
+		_leave_workplace()
 		state = "blocked: workplace missing"
+		return
+	if not game.is_work_time():
+		_leave_workplace()
+		state = "off duty"
+		_move_to(home_position, delta)
 		return
 	if _move_to(target.interaction_position_for(position), delta):
 		state = "working"
+		inside_workplace = true
+		visible = false
+		var definition: Variant = game.definition_for_instance(str(task.target))
+		if definition != null:
+			profession = definition.profession
+			experience[profession] = float(experience.get(profession, 0.0)) + delta
 		game.villager_work(self, delta)
+
+
+func _leave_workplace() -> void:
+	inside_workplace = false
+	visible = true
 
 
 func _resume_state() -> String:
@@ -189,7 +220,7 @@ func _move_to(target: Vector2, delta: float) -> bool:
 		return true
 	var direction := offset.normalized()
 	var priority_speed: float = float([0.88, 1.0, 1.12][clampi(work_priority, 0, 2)])
-	var speed: float = WALK_SPEED * priority_speed * (0.6 if hunger < 30.0 else 1.0)
+	var speed: float = WALK_SPEED * priority_speed * environment_speed_multiplier * (0.6 if hunger < 30.0 else 1.0)
 	position += direction * minf(speed * delta, offset.length())
 	if absf(direction.x) > absf(direction.y): facing = "east" if direction.x > 0 else "west"
 	else: facing = "south" if direction.y > 0 else "north"
@@ -206,15 +237,26 @@ func status_text() -> String:
 
 func _draw() -> void:
 	_draw_shadow_ellipse(Vector2(0, 9), Vector2(12, 5), Color(0, 0, 0, 0.22))
+	var moving := state in ["to_source", "to_destination", "to_work", "going_home", "seeking_food", "waiting: source empty"]
+	var frame := int(animation_time * FRAME_RATE) % 10 if moving else 0
+	if not scenario_character_sheets.is_empty():
+		scenario_character_sheet = scenario_character_sheets[appearance_id % scenario_character_sheets.size()]
+	if scenario_character_sheet != null:
+		var scenario_row: int = int({"west": 0, "east": 1, "south": 2, "north": 3}.get(facing, 2))
+		draw_texture_rect_region(scenario_character_sheet, Rect2(-32, -64, 64, 80), Rect2(frame * 64, scenario_row * 80, 64, 80), color_tint)
+		_draw_status_marks()
+		return
 	var male := appearance_id % 2 == 1
 	var texture: Texture2D = MALE_VERTICAL_TEXTURE if male else VERTICAL_TEXTURE
 	var row := 0 if facing == "south" else 1
 	if facing == "west" or facing == "east":
 		texture = MALE_LATERAL_TEXTURE if male else LATERAL_TEXTURE
 		row = 0 if facing == "west" else 1
-	var moving := state in ["to_source", "to_destination", "to_work", "going_home", "seeking_food", "waiting: source empty"]
-	var frame := int(animation_time * FRAME_RATE) % 10 if moving else 0
 	draw_texture_rect_region(texture, Rect2(-32, -64, 64, 80), Rect2(frame * 64, row * 80, 64, 80), color_tint)
+	_draw_status_marks()
+
+
+func _draw_status_marks() -> void:
 	if selected or targeted:
 		draw_circle(Vector2(0, 11), 18.0, Color("#ffe27a"), false, 3.0)
 	if carrying_amount > 0:

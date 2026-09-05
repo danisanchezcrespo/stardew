@@ -1,0 +1,13 @@
+{
+ "id":"prehistory","label":"Prehistory — First Fire","save_key":"prehistory","campaign_path":"res://world/progression/prehistory_campaign.json",
+ "items_path":"res://scenarios/prehistory/items.json","recipes_path":"res://scenarios/prehistory/recipes.json","placeables_path":"res://scenarios/prehistory/placeables.json","food_item_id":"smoked_meat",
+ "ground_texture":"res://assets/generated/prehistory/prehistory_ground.png","path_texture":"res://assets/generated/prehistory/prehistory_path.png","character_sheet":"res://assets/generated/prehistory/prehistory_hunter.png","character_sheets":["res://assets/generated/prehistory/prehistory_hunter.png","res://assets/generated/prehistory/prehistory_hunter_female.png"],
+ "palette":{"ground":"#66803e","water":"#4b9bb5"},"terminology":{"people":"clan members","person":"clan member","water":"spring water","home":"shelter"},"resident_names":["Aru","Ena","Koro","Mara","Tuk","Sena","Orn","Luma"],
+ "theme":{"ink":"#f8e5be","text":"#fff2d2","accent":"#f0a54b","button":"#68452e","dark":"#211713","panel":"#443025"},
+ "environmental_events":[{"id":"cold_night","label":"Cold night","starts_at":0.02,"duration":0.16,"worker_speed":0.78,"production_speed":0.72,"description":"The clan stays close to the fire."},{"id":"migration","label":"Herd migration","starts_at":0.58,"duration":0.12,"worker_speed":1.08,"production_speed":1.0,"description":"Fresh tracks cross the valley."}],
+ "water_rects":[[2,4,3,11],[5,11,2,4]],"water_gaps":[[4,9]],"path_rects":[[5,9,24,2],[16,4,2,18]],
+ "pickups":[{"id":"branch-1","item":"branches","amount":12,"cell":[8.5,7.5]},{"id":"branch-2","item":"branches","amount":10,"cell":[12.5,15.5]},{"id":"flint-1","item":"flint","amount":10,"cell":[10.5,10.5]},{"id":"berries-1","item":"berries","amount":8,"cell":[15.5,7.5]}],
+ "resource_sources":[{"id":"source-branches","item":"branches","cell":[29.5,8.5],"initial":160,"max":250,"grant":6,"regen_amount":2,"regen_seconds":25.0},{"id":"source-flint","item":"flint","cell":[31.5,17.5],"initial":180,"max":300,"grant":5,"regen_amount":2,"regen_seconds":30.0}],
+ "crops":[],"dependents":[{"id":"mammoth","label":"Woolly Mammoth","wild":true,"required_tool":"spear","feed_item":"berries","drink_item":"water","product_item":"","harvest_outputs":{"mammoth_meat":10,"hide":4},"mature_seconds":0.0,"wander_radius":90.0,"texture":"res://assets/generated/prehistory/mammoth.png","juvenile_row":0,"adult_row":0}],
+ "wildlife":[{"id":"mammoth-one","species":"mammoth","cell":[22.5,7.5]},{"id":"mammoth-two","species":"mammoth","cell":[29.5,15.5]},{"id":"mammoth-three","species":"mammoth","cell":[37.5,10.5]}]
+}

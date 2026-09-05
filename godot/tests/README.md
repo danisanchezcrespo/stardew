@@ -122,3 +122,15 @@ Fresh-save critical-path resource balance can be checked with:
 ```powershell
 godot --headless --path godot --script res://tests/test_vertical_slice_balance.gd
 ```
+
+Four-era content isolation, campaign assets and the prehistoric spear requirement can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_four_era_content.gd
+```
+
+Booting Prehistory, Ancient Egypt, Medieval and Mars plus the executable mammoth-hunt loop can be checked with:
+
+```powershell
+godot --headless --path godot --script res://tests/test_four_era_runtime.gd
+```

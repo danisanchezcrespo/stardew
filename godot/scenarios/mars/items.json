@@ -1,0 +1,20 @@
+{
+  "items": [
+    {"id":"martian_ice","label":"Martian ice","color":"#a8e7ff","max_stack":50},
+    {"id":"mars_water","label":"Processed water","color":"#39bde5","max_stack":50},
+    {"id":"iron_ore","label":"Iron ore","color":"#9b6654","max_stack":50},
+    {"id":"metal_plate","label":"Metal plate","color":"#b9c3c8","max_stack":50},
+    {"id":"oxygen","label":"Oxygen","color":"#7de8ff","max_stack":50},
+    {"id":"energy_cell","label":"Energy cell","color":"#50d7ff","max_stack":50},
+    {"id":"algae","label":"Hydroponic algae","color":"#78b85a","max_stack":50},
+    {"id":"mars_ration","label":"Colony ration","color":"#d7a65c","max_stack":30},
+    {"id":"mars_storage","label":"Storage module","color":"#e7e4db","max_stack":8,"placeable_entity_id":"MARS_STORAGE"},
+    {"id":"ice_melter_plan","label":"Ice melter plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"ICE_MELTER"},
+    {"id":"habitat_plan","label":"Habitat plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"HABITAT"},
+    {"id":"solar_array_plan","label":"Solar array plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"SOLAR_ARRAY"},
+    {"id":"oxygen_extractor_plan","label":"Oxygen extractor plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"OXYGEN_EXTRACTOR"},
+    {"id":"greenhouse_plan","label":"Greenhouse plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"GREENHOUSE"},
+    {"id":"fabricator_plan","label":"Fabricator plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"FABRICATOR"},
+    {"id":"comms_array_plan","label":"Communications array plan","color":"#4dcce8","max_stack":1,"placeable_entity_id":"COMMS_ARRAY"}
+  ]
+}

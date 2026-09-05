@@ -26,7 +26,9 @@ func _initialize() -> void:
 		,"papyrus": {"batches_completed": 1, "recipe_outputs": {"papyrus_sheet": 2}}
 	}
 	campaign.record_craft("bronze_tools")
-	for entity_id: String in ["DWELLING", "SAWMILL", "GRAIN_FARM", "BAKERY", "BREWERY", "KITCHEN", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP", "SHRINE"]: campaign.record_completion(entity_id)
+	campaign.record_pickup("egg")
+	campaign.record_pickup("milk")
+	for entity_id: String in ["DWELLING", "SAWMILL", "GRAIN_FARM", "CHICKEN_COOP", "BAKERY", "CATTLE_BARN", "BREWERY", "KITCHEN", "QUARRY", "COPPER_MINE", "COPPER_SMELTER", "WEAVER", "PAPYRUS_WORKSHOP", "SHRINE"]: campaign.record_completion(entity_id)
 	campaign.refresh(machines, [{}, {}, {}], null, {"v1": {}, "v2": {}, "v3": {}, "v4": {}})
 	_expect(campaign.is_complete(), "Full settlement loop should complete all campaign goals.", failures)
 	_expect(campaign.current_text().contains("DYNASTY ESTABLISHED"), "Completion should produce a clear outcome.", failures)

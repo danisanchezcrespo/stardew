@@ -12,6 +12,7 @@ var sprite_size := Vector2.ZERO
 var machine_running := false
 var machine_broken := false
 var effect_time := 0.0
+var visual: Dictionary = {}
 
 
 func set_machine_state(running: bool, broken: bool, delta: float) -> void:
@@ -21,8 +22,9 @@ func set_machine_state(running: bool, broken: bool, delta: float) -> void:
 	queue_redraw()
 
 
-func configure(type_id: String, cells: Array[Vector2i]) -> void:
+func configure(type_id: String, cells: Array[Vector2i], visual_data: Dictionary = {}) -> void:
 	definition_id = type_id
+	visual = visual_data.duplicate(true)
 	var minimum := cells[0]
 	var maximum := cells[0]
 	for cell: Vector2i in cells:
@@ -46,7 +48,16 @@ func _draw() -> void:
 	var economy_columns := {"GRAIN_FARM": 0, "BAKERY": 1, "BREWERY": 2, "KITCHEN": 3, "SAWMILL": 4}
 	var industry_columns := {"QUARRY": 0, "COPPER_MINE": 1, "COPPER_SMELTER": 2, "WEAVER": 3, "PAPYRUS_WORKSHOP": 4}
 	var destination := Rect2(Vector2(-sprite_size.x * 0.5, -sprite_size.y), sprite_size)
-	if industry_columns.has(definition_id):
+	if not visual.is_empty() and not str(visual.get("texture", "")).is_empty():
+		var texture := load(str(visual.texture)) as Texture2D
+		var columns_count := maxi(1, int(visual.get("columns", 1)))
+		var rows_count := maxi(1, int(visual.get("rows", 1)))
+		var column := int(visual.get("column", 0))
+		var row := int(visual.get("row", 0))
+		if visual.has("scale"): destination = Rect2(destination.position * float(visual.scale), destination.size * float(visual.scale))
+		var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
+		draw_texture_rect_region(texture, destination, Rect2(Vector2(column, row) * region_size, region_size))
+	elif industry_columns.has(definition_id):
 		var cell_width := INDUSTRY_TEXTURE.get_width() / 5.0
 		draw_texture_rect_region(INDUSTRY_TEXTURE, destination, Rect2(int(industry_columns[definition_id]) * cell_width, 0, cell_width, INDUSTRY_TEXTURE.get_height()))
 	elif economy_columns.has(definition_id):

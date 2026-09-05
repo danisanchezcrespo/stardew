@@ -118,6 +118,16 @@
       "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1],"input":[-1,0],"output":[2,1]}}
     },
     {
+      "id":"CHICKEN_COOP","label":"Chicken Coop","color":"#b9874f","construction_cost":{"planks":6,"mud_bricks":4},"construction_work_seconds":5.0,"workers_required":1,"profession":"animal_keeper","dependent_spawns":["chicken"],
+      "visual":{"texture":"res://assets/generated/buildings/egypt_economy_buildings_sheet.png","columns":5,"column":0},
+      "spatial":{"footprint":[[0,0],[1,0],[0,1],[1,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[0,-1]}}
+    },
+    {
+      "id":"CATTLE_BARN","label":"Cattle Barn","color":"#9b6a43","construction_cost":{"planks":10,"mud_bricks":8},"construction_work_seconds":7.0,"workers_required":1,"profession":"animal_keeper","dependent_spawns":["cow"],
+      "visual":{"texture":"res://assets/generated/buildings/egypt_economy_buildings_sheet.png","columns":5,"column":1},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1]}}
+    },
+    {
       "id": "TREE_CROP", "label": "Tree Seed", "color": "#73913a",
       "spatial": {"footprint": [[0,0]], "rotations": [0], "allowed_terrain": ["sand"], "ports": {"use": [0,0]}}
     }

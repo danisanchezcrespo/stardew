@@ -13,8 +13,8 @@ var gathered_wood := false # Backward-compatible save fields.
 var gathered_clay := false
 
 
-func _init() -> void:
-	load_from_path(DEFAULT_PATH)
+func _init(path: String = DEFAULT_PATH) -> void:
+	load_from_path(path)
 
 
 func load_from_path(path: String) -> Error:
@@ -60,6 +60,11 @@ func refresh(machines: Dictionary, routes: Array, world_grid: Variant = null, vi
 				if routes.size() >= int(objective.get("count", 1)): completed[str(objective.id)] = true
 			"population":
 				if villagers.size() >= int(objective.get("count", 1)): completed[str(objective.id)] = true
+			"staffed_count":
+				var staffed := 0
+				for villager: Variant in villagers.values():
+					if not villager.task.is_empty() and str(villager.task.get("type", "")) == "work": staffed += 1
+				if staffed >= int(objective.get("count", 1)): completed[str(objective.id)] = true
 			"produce":
 				for instance_id: String in machines:
 					var machine: Variant = machines[instance_id]
@@ -114,6 +119,7 @@ func current_hint() -> String:
 		"produce": return "Supply the matching workshop; production continues while you explore."
 		"population": return "Each completed house welcomes two settlers."
 		"route_count": return "Select a villager, assign transport, then choose source and destination."
+		"staffed_count": return "Select a resident, choose Assign work, then select a completed workstation."
 	return "Grow the settlement one deliberate step at a time."
 
 
