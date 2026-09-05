@@ -2,6 +2,7 @@ extends SceneTree
 
 const ScenarioType = preload("res://world/scenario/physical_scenario.gd")
 const MainScene = preload("res://gameplay/main_game.tscn")
+const TimeTravelStateType = preload("res://world/time_travel/time_travel_state.gd")
 
 
 func _initialize() -> void:
@@ -16,6 +17,9 @@ func _capture() -> void:
 		return
 	ScenarioType.requested_path = str(args[0])
 	ScenarioType.requested_autostart = true
+	if args.size() > 5 and str(args[5]) == "dialogue":
+		TimeTravelStateType.persistence_enabled = false
+		TimeTravelStateType.loaded = false
 	var game := MainScene.instantiate()
 	root.add_child(game)
 	await process_frame

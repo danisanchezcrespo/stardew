@@ -4,6 +4,7 @@ extends RefCounted
 const SAVE_PATH := "user://time_traveler_meta.json"
 const CATALOG_PATH := "res://world/time_travel/artifacts.json"
 const DIALOGUE_PATH := "res://world/time_travel/dialogues.json"
+const DIALOGUE_SAVE_VERSION := 2
 const PORTAL_THRESHOLDS := [0, 3, 8, 15]
 const ERA_PATHS := {
 	"prehistory":"res://scenarios/physical/prehistory.json",
@@ -136,7 +137,7 @@ static func save_meta() -> Error:
 	if not persistence_enabled: return OK
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null: return FileAccess.get_open_error()
-	file.store_string(JSON.stringify({"version":1,"portals":portal_bindings,"available":available_artifacts,"collected":collected_artifacts,"carried":carried_artifacts,"exhibited":exhibited_artifacts,"story":story_chapters_seen,"dialogues":dialogue_seen}))
+	file.store_string(JSON.stringify({"version":1,"dialogue_version":DIALOGUE_SAVE_VERSION,"portals":portal_bindings,"available":available_artifacts,"collected":collected_artifacts,"carried":carried_artifacts,"exhibited":exhibited_artifacts,"story":story_chapters_seen,"dialogues":dialogue_seen}))
 	return OK
 
 
@@ -156,7 +157,9 @@ static func load_meta() -> Error:
 	for value: Variant in data.get("carried", []): carried_artifacts.append(str(value))
 	exhibited_artifacts = data.get("exhibited", {}).duplicate(true)
 	story_chapters_seen = data.get("story", {}).duplicate(true)
-	dialogue_seen = data.get("dialogues", {}).duplicate(true)
+	# Dialogue v1 could mark lines as seen during capture/queueing before they
+	# were ever presented. Replay the narrative once after upgrading that save.
+	dialogue_seen = data.get("dialogues", {}).duplicate(true) if int(data.get("dialogue_version", 0)) == DIALOGUE_SAVE_VERSION else {}
 	return OK
 
 
