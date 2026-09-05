@@ -19,6 +19,10 @@ func _initialize() -> void:
 	_expect(is_equal_approx(game.camera.zoom.x, 2.0), "Zoom in should clamp at 2x.", failures)
 	game.adjust_camera_zoom(-20)
 	_expect(is_equal_approx(game.camera.zoom.x, 0.75), "Zoom out should clamp at 0.75x.", failures)
+	game.set_scenario_select_open(false)
+	game.set_pause_open(true)
+	game._back_to_main_menu()
+	_expect(game.scenario_select_open and not game.pause_open, "Back to main menu should open the era selector and close pause.", failures)
 	game_root.queue_free()
 	await process_frame
 	if failures.is_empty():

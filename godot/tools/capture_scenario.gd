@@ -22,7 +22,8 @@ func _capture() -> void:
 	await process_frame
 	game.camera.zoom = Vector2.ONE * (float(args[2]) if args.size() > 2 else 1.5)
 	# Frame a representative gameplay area instead of the empty map edge.
-	game.player.position = Vector2(12.0, 8.0) * game.CELL_SIZE
+	var capture_cell := Vector2(float(args[3]), float(args[4])) if args.size() > 4 else Vector2(12.0, 8.0)
+	game.player.position = capture_cell * game.CELL_SIZE
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()

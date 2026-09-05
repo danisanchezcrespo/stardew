@@ -21,6 +21,12 @@ godot/assets/generated/**/*_v2.png
 godot/assets/generated/**/*_v2.png.import
 *_source.png
 *_source.png.import
+*_chroma.png
+*_chroma.png.import
+*_clean.png
+*_clean.png.import
+*_packed.png
+*_packed.png.import
 
 # Python cache files from the legacy reference implementation
 __pycache__/

@@ -703,7 +703,7 @@ func _emit_action(action: String) -> void:
 func _build_pause_panel(layer: CanvasLayer) -> void:
 	pause_panel = ColorRect.new()
 	pause_panel.position = Vector2(430, 118)
-	pause_panel.size = Vector2(420, 500)
+	pause_panel.size = Vector2(420, 554)
 	pause_panel.color = Color(0.05, 0.06, 0.08, 0.97)
 	pause_panel.visible = false
 	layer.add_child(pause_panel)
@@ -728,6 +728,7 @@ func _build_pause_panel(layer: CanvasLayer) -> void:
 		{"label": "Load last save", "call": func() -> void: _load_from_menu(_manual_save_path())},
 		{"label": "Load autosave", "call": func() -> void: _load_from_menu(_autosave_path())},
 		{"label": "Toggle fullscreen", "call": func() -> void: toggle_fullscreen()},
+		{"label": "Back to main menu", "call": func() -> void: _back_to_main_menu()},
 		{"label": "Quit to desktop", "call": func() -> void: get_tree().quit()}
 	]
 	for index in range(actions.size()):
@@ -855,6 +856,11 @@ func _load_from_menu(path: String) -> void:
 	PhysicalSaveCodecType.pending_reload = true
 	PhysicalSaveCodecType.pending_reload_path = path
 	get_tree().reload_current_scene()
+
+
+func _back_to_main_menu() -> void:
+	set_pause_open(false)
+	set_scenario_select_open(true)
 
 
 func _manual_save_path() -> String:

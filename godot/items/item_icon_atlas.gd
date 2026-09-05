@@ -8,6 +8,7 @@ const INDUSTRY_TEXTURE = preload("res://assets/generated/items/egypt_industry_it
 const MARS_TEXTURE = preload("res://assets/generated/mars/mars_items.png")
 const PREHISTORY_TEXTURE = preload("res://assets/generated/prehistory/prehistory_content.png")
 const MEDIEVAL_TEXTURE = preload("res://assets/generated/medieval/medieval_content.png")
+const MEDIEVAL_RESOURCE_TEXTURE = preload("res://assets/generated/medieval/medieval_resources.png")
 const CELLS := {
 	"wood": Vector2i(0, 0), "clay": Vector2i(1, 0), "grain": Vector2i(2, 0),
 	"mud_bricks": Vector2i(0, 1), "storage_crate": Vector2i(1, 1), "brick_kiln_plan": Vector2i(2, 1),
@@ -40,13 +41,13 @@ const PREHISTORY_CELLS := {
 const MEDIEVAL_CELLS := {
 	"wheat": Vector2i(2, 1), "flour": Vector2i(3, 1), "iron_ore_medieval": Vector2i(0, 2),
 	"iron_tools": Vector2i(1, 2), "coin": Vector2i(2, 2), "loaf": Vector2i(3, 2),
-	"oak_wood": Vector2i(0, 3), "field_stone": Vector2i(1, 3),
 	"granary_plan": Vector2i(0, 0), "cottage_plan": Vector2i(1, 0), "windmill_plan": Vector2i(2, 0),
 	"forge_plan": Vector2i(3, 0), "market_plan": Vector2i(0, 1), "keep_plan": Vector2i(1, 1),
 }
 
 static func texture(item_id: String) -> Texture2D:
 	if item_id == "tree_seed": return CROP_TEXTURE
+	if item_id == "oak_wood" or item_id == "field_stone": return MEDIEVAL_RESOURCE_TEXTURE
 	if PREHISTORY_CELLS.has(item_id): return PREHISTORY_TEXTURE
 	if MEDIEVAL_CELLS.has(item_id): return MEDIEVAL_TEXTURE
 	if MARS_CELLS.has(item_id): return MARS_TEXTURE
@@ -55,6 +56,8 @@ static func texture(item_id: String) -> Texture2D:
 
 static func region(item_id: String) -> Rect2:
 	var atlas := texture(item_id)
+	if item_id == "oak_wood" or item_id == "field_stone":
+		return Rect2(0 if item_id == "oak_wood" else 128, 0, 128, 128)
 	if item_id == "tree_seed":
 		return Rect2(0, 0, atlas.get_width() / 4.0, atlas.get_height())
 	var cell: Vector2i = MEDIEVAL_CELLS.get(item_id, PREHISTORY_CELLS.get(item_id, MARS_CELLS.get(item_id, INDUSTRY_CELLS.get(item_id, ECONOMY_CELLS.get(item_id, CELLS.get(item_id, Vector2i.ZERO))))))
