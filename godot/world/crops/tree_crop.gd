@@ -1,7 +1,7 @@
 class_name TreeCrop
 extends Node2D
 
-const GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_sheet.png")
+const GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_v2.png")
 const STAGE_SECONDS := 60.0
 var stable_id := ""
 var target_kind := "crop"

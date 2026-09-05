@@ -48,12 +48,16 @@ func _test_main_scene_and_collision(failures: Array[String]) -> void:
 	var camera: Camera2D = player.get_node("Camera2D")
 	_expect(camera.limit_right == 1600 and camera.limit_bottom == 960, "Camera should be constrained to the authored world.", failures)
 
-	player.position = Vector2(1076, 176)
+	var water_cell := Vector2i.ZERO
+	for candidate: Vector2i in game.water_cells:
+		if not game.water_cells.has(candidate + Vector2i.LEFT): water_cell = candidate; break
+	var water_left := float(water_cell.x * game.CELL_SIZE)
+	player.position = Vector2(water_left - 12.0, water_cell.y * game.CELL_SIZE + 16.0)
 	Input.action_press("move_right")
 	for _index in range(6):
 		await physics_frame
 	Input.action_release("move_right")
-	_expect(player.position.x <= 1078.1, "Player should not cross into water collision.", failures)
+	_expect(player.position.x <= water_left - 9.9, "Player should not cross into water collision.", failures)
 
 	player.position = Vector2(12, 300)
 	Input.action_press("move_left")

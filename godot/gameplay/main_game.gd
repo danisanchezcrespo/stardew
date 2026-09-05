@@ -25,9 +25,11 @@ const VillagerType = preload("res://world/population/villager.gd")
 const ItemIconAtlasType = preload("res://items/item_icon_atlas.gd")
 const WorldOverlayType = preload("res://world/interaction/world_overlay.gd")
 const TreeCropType = preload("res://world/crops/tree_crop.gd")
-const SAND_TEXTURE = preload("res://assets/generated/terrain/sand_tile.png")
-const WATER_TEXTURE = preload("res://assets/generated/terrain/water_tile.png")
-const TREE_GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_sheet.png")
+const SAND_TEXTURE = preload("res://assets/generated/terrain/sand_v2.png")
+const WATER_TEXTURE = preload("res://assets/generated/terrain/water_v2.png")
+const SHORELINE_TEXTURE = preload("res://assets/generated/terrain/shoreline_v2.png")
+const SHORELINE_CORNER_TEXTURE = preload("res://assets/generated/terrain/shoreline_inner_corners_v2.png")
+const TREE_GROWTH_TEXTURE = preload("res://assets/generated/crops/tree_growth_v2.png")
 
 const CELL_SIZE := 32
 const WORLD_SIZE := Vector2i(50, 30)
@@ -360,9 +362,14 @@ func _unhandled_input(event: InputEvent) -> void:
 func _build_terrain() -> void:
 	world_grid = WorldGridType.new(WORLD_SIZE, "sand")
 	for values: Array in scenario.water_rects:
-		for y in range(int(values[1]), int(values[1]) + int(values[3])):
-			for x in range(int(values[0]), int(values[0]) + int(values[2])):
-				water_cells[Vector2i(x, y)] = true
+		var origin_x := int(values[0]); var origin_y := int(values[1])
+		var width := int(values[2]); var height := int(values[3])
+		for local_y in range(height):
+			var shift := roundi(sin(float(local_y + origin_y) * 0.72) * 0.85) if width >= 4 and height >= 4 else 0
+			var end_rounding := maxi(0, 2 - mini(local_y, height - 1 - local_y)) if width >= 5 and height >= 4 else 0
+			for local_x in range(end_rounding, width - end_rounding):
+				var cell := Vector2i(origin_x + local_x + shift, origin_y + local_y)
+				if world_grid.contains(cell): water_cells[cell] = true
 	for gap: Vector2i in scenario.water_gaps:
 		water_cells.erase(gap)
 	for cell: Vector2i in water_cells:
@@ -2109,10 +2116,9 @@ func _draw() -> void:
 			var cell := Vector2i(x, y)
 			var rect := Rect2(Vector2(cell * CELL_SIZE), Vector2.ONE * CELL_SIZE)
 			var terrain_texture: Texture2D = WATER_TEXTURE if water_cells.has(cell) else SAND_TEXTURE
-			var sample_size := Vector2(64, 64)
-			var sample_x := float((x * 53 + y * 17) % maxi(1, terrain_texture.get_width() - 64))
-			var sample_y := float((y * 47 + x * 11) % maxi(1, terrain_texture.get_height() - 64))
-			draw_texture_rect_region(terrain_texture, rect, Rect2(Vector2(sample_x, sample_y), sample_size))
+			var source_position := Vector2((x * CELL_SIZE) % terrain_texture.get_width(), (y * CELL_SIZE) % terrain_texture.get_height())
+			draw_texture_rect_region(terrain_texture, rect, Rect2(source_position, Vector2.ONE * CELL_SIZE))
+			if water_cells.has(cell): _draw_shoreline(cell, rect)
 	if world_grid != null:
 		for placed: Variant in world_grid.entities_by_id.values():
 			if placed.definition_id == "TREE_CROP": continue
@@ -2150,6 +2156,21 @@ func _draw() -> void:
 		var source_target: Variant = placed_targets.get(route_source_id)
 		if source_target != null:
 			draw_circle(source_target.global_position, 23.0, Color("#ffe27a"), false, 4.0)
+
+
+func _draw_shoreline(cell: Vector2i, destination: Rect2) -> void:
+	var bits := 0
+	if not water_cells.has(cell + Vector2i.UP): bits |= 1
+	if not water_cells.has(cell + Vector2i.RIGHT): bits |= 2
+	if not water_cells.has(cell + Vector2i.DOWN): bits |= 4
+	if not water_cells.has(cell + Vector2i.LEFT): bits |= 8
+	if bits > 0:
+		draw_texture_rect_region(SHORELINE_TEXTURE, destination, Rect2((bits % 4) * 64, floori(bits / 4.0) * 64, 64, 64))
+	var diagonals := [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(1, 1), Vector2i(-1, 1)]
+	var adjacent_pairs := [[Vector2i.UP, Vector2i.LEFT], [Vector2i.UP, Vector2i.RIGHT], [Vector2i.DOWN, Vector2i.RIGHT], [Vector2i.DOWN, Vector2i.LEFT]]
+	for index in range(4):
+		if not water_cells.has(cell + diagonals[index]) and water_cells.has(cell + adjacent_pairs[index][0]) and water_cells.has(cell + adjacent_pairs[index][1]):
+			draw_texture_rect_region(SHORELINE_CORNER_TEXTURE, destination, Rect2(index * 64, 0, 64, 64))
 
 
 func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost: bool = false, valid: bool = true) -> void:

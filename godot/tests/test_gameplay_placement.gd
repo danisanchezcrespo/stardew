@@ -75,14 +75,21 @@ func _test_invalid_placement_preserves_inventory(failures: Array[String]) -> voi
 	var crate_slot: int = _craft_crate(game)
 	game.select_quick_slot(crate_slot)
 	game.begin_placement()
-	game.player.position = Vector2(33.5, 5.5) * game.CELL_SIZE
-	game.placement_cursor = Vector2i(34, 5)
+	var water_cell := Vector2i.ZERO
+	var player_cell := Vector2i.ZERO
+	for candidate: Vector2i in game.water_cells:
+		for direction in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if game.world_grid.contains(candidate + direction) and not game.water_cells.has(candidate + direction):
+				water_cell = candidate; player_cell = candidate + direction; break
+		if water_cell != Vector2i.ZERO: break
+	game.player.position = Vector2(player_cell) * game.CELL_SIZE + Vector2.ONE * 16.0
+	game.placement_cursor = water_cell
 	_expect(not game.confirm_placement(), "Water cell should reject a crate.", failures)
 	_expect(game.inventory.count("storage_crate") == 1, "Rejected terrain must not consume inventory.", failures)
-	game.placement_cursor = Vector2i(45, 5)
+	game.placement_cursor = player_cell + Vector2i(10, 0)
 	_expect(not game.confirm_placement(), "Remote cell should reject local placement.", failures)
 	_expect(game.inventory.count("storage_crate") == 1, "Out-of-range placement must not consume inventory.", failures)
-	game.placement_cursor = Vector2i(33, 5)
+	game.placement_cursor = player_cell
 	_expect(not game.confirm_placement(), "Player cell should reject placement.", failures)
 	_expect(game.inventory.count("storage_crate") == 1, "Player overlap must not consume inventory.", failures)
 	game_root.queue_free()
