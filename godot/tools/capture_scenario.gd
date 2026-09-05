@@ -29,7 +29,7 @@ func _capture() -> void:
 		elif str(args[5]) == "dialogue":
 			game._close_splash()
 			if not game.dialogue_open:
-				game.dialogue_queue.append({"id":"qa_preview", "speaker":"THE TIME TRAVELER", "text":"I am a traveler through time. These portals lead to civilizations that need my help—and to fragments of a past I can no longer remember."})
+				game.dialogue_queue.append({"id":"qa_preview", "speaker":"THE TIME TRAVELER", "text":"I am a traveler through time. These portals lead to civilizations that need my help - and to fragments of a past I can no longer remember."})
 				game._show_next_dialogue()
 	await process_frame
 	await RenderingServer.frame_post_draw

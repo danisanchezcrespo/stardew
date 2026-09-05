@@ -1,6 +1,6 @@
 {
   "id":"mars_colony",
-  "label":"Mars Colony — Sol 1",
+  "label":"Mars Colony - Sol 1",
   "save_key":"mars_colony",
   "campaign_path":"res://world/progression/mars_campaign.json",
   "items_path":"res://scenarios/mars/items.json",

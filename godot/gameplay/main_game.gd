@@ -245,6 +245,7 @@ func _ready() -> void:
 	world_overlay = WorldOverlayType.new()
 	world_overlay.configure(self)
 	add_child(world_overlay)
+	GameThemeType.apply_pixel_font_tree(self)
 	if DisplayServer.get_name() != "headless" and not auto_start and scenario.scenario_id != "time_museum":
 		set_scenario_select_open(true)
 	if PhysicalSaveCodecType.pending_reload:
@@ -781,7 +782,7 @@ func _build_mobile_controls(layer: CanvasLayer) -> void:
 		var button := Button.new()
 		button.position = directions[action]
 		button.size = Vector2(62, 52)
-		button.text = {"move_left": "◀", "move_right": "▶", "move_up": "▲", "move_down": "▼"}[action]
+		button.text = {"move_left": "<", "move_right": ">", "move_up": "^", "move_down": "v"}[action]
 		button.modulate.a = 0.82
 		button.button_down.connect(func() -> void: Input.action_press(action))
 		button.button_up.connect(func() -> void: Input.action_release(action))
@@ -1004,9 +1005,9 @@ func _refresh_collection_panel() -> void:
 		for entry: Dictionary in TimeTravelStateType.catalog.get("artifacts", []):
 			var artifact_id := str(entry.id); var exhibited: bool = TimeTravelStateType.exhibited_artifacts.has(artifact_id)
 			var row := HBoxContainer.new(); row.custom_minimum_size = Vector2(520, 38); collection_list.add_child(row)
-			var marker := Label.new(); marker.custom_minimum_size = Vector2(40, 34); marker.text = "◆" if exhibited else "◇"; marker.add_theme_font_size_override("font_size", 24); row.add_child(marker)
-			var label := Label.new(); label.custom_minimum_size = Vector2(450, 34); label.text = "%s · %s" % [str(entry.label) if exhibited else "Unknown artifact", _era_label(str(entry.era)) if exhibited else "Undiscovered"]; label.modulate = Color.WHITE if exhibited else Color(0.4,0.45,0.5); row.add_child(label)
-		collection_feedback_label.text = "%d / 20 artifacts exhibited · Recover them in the eras and place them at the central archive." % TimeTravelStateType.exhibited_artifacts.size()
+			var marker := Label.new(); marker.custom_minimum_size = Vector2(40, 34); marker.text = "[X]" if exhibited else "[ ]"; marker.add_theme_font_size_override("font_size", 24); row.add_child(marker)
+			var label := Label.new(); label.custom_minimum_size = Vector2(450, 34); label.text = "%s - %s" % [str(entry.label) if exhibited else "Unknown artifact", _era_label(str(entry.era)) if exhibited else "Undiscovered"]; label.modulate = Color.WHITE if exhibited else Color(0.4,0.45,0.5); row.add_child(label)
+		collection_feedback_label.text = "%d / 20 artifacts exhibited - Recover them in the eras and place them at the central archive." % TimeTravelStateType.exhibited_artifacts.size()
 		return
 	for entry: Dictionary in meta_progression.collection_items():
 		var item_id := str(entry.item); var item: Variant = item_registry.get_item(item_id)
@@ -1017,7 +1018,7 @@ func _refresh_collection_panel() -> void:
 		label.modulate = Color.WHITE if meta_progression.donated_items.has(item_id) else Color(0.35, 0.35, 0.35)
 		row.add_child(label)
 	var progress: Vector2i = meta_progression.collection_progress()
-	collection_feedback_label.text = "%d / %d preserved · Select an inventory item and press Space to donate one." % [progress.x, progress.y]
+	collection_feedback_label.text = "%d / %d preserved - Select an inventory item and press Space to donate one." % [progress.x, progress.y]
 
 
 func donate_selected_item() -> bool:
@@ -1043,7 +1044,7 @@ func _build_day_summary_panel(layer: CanvasLayer) -> void:
 
 func _open_day_summary(summary: Dictionary) -> void:
 	day_summary_open = true; day_summary_panel.visible = true; player.movement_enabled = false
-	day_summary_label.text = "%s, Day %d · Year %d\n\nThe settlement gained 1 knowledge.\nMachines, crops and animals keep their progress." % [str(summary.season), int(summary.day), int(summary.year)]
+	day_summary_label.text = "%s, Day %d - Year %d\n\nThe settlement gained 1 knowledge.\nMachines, crops and animals keep their progress." % [str(summary.season), int(summary.day), int(summary.year)]
 	physical_save.save_to_path(self, _autosave_path())
 
 
@@ -1066,7 +1067,7 @@ func _build_portal_choice_panel(layer: CanvasLayer) -> void:
 	for era_id: String in ["prehistory","ancient_egypt","medieval","mars_colony"]:
 		var button := Button.new(); button.name = "Destination_%s" % era_id; button.position = Vector2(65, 92 + index * 92); button.size = Vector2(530, 72)
 		button.text = "%s\n%s" % [labels[era_id], descriptions[era_id]]; button.pressed.connect(func() -> void: _bind_active_portal(era_id)); portal_choice_panel.add_child(button); index += 1
-	var hint := Label.new(); hint.position = Vector2(55, 480); hint.size = Vector2(550, 30); hint.text = "This choice binds the portal permanently · Esc to decide later"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; portal_choice_panel.add_child(hint)
+	var hint := Label.new(); hint.position = Vector2(55, 480); hint.size = Vector2(550, 30); hint.text = "This choice binds the portal permanently - Esc to decide later"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; portal_choice_panel.add_child(hint)
 
 
 func _build_museum_story_panel(layer: CanvasLayer) -> void:
@@ -1171,7 +1172,7 @@ func _refresh_portals() -> void:
 	for slot: int in portal_nodes:
 		var era_id := str(TimeTravelStateType.portal_bindings[slot])
 		var powered: bool = TimeTravelStateType.portal_is_powered(slot)
-		var label := "Unbound portal" if era_id.is_empty() and powered else ("Dormant portal · %d artifacts needed" % int(TimeTravelStateType.PORTAL_THRESHOLDS[slot]) if era_id.is_empty() else _era_label(era_id))
+		var label := "Unbound portal" if era_id.is_empty() and powered else ("Dormant portal - %d artifacts needed" % int(TimeTravelStateType.PORTAL_THRESHOLDS[slot]) if era_id.is_empty() else _era_label(era_id))
 		portal_nodes[slot].configure(slot, label, powered, era_id)
 
 
@@ -1212,7 +1213,7 @@ func _sync_artifact_nodes() -> void:
 
 func _collect_time_artifact(artifact_node: Variant) -> void:
 	if not TimeTravelStateType.collect_artifact(artifact_node.artifact_id): return
-	interaction_label.text = "%s recovered · carry it back through the portal" % artifact_node.label
+	interaction_label.text = "%s recovered - carry it back through the portal" % artifact_node.label
 	time_targets.erase(artifact_node); artifact_nodes.erase(artifact_node.artifact_id); artifact_node.queue_free(); interaction_target = null
 
 
@@ -1244,7 +1245,7 @@ func _museum_objective_text() -> String:
 	for slot in range(4):
 		if TimeTravelStateType.portal_bindings[slot].is_empty():
 			next_text = "Next portal: %d / %d artifacts" % [count, int(TimeTravelStateType.PORTAL_THRESHOLDS[slot])]; break
-	return "MUSEUM OF THE TIME TRAVELER · %d / 20 artifacts\n%s · Carrying %d" % [count, next_text, TimeTravelStateType.carried_artifacts.size()]
+	return "MUSEUM OF THE TIME TRAVELER - %d / 20 artifacts\n%s - Carrying %d" % [count, next_text, TimeTravelStateType.carried_artifacts.size()]
 
 
 func set_logistics_open(value: bool) -> void:
@@ -1263,7 +1264,7 @@ func _refresh_logistics_panel() -> void:
 		var worker: Variant = villagers.get(route.villager_id)
 		var item: Variant = item_registry.get_item(route.item_id)
 		var state_text: String = "paused" if not route.enabled else (worker.status_text() if worker != null else "worker missing")
-		logistics_list.add_item("%s  ·  %s  ·  %s" % [worker.villager_name if worker != null else "Unassigned", item.label if item != null else route.item_id, state_text])
+		logistics_list.add_item("%s  -  %s  -  %s" % [worker.villager_name if worker != null else "Unassigned", item.label if item != null else route.item_id, state_text])
 	if logistics_routes.is_empty():
 		logistics_detail.text = "No routes yet.\n\nSelect a villager, choose Assign transport, then click a source and a destination."
 		return
@@ -1279,7 +1280,7 @@ func _select_route(index: int) -> void:
 	var source: Variant = placed_targets.get(route.source_id)
 	var destination: Variant = placed_targets.get(route.destination_id)
 	var worker: Variant = villagers.get(route.villager_id)
-	logistics_detail.text = "%s\n\n%s  →  %s\nResource: %s\nTrips completed: %d\n\nStatus: %s" % [worker.villager_name if worker != null else "Missing worker", source.item_label if source != null else "Missing source", destination.item_label if destination != null else "Missing destination", item_registry.get_item(route.item_id).label, route.trips_completed, "Paused" if not route.enabled else (worker.status_text() if worker != null else "Blocked")]
+	logistics_detail.text = "%s\n\n%s  ->  %s\nResource: %s\nTrips completed: %d\n\nStatus: %s" % [worker.villager_name if worker != null else "Missing worker", source.item_label if source != null else "Missing source", destination.item_label if destination != null else "Missing destination", item_registry.get_item(route.item_id).label, route.trips_completed, "Paused" if not route.enabled else (worker.status_text() if worker != null else "Blocked")]
 
 
 func _toggle_selected_route() -> void:
@@ -1386,7 +1387,7 @@ func _build_scenario_panel(layer: CanvasLayer) -> void:
 	var shortcut := Label.new()
 	shortcut.position = Vector2(80, 510)
 	shortcut.size = Vector2(620, 28)
-	shortcut.text = "Keyboard: 1 Prehistory  ·  2 Egypt  ·  3 Medieval  ·  4 Mars"
+	shortcut.text = "Keyboard: 1 Prehistory  -  2 Egypt  -  3 Medieval  -  4 Mars"
 	shortcut.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shortcut.add_theme_color_override("font_color", Color("#f0cc72"))
 	scenario_panel.add_child(shortcut)
@@ -1461,9 +1462,9 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_appearance_option = OptionButton.new()
 	villager_appearance_option.position = Vector2(22, 106)
 	villager_appearance_option.size = Vector2(376, 36)
-	var appearance_names: Array[String] = ["Woman · Nile blue", "Man · Nile blue", "Woman · Desert ochre", "Man · Desert ochre", "Woman · Reed green", "Man · Reed green"]
+	var appearance_names: Array[String] = ["Woman - Nile blue", "Man - Nile blue", "Woman - Desert ochre", "Man - Desert ochre", "Woman - Reed green", "Man - Reed green"]
 	if not scenario.character_sheet_paths.is_empty():
-		appearance_names = ["Man · Azure", "Woman · Azure", "Man · Ochre", "Woman · Ochre", "Man · Green", "Woman · Green"]
+		appearance_names = ["Man - Azure", "Woman - Azure", "Man - Ochre", "Woman - Ochre", "Man - Green", "Woman - Green"]
 	for option_name: String in appearance_names:
 		villager_appearance_option.add_item(option_name)
 	villager_appearance_option.item_selected.connect(_change_selected_villager_appearance)
@@ -1635,7 +1636,7 @@ func _update_building_details() -> void:
 	if placed == null: close_building_details(); return
 	var definition: Variant = placement_registry.get_entity(placed.definition_id)
 	var building_level: int = meta_progression.building_level(building_details_id)
-	building_details_title.text = "%s · L%d" % [definition.label, building_level]
+	building_details_title.text = "%s - L%d" % [definition.label, building_level]
 	var site: Variant = construction_by_entity_id.get(building_details_id)
 	building_upgrade_button.visible = site == null or site.complete
 	building_upgrade_button.disabled = building_level >= 3
@@ -1660,7 +1661,7 @@ func _update_building_details() -> void:
 		building_details_controls.text = "Space: %s    Esc: close" % ("deliver shown materials" if not deliverable.is_empty() else ("start building" if site.materials_complete() else "select a required material"))
 		return
 	construction_delivery_popup.visible = false
-	building_details_controls.text = "Upgrade levels improve output speed by 25% · Esc: close"
+	building_details_controls.text = "Upgrade levels improve output speed by 25% - Esc: close"
 	if storage_by_entity_id.has(building_details_id):
 		var rows: Array[String] = []
 		for slot: Dictionary in storage_by_entity_id[building_details_id].slots:
@@ -1684,7 +1685,7 @@ func _update_building_details() -> void:
 		var resident_rows: Array[String] = []
 		for villager: Variant in villagers.values():
 			if villager.home_id == building_details_id:
-				resident_rows.append("• %s — %s | Hunger %d%% | Energy %d%%" % [villager.villager_name, villager.status_text(), roundi(villager.hunger), roundi(villager.energy)])
+				resident_rows.append("- %s - %s | Hunger %d%% | Energy %d%%" % [villager.villager_name, villager.status_text(), roundi(villager.hunger), roundi(villager.energy)])
 		building_details_body.text = "HOME\n\nBeds: %d / %d occupied\n\nResidents\n%s\n\nHealth: good" % [resident_rows.size(), definition.population_capacity, "\n".join(resident_rows) if not resident_rows.is_empty() else "None"]
 		return
 	building_details_body.text = "Status: complete\n\nHealth: good\n\nNo active production."
@@ -1749,10 +1750,10 @@ func _update_villager_panel() -> void:
 		var resource: Variant = item_registry.get_item(str(villager.task.item))
 		var source_target: Variant = placed_targets.get(str(villager.task.source))
 		var destination_target: Variant = placed_targets.get(str(villager.task.destination))
-		task_text = "Carry %s\n%s → %s" % [resource.label if resource != null else str(villager.task.item), source_target.item_label if source_target != null else str(villager.task.source), destination_target.item_label if destination_target != null else str(villager.task.destination)]
+		task_text = "Carry %s\n%s -> %s" % [resource.label if resource != null else str(villager.task.item), source_target.item_label if source_target != null else str(villager.task.source), destination_target.item_label if destination_target != null else str(villager.task.destination)]
 	var skill_seconds := float(villager.experience.get(villager.profession, 0.0))
 	var level := 1 + floori(skill_seconds / 120.0)
-	villager_status_label.text = "Home: %s\nStatus: %s\nRole: %s · level %d\nHunger %d%%  Energy %d%%\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), villager.profession.capitalize(), level, roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
+	villager_status_label.text = "Home: %s\nStatus: %s\nRole: %s - level %d\nHunger %d%%  Energy %d%%\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), villager.profession.capitalize(), level, roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
 
 
 func _change_selected_villager_appearance(index: int) -> void:
@@ -1967,7 +1968,7 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	layer.add_child(crafting_panel)
 	var title := Label.new()
 	title.position = Vector2(24, 20)
-	title.text = "WORKBENCH — CHOOSE A RECIPE"
+	title.text = "WORKBENCH - CHOOSE A RECIPE"
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Color("#3b281b"))
 	crafting_panel.add_child(title)
@@ -2335,10 +2336,10 @@ func craft_selected_recipe() -> bool:
 	var recipe_id: String = recipe_registry.recipe_order[selected_recipe_index]
 	var recipe: Variant = recipe_registry.get_recipe(recipe_id)
 	if not campaign.is_unlocked(recipe.unlock_after):
-		_update_crafting_ui("Locked — advance the current campaign chapter first.")
+		_update_crafting_ui("Locked - advance the current campaign chapter first.")
 		return false
 	if not meta_progression.recipe_unlocked(recipe_id):
-		_update_crafting_ui("Locked — discover it in the Technology Tree (T).")
+		_update_crafting_ui("Locked - discover it in the Technology Tree (T).")
 		return false
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
 	if result.valid:
@@ -2369,7 +2370,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		var unlocked: bool = campaign.is_unlocked(recipe.unlock_after) and meta_progression.recipe_unlocked(recipe.recipe_id)
 		var available: bool = unlocked and crafting.query(inventory, recipe.recipe_id).valid
 		var text_color := Color("#fffaf0") if available else (Color("#777777") if unlocked else Color("#665e58"))
-		button.text = "%s%d.  %s" % ["▶ " if index == selected_recipe_index else "   ", index + 1, recipe.label]
+		button.text = "%s%d.  %s" % ["> " if index == selected_recipe_index else "   ", index + 1, recipe.label]
 		button.modulate = Color.WHITE
 		button.add_theme_color_override("font_color", text_color)
 		button.add_theme_color_override("font_hover_color", text_color)
@@ -2402,7 +2403,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 			crafting_resource_icons[icon_index].visible = true
 			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
-	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED — advance the campaign or Technology Tree (T)"
+	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED - advance the campaign or Technology Tree (T)"
 	if not feedback.is_empty():
 		status = feedback
 	crafting_detail_label.text = "[color=#3b281b]%s\n\nNeeds:\n[/color]%s[color=#3b281b]\n\nProduces:\n%s\n\n%s[/color]" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
@@ -2717,7 +2718,7 @@ func interact_with_dependent(actor: Variant) -> int:
 	var consumed: int = actor.feed(selected_item, inventory.count(selected_item))
 	if consumed > 0:
 		inventory.remove(selected_item, consumed)
-		interaction_label.text = "%s cared for · food %d%% · water %d%%" % [actor.display_name, roundi(actor.hunger), roundi(actor.thirst)]
+		interaction_label.text = "%s cared for - food %d%% - water %d%%" % [actor.display_name, roundi(actor.hunger), roundi(actor.thirst)]
 		_update_inventory_hud()
 		return consumed
 	if actor.stored_product > 0:
@@ -2737,14 +2738,14 @@ func interact_with_dependent(actor: Variant) -> int:
 		dependents.erase(actor.stable_id)
 		actor.queue_free()
 		interaction_target = null
-		interaction_label.text = "%s · %d items recovered" % ["Hunt complete" if actor.wild else "Animal processed", produced]
+		interaction_label.text = "%s - %d items recovered" % ["Hunt complete" if actor.wild else "Animal processed", produced]
 		_update_inventory_hud()
 		return produced
 	if actor.is_mature() and (actor.wild or (not actor.required_tool.is_empty() and selected_item == actor.required_tool)):
 		actor.harvest_armed = true
-		interaction_label.text = actor.status_text() + (" · Space again to hunt" if actor.wild else " · Space again to process into meat")
+		interaction_label.text = actor.status_text() + (" - Space again to hunt" if actor.wild else " - Space again to process into meat")
 		return 0
-	interaction_label.text = actor.status_text() + " · select %s or %s to care" % [item_registry.get_item(actor.feed_item).label, item_registry.get_item(actor.drink_item).label]
+	interaction_label.text = actor.status_text() + " - select %s or %s to care" % [item_registry.get_item(actor.feed_item).label, item_registry.get_item(actor.drink_item).label]
 	return 0
 
 
@@ -3264,7 +3265,7 @@ func _update_storage_ui(feedback: String = "") -> void:
 	var level: int = meta_progression.building_level(active_storage_id)
 	storage_upgrade_button.text = "MAX LEVEL" if level >= 3 else "Upgrade L%d" % (level + 1)
 	storage_upgrade_button.disabled = level >= 3
-	storage_player_label.text = "▶  PLAYER" if storage_focus_side == 0 else "PLAYER"
+	storage_player_label.text = ">  PLAYER" if storage_focus_side == 0 else "PLAYER"
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
 		var selected := storage_focus_side == 0 and index == selected_slot
@@ -3273,7 +3274,7 @@ func _update_storage_ui(feedback: String = "") -> void:
 		storage_player_slot_labels[index].add_theme_color_override("font_color", Color.WHITE if selected else Color("#3b281b"))
 		if index < storage_player_icons.size(): _sync_item_icon(storage_player_icons[index], slot)
 	storage_player_label.add_theme_color_override("font_color", Color("#6b3e20") if storage_focus_side == 0 else Color("#3b281b"))
-	storage_contents_label.text = "▶  CRATE" if storage_focus_side == 1 else "CRATE"
+	storage_contents_label.text = ">  CRATE" if storage_focus_side == 1 else "CRATE"
 	for index in range(storage.slots.size()):
 		var selected := storage_focus_side == 1 and index == selected_storage_slot
 		storage_crate_rows[index].visible = true
@@ -3334,7 +3335,7 @@ func _try_upgrade_building(instance_id: String) -> bool:
 	if structure_visuals.has(instance_id): structure_visuals[instance_id].set_upgrade_level(new_level)
 	_update_inventory_hud(); _refresh_tech_panel()
 	if machine_open: _update_machine_panel()
-	elif storage_open: _update_storage_ui("Upgrade complete · Level %d" % new_level)
+	elif storage_open: _update_storage_ui("Upgrade complete - Level %d" % new_level)
 	elif building_details_open: _update_building_details()
 	interaction_label.text = "Building upgraded to level %d" % new_level
 	return true
@@ -3375,7 +3376,7 @@ func _update_population_hud() -> void:
 		var total_minutes := roundi(day_time_seconds / DAY_LENGTH_SECONDS * 24.0 * 60.0)
 		var people_word := str(scenario.terminology.get("people", "people"))
 		var event := active_environment_event()
-		var event_text := " | ⚠ %s" % str(event.label) if not event.is_empty() else ""
+		var event_text := " | WARNING: %s" % str(event.label) if not event.is_empty() else ""
 		population_label.text = "%d %s | %d assigned | %d meals | %s | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, meta_progression.calendar_text(), (total_minutes / 60) % 24, total_minutes % 60, event_text]
 
 

@@ -1,8 +1,6 @@
 class_name GameTheme
 extends RefCounted
 
-const REGULAR = preload("res://assets/fonts/AlegreyaSans-Regular.ttf")
-const BOLD = preload("res://assets/fonts/AlegreyaSans-Bold.ttf")
 const PIXEL = preload("res://assets/fonts/settlement_pixel_font.fnt")
 const INK := Color("#30241d")
 const CREAM := Color("#fff3d2")
@@ -12,6 +10,9 @@ const NIGHT := Color("#171b22")
 
 
 static func create(palette: Dictionary = {}) -> Theme:
+	# CanvasLayer UI and world-space labels do not necessarily share a Control
+	# ancestor, so make the project bitmap face the engine-wide fallback too.
+	ThemeDB.fallback_font = PIXEL
 	var ink: Color = Color(str(palette.get("ink", INK.to_html())))
 	var cream: Color = Color(str(palette.get("text", CREAM.to_html())))
 	var gold: Color = Color(str(palette.get("accent", GOLD.to_html())))
@@ -22,11 +23,14 @@ static func create(palette: Dictionary = {}) -> Theme:
 	# headings and body copy; hierarchy comes from size, not a second family.
 	result.default_font = PIXEL
 	result.default_font_size = 17
-	result.set_font("font", "Button", PIXEL)
-	result.set_font("font", "OptionButton", PIXEL)
+	# Godot does not consistently consult Theme.default_font once a control type
+	# defines its own font property. Bind every text-bearing control explicitly.
+	for control_type: String in ["Label", "Button", "OptionButton", "CheckBox", "CheckButton", "LineEdit", "TextEdit", "ItemList", "Tree", "PopupMenu", "MenuButton", "TabBar"]:
+		result.set_font("font", control_type, PIXEL)
+	for rich_font: String in ["normal_font", "bold_font", "italics_font", "bold_italics_font", "mono_font"]:
+		result.set_font(rich_font, "RichTextLabel", PIXEL)
 	result.set_font_size("font_size", "Button", 19)
 	result.set_font_size("font_size", "OptionButton", 18)
-	result.set_font("font", "LineEdit", PIXEL)
 	result.set_color("font_color", "Button", cream)
 	result.set_color("font_hover_color", "Button", Color.WHITE)
 	result.set_color("font_pressed_color", "Button", Color.WHITE)
@@ -65,6 +69,16 @@ static func emphasize_headings(node: Node) -> void:
 		if label.get_theme_font_size("font_size") >= 23:
 			label.add_theme_font_override("font", PIXEL)
 	for child: Node in node.get_children(): emphasize_headings(child)
+
+
+static func apply_pixel_font_tree(node: Node) -> void:
+	if node is Control:
+		(node as Control).add_theme_font_override("font", PIXEL)
+	if node is RichTextLabel:
+		var rich := node as RichTextLabel
+		for property_name: String in ["normal_font", "bold_font", "italics_font", "bold_italics_font", "mono_font"]:
+			rich.add_theme_font_override(property_name, PIXEL)
+	for child: Node in node.get_children(): apply_pixel_font_tree(child)
 
 
 static func _box(fill: Color, border: Color, width: int, radius: int) -> StyleBoxFlat:

@@ -39,7 +39,7 @@ func season_name() -> String:
 
 
 func calendar_text() -> String:
-	return "%s %d · Year %d" % [season_name(), day, year]
+	return "%s %d - Year %d" % [season_name(), day, year]
 
 
 func tech_nodes() -> Array:

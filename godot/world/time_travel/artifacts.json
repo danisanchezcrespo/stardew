@@ -26,7 +26,7 @@
   ],
   "story":[
     {"requires":1,"title":"The Empty Hall","text":"You remember cataloguing this object before. The museum was not abandoned when you found it; you were here when it closed."},
-    {"requires":3,"title":"A Deliberate Silence","text":"A recording bears your voice: ‘If I forget, let the civilizations choose what returns.’ You erased the collection yourself."},
+    {"requires":3,"title":"A Deliberate Silence","text":"A recording bears your voice: 'If I forget, let the civilizations choose what returns.' You erased the collection yourself."},
     {"requires":8,"title":"The First Intervention","text":"You once tried to perfect every age. Each correction created another fracture. The people in the portals remember different versions of you."},
     {"requires":15,"title":"The Other Traveler","text":"Someone traveled beside you. Every surviving record has removed their face, but not their shadow."},
     {"requires":20,"title":"Curator of Possible Worlds","text":"The museum never preserved one true history. It preserved the worlds people built after being given a choice. You returned to finish that promise."}

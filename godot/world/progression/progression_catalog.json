@@ -6,7 +6,7 @@
     "tech":[{"id":"memory","label":"Fragmented Memory","cost":0,"requires":[],"recipes":[]}]
   },
   "ancient_egypt": {
-    "seasons":["Akhet · Flood","Peret · Growing","Shemu · Harvest","Dry Season"],
+    "seasons":["Akhet - Flood","Peret - Growing","Shemu - Harvest","Dry Season"],
     "collection_name":"House of Records",
     "collection":[
       {"item":"clay","research":1},{"item":"grain","research":1},{"item":"papyrus_reeds","research":1},{"item":"flax","research":1},{"item":"mud_bricks","research":2},{"item":"bread","research":2},{"item":"beer","research":2},{"item":"limestone","research":2},{"item":"copper_ingot","research":3},{"item":"linen","research":3},{"item":"papyrus_sheet","research":3},{"item":"egg","research":2},{"item":"milk","research":2}

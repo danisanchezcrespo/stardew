@@ -231,7 +231,7 @@ func _move_to(target: Vector2, delta: float) -> bool:
 func status_text() -> String:
 	var result := state.capitalize().replace("_", " ")
 	if hunger <= 0.0 and not task.is_empty() and state != "seeking_food": result += " (starving; slowed)"
-	if not task_queue.is_empty(): result += "  ·  %d queued" % task_queue.size()
+	if not task_queue.is_empty(): result += "  -  %d queued" % task_queue.size()
 	return result
 
 

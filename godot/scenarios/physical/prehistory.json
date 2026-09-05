@@ -1,5 +1,5 @@
 {
- "id":"prehistory","label":"Prehistory — First Fire","save_key":"prehistory","campaign_path":"res://world/progression/prehistory_campaign.json",
+ "id":"prehistory","label":"Prehistory - First Fire","save_key":"prehistory","campaign_path":"res://world/progression/prehistory_campaign.json",
  "items_path":"res://scenarios/prehistory/items.json","recipes_path":"res://scenarios/prehistory/recipes.json","placeables_path":"res://scenarios/prehistory/placeables.json","food_item_id":"smoked_meat",
  "ground_texture":"res://assets/generated/prehistory/prehistory_ground.png","path_texture":"res://assets/generated/prehistory/prehistory_path.png","character_sheet":"res://assets/generated/prehistory/prehistory_hunter.png","character_sheets":["res://assets/generated/prehistory/prehistory_hunter.png","res://assets/generated/prehistory/prehistory_hunter_female.png"],
  "palette":{"ground":"#66803e","water":"#4b9bb5"},"terminology":{"people":"clan members","person":"clan member","water":"spring water","home":"shelter"},"resident_names":["Aru","Ena","Koro","Mara","Tuk","Sena","Orn","Luma"],
