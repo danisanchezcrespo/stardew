@@ -9,6 +9,7 @@ func _initialize() -> void:
 	var game: Node2D = root_node.get_node("MainGame")
 	_expect(game.crops.size() == 3, "Each map should begin with exactly three mature trees.", failures)
 	var initial_tree: Variant = game.crops[0]
+	_expect(initial_tree.GROWTH_TEXTURE.get_width() / 4 == initial_tree.GROWTH_TEXTURE.get_height(), "Tree growth atlas cells should be square to preserve authored proportions.", failures)
 	_expect(initial_tree.stage == 3, "Starting trees should be harvestable.", failures)
 	_expect(game.interact_with_crop(initial_tree), "A mature tree should be harvestable.", failures)
 	_expect(game.inventory.count("wood") == 8 and game.inventory.count("tree_seed") == 2, "Harvest should close the loop with Wood x8 and Tree seed x2.", failures)

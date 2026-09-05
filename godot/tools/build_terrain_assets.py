@@ -111,7 +111,8 @@ def normalize_tree_sheet(source: Path, output: Path) -> None:
     """Give every generated stage an exact, roomy atlas cell without distorting it."""
     image = Image.open(source).convert("RGBA")
     width, height = image.size
-    cell_size = (512, 1024)
+    # Square cells keep source and destination scaling uniform in Godot.
+    cell_size = (512, 512)
     atlas = Image.new("RGBA", (cell_size[0] * 4, cell_size[1]), (0, 0, 0, 0))
     alpha = image.getchannel("A")
     runs = []

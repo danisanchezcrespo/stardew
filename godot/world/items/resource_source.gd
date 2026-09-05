@@ -17,7 +17,8 @@ var target_kind := "resource_source"
 
 func configure(id: String, definition: Variant, initial: int, maximum: int, grant: int, regenerate: int, interval: float) -> void:
 	z_as_relative = false
-	z_index = -4096
+	# Above MainGame's terrain (Z 0), below Y-sorted actors and structures.
+	z_index = 1
 	stable_id = id
 	item_id = definition.item_id
 	item_label = definition.label

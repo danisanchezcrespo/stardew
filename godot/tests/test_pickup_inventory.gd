@@ -62,6 +62,8 @@ func _test_gameplay_pickup(failures: Array[String]) -> void:
 	root.add_child(game_root)
 	await process_frame
 	var game: Node2D = game_root.get_node("MainGame")
+	_expect(game.pickups[0].z_index > 0 and game.pickups[0].z_index < game.player.z_index, "Pickup sprites should render above terrain and behind the player.", failures)
+	_expect(game.resource_sources[0].z_index > 0 and game.resource_sources[0].z_index < game.player.z_index, "Renewable resource sprites should render above terrain and behind the player.", failures)
 	game._update_interaction_target()
 	_expect(game.interaction_target != null and game.interaction_target.item_id == "wood", "Nearby wood should become the contextual target.", failures)
 	_expect(game.interaction_label.text.contains("Space = Pick up"), "Pickup hover should show the Space control.", failures)

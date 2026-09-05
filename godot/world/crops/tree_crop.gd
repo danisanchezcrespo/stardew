@@ -26,7 +26,7 @@ func water() -> bool:
 	watered = true; growth_elapsed = 0.0; queue_redraw(); return true
 func progress() -> float: return clampf(growth_elapsed / STAGE_SECONDS, 0.0, 1.0) if watered else 0.0
 func stage_label() -> String: return ["Seed", "Sprout", "Young tree", "Mature tree"][stage]
-func visual_height() -> float: return [42.0, 58.0, 82.0, 122.0][stage]
+func visual_height() -> float: return [52.0, 66.0, 92.0, 132.0][stage]
 func overlay_anchor() -> Vector2: return global_position + Vector2(0, -visual_height() + 9.0)
 func interaction_position() -> Vector2: return global_position
 func interaction_position_for(_player_position: Vector2) -> Vector2: return global_position
@@ -34,6 +34,7 @@ func is_interactable() -> bool: return true
 func set_targeted(value: bool) -> void: targeted = value; queue_redraw()
 func _draw() -> void:
 	var cell_width := GROWTH_TEXTURE.get_width() / 4.0
-	var size := Vector2([52.0, 66.0, 92.0, 132.0][stage], visual_height())
+	# The atlas uses square cells so a square destination preserves the authored proportions.
+	var size := Vector2.ONE * visual_height()
 	draw_texture_rect_region(GROWTH_TEXTURE, Rect2(Vector2(-size.x * 0.5, -size.y + 13.0), size), Rect2(stage * cell_width, 0, cell_width, GROWTH_TEXTURE.get_height()))
 	if targeted: draw_circle(Vector2(0, 2), 20.0, Color.WHITE, false, 2.0)
