@@ -764,15 +764,15 @@ func _build_hud() -> void:
 	position_label.visible = false
 	layer.add_child(position_label)
 	population_label = Label.new()
-	population_label.position = Vector2(390, 52)
-	population_label.size = Vector2(420, 58)
-	population_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	population_label.position = Vector2(840, 18)
+	population_label.size = Vector2(410, 82)
+	population_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	population_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	population_label.add_theme_font_size_override("font_size", 13)
+	population_label.add_theme_font_size_override("font_size", 12)
 	layer.add_child(population_label)
 	objective_label = Label.new()
-	objective_label.position = Vector2(420, 82)
-	objective_label.size = Vector2(390, 78)
+	objective_label.position = Vector2(340, 66)
+	objective_label.size = Vector2(470, 96)
 	objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	objective_label.add_theme_font_size_override("font_size", 14)
@@ -1313,7 +1313,7 @@ func _update_living_light() -> void:
 
 func _update_living_hud() -> void:
 	if not living_timeline.enabled or living_energy_label == null: return
-	living_energy_label.text = "ENERGY %d / %d  |  %s  |  J JOURNAL  N SLEEP" % [roundi(living_timeline.player_energy), roundi(living_timeline.max_energy), living_timeline.weather.to_upper()]
+	living_energy_label.text = "ENERGY %d / %d  |  %s" % [roundi(living_timeline.player_energy), roundi(living_timeline.max_energy), living_timeline.weather.to_upper()]
 
 
 func set_living_open(value: bool) -> void:
@@ -1870,6 +1870,7 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_status_label = Label.new()
 	machine_status_label.position = Vector2(28, 72)
 	machine_status_label.size = Vector2(248, 205)
+	machine_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	machine_status_label.add_theme_font_size_override("font_size", 16)
 	machine_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	machine_panel.add_child(machine_status_label)
@@ -3599,17 +3600,17 @@ func _update_machine_panel(rebuild_actions: bool = true) -> void:
 				var recipe: Dictionary = machine.recipe_catalog[recipe_index]
 				var unlocked: bool = machine.recipe_is_unlocked(recipe_index)
 				var recipe_button := Button.new(); recipe_button.text = (("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.get("id", "Recipe"))).to_upper() + "\n" + _compact_machine_cost(recipe.get("inputs", {}))) if unlocked else ("LOCKED - MASTERY %d\n???" % (recipe_index / 2 + 1))
-				recipe_button.custom_minimum_size = Vector2(334, 54); recipe_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; recipe_button.add_theme_font_override("font", GameThemeType.PIXEL); recipe_button.disabled = machine.is_running() or not unlocked; recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
+				_configure_machine_action_button(recipe_button); recipe_button.disabled = machine.is_running() or not unlocked; recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
 		if machine.broken:
-			var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
-			repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
+			var repair_button := Button.new(); repair_button.text = "REPAIR\n%s x2  |  CARRIED %d" % [repair_label, inventory.count(scenario.repair_item_id)]
+			_configure_machine_action_button(repair_button); repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
 		else:
 			for item_id: String in machine.recipe_inputs:
-				var input_button := Button.new(); input_button.text = "PUT  %s  (%d carried / %d loaded)" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
-				input_button.text = input_button.text.to_upper(); input_button.add_theme_font_override("font", GameThemeType.PIXEL); input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
+				var input_button := Button.new(); input_button.text = "LOAD %s\nCARRIED %d  |  LOADED %d" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
+				_configure_machine_action_button(input_button); input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
 		for item_id: String in output_ids:
-			var output_button := Button.new(); output_button.text = "TAKE  %s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
-			output_button.text = output_button.text.to_upper(); output_button.add_theme_font_override("font", GameThemeType.PIXEL); output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
+			var output_button := Button.new(); output_button.text = "COLLECT %s\nREADY x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
+			_configure_machine_action_button(output_button); output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
 	machine_worker_icon.visible = assigned_worker != null
 	machine_remove_worker_button.visible = assigned_worker != null
 	if assigned_worker != null:
@@ -3624,6 +3625,17 @@ func _update_machine_panel(rebuild_actions: bool = true) -> void:
 func _select_machine_recipe(index: int) -> void:
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine != null and machine.select_recipe(index): _update_machine_panel()
+
+
+func _configure_machine_action_button(button: Button) -> void:
+	button.text = button.text.to_upper()
+	button.custom_minimum_size = Vector2(330, 58)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	button.clip_text = true
+	button.add_theme_font_override("font", GameThemeType.PIXEL)
+	button.add_theme_font_size_override("font_size", 15)
 
 
 func _compact_machine_cost(cost: Dictionary) -> String:
@@ -4169,11 +4181,12 @@ func _update_population_hud() -> void:
 		var total_minutes := roundi(day_time_seconds / DAY_LENGTH_SECONDS * 24.0 * 60.0)
 		var people_word := str(scenario.terminology.get("people", "people"))
 		var event := active_environment_event()
-		var event_text := " | WARNING: %s" % str(event.label) if not event.is_empty() else ""
-		var happiness_text := ""
+		var event_text := "\nWARNING: %s" % str(event.label) if not event.is_empty() else ""
+		var joy_line := ""
 		if living_timeline.enabled and not villagers.is_empty():
-			var happiness := village_happiness_metrics(); happiness_text = " | Joy %d avg / %d low" % [roundi(happiness.average), roundi(happiness.minimum)]
-		population_label.text = "%d %s | %d assigned | %d meals%s\n%s | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, happiness_text, meta_progression.calendar_text(), (total_minutes / 60) % 24, total_minutes % 60, event_text]
+			var happiness := village_happiness_metrics(); joy_line = "\nJOY %d AVG  |  %d LOW" % [roundi(happiness.average), roundi(happiness.minimum)]
+		var calendar_line := "%s  |  WEEK %d  |  %s  |  %02d:%02d" % [meta_progression.season_name().to_upper(), meta_progression.week_of_season(), meta_progression.weekday_name().left(3).to_upper(), (total_minutes / 60) % 24, total_minutes % 60]
+		population_label.text = "%d %s  |  %d ASSIGNED  |  %d MEALS%s\n%s%s" % [1 + villagers.size(), people_word.to_upper(), active, food, joy_line, calendar_line, event_text]
 
 
 func _refresh_population_capacity() -> void:

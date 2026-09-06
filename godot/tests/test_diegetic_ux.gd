@@ -16,6 +16,9 @@ func _run() -> void:
 	await process_frame; await process_frame
 	if game.splash_open: game._close_splash()
 	while game.dialogue_open: game._advance_dialogue()
+	_expect(game.population_label.position.x >= 830.0 and game.population_label.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT, "World status must occupy a dedicated right-aligned top-right region.", failures)
+	_expect(game.objective_label.position.x + game.objective_label.size.x < game.population_label.position.x, "The centered goal and top-right world status must never overlap.", failures)
+	_expect(not game.living_energy_label.text.contains("SLEEP") and not game.living_energy_label.text.contains("JOURNAL"), "The compact top-left status must not duplicate controls already shown below.", failures)
 	_expect(not InputMap.has_action("open_tech_tree") and not InputMap.has_action("sleep_day"), "Technology and sleep must not expose global shortcut actions.", failures)
 	var university_id := _place_and_complete(game, "university_plan", Vector2i(20, 12))
 	_expect(game.open_building_details(university_id) and game.building_context_button.visible, "The University must expose its study action in-world.", failures)

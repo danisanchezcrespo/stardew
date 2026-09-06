@@ -55,7 +55,7 @@ func _test_kiln(failures: Array[String]) -> void:
 	game._update_machine_panel()
 	var take_button: Button = null
 	for control: Node in game.machine_action_list.get_children():
-		if control is Button and (control as Button).text.begins_with("TAKE"):
+		if control is Button and (control as Button).text.begins_with("COLLECT"):
 			take_button = control as Button
 	_expect(take_button != null and not take_button.disabled, "Broken machines must still expose a usable output collection button.", failures)
 	var carried_before: int = game.inventory.count("mud_bricks")
