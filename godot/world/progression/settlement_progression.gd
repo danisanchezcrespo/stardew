@@ -2,7 +2,10 @@ class_name SettlementProgression
 extends RefCounted
 
 const SEASONS := ["Dawn", "High Sun", "Harvest", "Long Night"]
-const DAYS_PER_SEASON := 8
+const DAYS_PER_WEEK := 7
+const WEEKS_PER_SEASON := 4
+const DAYS_PER_SEASON := DAYS_PER_WEEK * WEEKS_PER_SEASON
+const WEEKDAYS := ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 var day := 1
 var season_index := 0
@@ -38,8 +41,15 @@ func season_name() -> String:
 	return str(names[season_index % names.size()])
 
 
+func weekday_index() -> int: return (day - 1) % DAYS_PER_WEEK
+func weekday_name() -> String: return WEEKDAYS[weekday_index()]
+func week_of_season() -> int: return 1 + (day - 1) / DAYS_PER_WEEK
+func absolute_day() -> int: return (year - 1) * DAYS_PER_SEASON * SEASONS.size() + season_index * DAYS_PER_SEASON + day
+func month_name() -> String: return "%s Month %d" % [season_name(), week_of_season()]
+
+
 func calendar_text() -> String:
-	return "%s %d - Year %d" % [season_name(), day, year]
+	return "%s | Week %d, %s | Year %d" % [season_name(), week_of_season(), weekday_name(), year]
 
 
 func tech_nodes() -> Array:

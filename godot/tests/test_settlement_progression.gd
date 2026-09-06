@@ -19,7 +19,7 @@ func _initialize() -> void:
 		_expect(not progression.donate(str(collection_entry.item)), "A catalog item must not be donated twice.", failures)
 		_expect(progression.research_points > points_before, "Donation should award knowledge.", failures)
 		for unused in range(ProgressionType.DAYS_PER_SEASON): progression.advance_day()
-		_expect(progression.season_index == 1 and progression.day == 1, "Calendar should advance season after eight days.", failures)
+		_expect(progression.season_index == 1 and progression.day == 1, "Calendar should advance season after four seven-day weeks.", failures)
 		progression.upgrade_building("test-building")
 		var copy := ProgressionType.new(); copy.load_catalog("res://world/progression/progression_catalog.json", scenario_id); copy.restore(progression.snapshot())
 		_expect(copy.building_level("test-building") == 2 and copy.donated_items.has(str(collection_entry.item)), "Progression should round-trip.", failures)

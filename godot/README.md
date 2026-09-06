@@ -39,14 +39,18 @@ villagers, `G` for logistics, `Esc` for pause, and `F11`
 or `Alt+Enter` for fullscreen. Progress autosaves every 90 seconds; manual
 save/load are available from the pause menu and on `K`/`L`.
 
-Each eight-day season advances through a scenario-specific calendar. Donating
+Each scenario advances through its own calendar. The medieval era uses four
+seven-day weeks per season and a 112-day year. Donating
 one of each collection item awards knowledge used to unlock connected
 technology nodes. Completed buildings can be upgraded twice; workshops gain
 production speed and durability, stores gain slots, and homes gain a resident.
 
 The Medieval era also contains the first **Living Timelines** vertical slice:
 visible day/night lighting, weather forecasts, player energy and sleep, an
-optional daily request board, persistent relationships, a Day 8 Harvest Feast,
+optional daily request board, persistent relationships, an Autumn Harvest Feast,
 northern-ruin discoveries, a travelling merchant, and placeable cosmetic
-decorations. Press `J` for the Valley Journal and `N` to sleep. See
-`MILESTONE_LIVING_TIMELINES.md` for the playable loop.
+decorations. Its **First Living Year** adds weekly ambitions, seasonal great
+projects, rain and snow, timed arrivals, new production chains, persistent
+choices, a year review, and Year Two continuation. Press `B` for the Living
+Year calendar, `J` for the Valley Journal, and `N` to sleep. See
+`MILESTONE_LIVING_TIMELINES.md` and `MILESTONE_FIRST_LIVING_YEAR.md`.

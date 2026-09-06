@@ -14,6 +14,7 @@ var machine_broken := false
 var effect_time := 0.0
 var visual: Dictionary = {}
 var upgrade_level := 1
+var authored_sprite: Sprite2D
 
 
 func set_upgrade_level(level: int) -> void:
@@ -40,7 +41,25 @@ func configure(type_id: String, cells: Array[Vector2i], visual_data: Dictionary 
 	global_position = Vector2((minimum.x + maximum.x + 1) * CELL_SIZE * 0.5, (maximum.y + 1) * CELL_SIZE)
 	z_as_relative = false
 	z_index = roundi(global_position.y)
+	_build_authored_sprite()
 	queue_redraw()
+
+
+func _build_authored_sprite() -> void:
+	if visual.is_empty() or str(visual.get("texture", "")).is_empty(): return
+	var texture := load(str(visual.texture)) as Texture2D
+	if texture == null: return
+	authored_sprite = Sprite2D.new()
+	authored_sprite.texture = texture
+	var columns_count := maxi(1, int(visual.get("columns", 1)))
+	var rows_count := maxi(1, int(visual.get("rows", 1)))
+	var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
+	if columns_count > 1 or rows_count > 1:
+		authored_sprite.region_enabled = true
+		authored_sprite.region_rect = Rect2(Vector2(int(visual.get("column", 0)), int(visual.get("row", 0))) * region_size, region_size)
+	authored_sprite.position = Vector2(0.0, -sprite_size.y * 0.5)
+	authored_sprite.scale = sprite_size / region_size
+	add_child(authored_sprite)
 
 
 func _draw() -> void:
@@ -48,14 +67,8 @@ func _draw() -> void:
 	var economy_columns := {"GRAIN_FARM": 0, "BAKERY": 1, "BREWERY": 2, "KITCHEN": 3, "SAWMILL": 4}
 	var industry_columns := {"QUARRY": 0, "COPPER_MINE": 1, "COPPER_SMELTER": 2, "WEAVER": 3, "PAPYRUS_WORKSHOP": 4}
 	var destination := Rect2(Vector2(-sprite_size.x * 0.5, -sprite_size.y), sprite_size)
-	if not visual.is_empty() and not str(visual.get("texture", "")).is_empty():
-		var texture := load(str(visual.texture)) as Texture2D
-		var columns_count := maxi(1, int(visual.get("columns", 1)))
-		var rows_count := maxi(1, int(visual.get("rows", 1)))
-		var column := int(visual.get("column", 0))
-		var row := int(visual.get("row", 0))
-		var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
-		draw_texture_rect_region(texture, destination, Rect2(Vector2(column, row) * region_size, region_size))
+	if authored_sprite != null:
+		pass
 	elif industry_columns.has(definition_id):
 		var cell_width := INDUSTRY_TEXTURE.get_width() / 5.0
 		draw_texture_rect_region(INDUSTRY_TEXTURE, destination, Rect2(int(industry_columns[definition_id]) * cell_width, 0, cell_width, INDUSTRY_TEXTURE.get_height()))

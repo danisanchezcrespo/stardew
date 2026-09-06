@@ -10,7 +10,7 @@ const GIFT_TASTES := {
 	"Mabel":{"loves":["loaf", "flower_bed"], "likes":["wild_herbs", "flour"]},
 	"Hugh":{"loves":["iron_tools", "oak_wood"], "likes":["field_stone", "loaf"]},
 }
-const SELL_VALUES := {"wild_herbs":2, "wheat":1, "flour":2, "loaf":3, "field_stone":1, "oak_wood":1, "iron_tools":5}
+const SELL_VALUES := {"wild_herbs":2, "wheat":1, "flour":2, "loaf":3, "field_stone":1, "oak_wood":1, "iron_tools":5, "egg":2, "honey":4, "medicinal_herbs":4, "chicken_meat":4, "star_chart":8, "festival_platter":7}
 const DAILY_EVENTS := [
 	"The market is lively: goods sell for one extra coin today.",
 	"A cool breeze settles over the valley. Travel costs less energy.",
@@ -182,10 +182,12 @@ func try_complete_request(inventory: Variant) -> Dictionary:
 
 func contribute_feast(inventory: Variant) -> int:
 	if not enabled: return 0
-	var delivered := mini(5, inventory.count("loaf"))
-	if delivered > 0:
-		inventory.remove("loaf", delivered); feast_food += delivered; community += delivered
-	return delivered
+	var points := 0
+	for row: Dictionary in [{"item":"festival_platter","value":5},{"item":"honey","value":2},{"item":"egg","value":1},{"item":"loaf","value":1}]:
+		var amount := mini(5, inventory.count(str(row.item)))
+		if amount > 0: inventory.remove(str(row.item), amount); points += amount * int(row.value)
+	if points > 0: feast_food += points; community += points
+	return points
 
 func merchant_offer(day: int) -> Dictionary:
 	if ((day - 1) % 8) + 1 != 6: return {}
@@ -214,16 +216,11 @@ func buy_merchant_offer(day: int, inventory: Variant) -> Dictionary:
 	merchant_purchases[str(day)] = true; prosperity += price
 	return offer
 
-func day_story(day: int) -> String:
-	match day:
-		1: return "A small valley, wary faces, and an empty village square. Earn their trust."
-		2: return "The request board is open. Helping one person can change the whole village."
-		3: return "Edwin saw blue fire near the northern ruins. The portal has been here before."
-		4: return "Preparations begin for the Harvest Feast on Day 8. Bread will decide its success."
-		5: return "The valley remembers your choices. Villagers now speak of you by name."
-		6: return "A travelling merchant has reached the village with uncommon wares."
-		7: return "Tomorrow is the feast. Finish what matters; not everything can be done."
-		8: return "HARVEST FEAST - %s" % ("The valley celebrates a season of abundance." if feast_food >= 8 else "The meal is modest, but nobody faces the night alone.")
+func day_story(day: int, season: String = "Spring") -> String:
+	if season == "Autumn" and day == 28:
+		return "HARVEST FEAST - %s" % ("The valley celebrates a season of abundance." if feast_food >= 8 else "The meal is modest, but nobody faces the night alone.")
+	if day == 1:
+		return {"Spring":"New shoots and new promises appear across the valley.", "Summer":"Long days invite bold plans, but storms gather quickly.", "Autumn":"The harvest season begins. Store food and prepare the feast.", "Winter":"Snow quiets the valley. What was prepared now matters."}.get(season, "A new chapter begins in the valley.")
 	return "The valley continues to grow around the choices you make."
 
 func villager_story(person: String, day: int) -> String:

@@ -31,14 +31,14 @@ func capture(game: Node2D) -> Dictionary:
 		villagers.append({"id": villager.stable_id, "name": villager.villager_name, "appearance": villager.appearance_id, "priority": villager.work_priority, "profession": villager.profession, "experience": villager.experience.duplicate(true), "inside_workplace": villager.inside_workplace, "schedule_hour":villager.last_schedule_hour, "home": villager.home_id, "home_position": [villager.home_position.x, villager.home_position.y], "position": [villager.position.x, villager.position.y], "hunger": villager.hunger, "energy": villager.energy, "state": villager.state, "facing": villager.facing, "task": villager.task.duplicate(true), "task_queue": villager.task_queue.duplicate(true), "carrying_item": villager.carrying_item, "carrying_amount": villager.carrying_amount, "tint": [villager.color_tint.r, villager.color_tint.g, villager.color_tint.b, villager.color_tint.a]})
 	var pickup_amounts: Dictionary = {}
 	for pickup: Variant in game.pickups:
-		if is_instance_valid(pickup): pickup_amounts[pickup.stable_id] = pickup.amount
+		if is_instance_valid(pickup): pickup_amounts[pickup.stable_id] = {"amount":pickup.amount,"item":pickup.item_id,"position":[pickup.position.x,pickup.position.y]}
 	var source_states: Dictionary = {}
 	for source: Variant in game.resource_sources:
 		if is_instance_valid(source): source_states[source.stable_id] = {"amount": source.current_amount, "regen_elapsed": source.regen_elapsed}
 	var dependents: Array[Dictionary] = []
 	for actor: Variant in game.dependents.values():
 		dependents.append({"id":actor.stable_id,"species":actor.species_id,"home":actor.home_id,"position":[actor.position.x,actor.position.y],"hunger":actor.hunger,"thirst":actor.thirst,"health":actor.health,"age":actor.age_seconds,"product_elapsed":actor.product_elapsed,"stored_product":actor.stored_product})
-	return {"version": VERSION, "scenario_id":game.scenario.scenario_id, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "dependents":dependents, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "progression":game.meta_progression.snapshot(), "living":game.living_timeline.snapshot(), "workforce": {"food": game.workforce.food_reserve}}
+	return {"version": VERSION, "scenario_id":game.scenario.scenario_id, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "dependents":dependents, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "progression":game.meta_progression.snapshot(), "living":game.living_timeline.snapshot(), "timeline":game.timeline_director.snapshot(), "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
 	var absolute_path := ProjectSettings.globalize_path(path)
@@ -86,8 +86,15 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 	game.player.position = Vector2(float(player_position[0]), float(player_position[1]))
 	for pickup: Variant in game.pickups:
 		if is_instance_valid(pickup) and data.get("pickups", {}).has(pickup.stable_id):
-			pickup.amount = int(data.pickups[pickup.stable_id])
+			var pickup_state: Variant = data.pickups[pickup.stable_id]
+			pickup.amount = int(pickup_state.get("amount", 0)) if pickup_state is Dictionary else int(pickup_state)
 			pickup.visible = pickup.amount > 0
+	for pickup_id: String in data.get("pickups", {}):
+		var known: bool = game.pickups.any(func(candidate: Variant) -> bool: return is_instance_valid(candidate) and candidate.stable_id == pickup_id)
+		var pickup_state: Variant = data.pickups[pickup_id]
+		if known or not pickup_state is Dictionary or not pickup_state.has("item"): continue
+		var position_values: Array = pickup_state.get("position", [0,0])
+		game._spawn_pickup(pickup_id, str(pickup_state.item), int(pickup_state.amount), Vector2(float(position_values[0]), float(position_values[1])))
 	for source: Variant in game.resource_sources:
 		var state: Dictionary = data.get("resource_sources", {}).get(source.stable_id, {})
 		if not state.is_empty():
@@ -176,6 +183,8 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 	game.workforce.food_reserve = float(data.get("workforce", {}).get("food", 0.0))
 	if data.has("living"): game.living_timeline.restore(data.living)
 	elif game.living_timeline.enabled: game.living_timeline.begin_day(game.meta_progression.day)
+	if data.has("timeline"): game.timeline_director.restore(data.timeline)
+	game._begin_timeline_day(false)
 	game._update_inventory_hud()
 	game.queue_redraw()
 	return OK

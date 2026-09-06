@@ -34,6 +34,7 @@ const GameThemeType = preload("res://ui/game_theme.gd")
 const SettlementProgressionType = preload("res://world/progression/settlement_progression.gd")
 const TimeTravelStateType = preload("res://world/time_travel/time_travel_state.gd")
 const LivingTimelineType = preload("res://world/progression/living_timeline.gd")
+const TimelineDirectorType = preload("res://world/progression/timeline_director.gd")
 const TimePortalType = preload("res://world/time_travel/time_portal.gd")
 const TimeArtifactType = preload("res://world/time_travel/time_artifact.gd")
 const MuseumArchiveType = preload("res://world/time_travel/museum_archive.gd")
@@ -211,6 +212,12 @@ var living_panel: Control
 var living_open := false
 var living_status: Label
 var living_energy_label: Label
+var timeline_director: Variant
+var calendar_panel: Control
+var calendar_open := false
+var calendar_status: Label
+var calendar_actions: VBoxContainer
+var precipitation_layer: Node2D
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
 var feedback_audio: AudioStreamPlayer
 
@@ -239,6 +246,8 @@ func _ready() -> void:
 		if int(tech.get("cost", 1)) == 0: meta_progression.unlock(str(tech.id))
 	living_timeline = LivingTimelineType.new()
 	living_timeline.configure(scenario.scenario_id, meta_progression.day)
+	timeline_director = TimelineDirectorType.new()
+	assert(timeline_director.configure(scenario.scenario_id, "res://world/progression/medieval_timeline.json") == OK)
 	physical_save = PhysicalSaveCodecType.new()
 	feedback_audio = AudioStreamPlayer.new()
 	add_child(feedback_audio)
@@ -252,6 +261,7 @@ func _ready() -> void:
 	_build_hud()
 	_build_time_travel_world()
 	_build_living_world()
+	_begin_timeline_day(false)
 	_update_living_hud()
 	if DisplayServer.get_name() != "headless":
 		if not TimeTravelStateType.splash_seen_session: _open_splash()
@@ -274,12 +284,14 @@ func _process(delta: float) -> void:
 		if splash_prompt != null: splash_prompt.modulate.a = 0.82 + sin(Time.get_ticks_msec() * 0.004) * 0.18
 		return
 	_update_living_light()
-	if pause_open or day_summary_open or tech_open or collection_open or dialogue_open or living_open: return
+	if pause_open or day_summary_open or tech_open or collection_open or dialogue_open or living_open or calendar_open: return
 	day_time_seconds += maxf(delta, 0.0)
 	if day_time_seconds >= DAY_LENGTH_SECONDS:
 		day_time_seconds = MORNING_TIME_SECONDS
+		_record_year_end_if_needed()
 		var next_day: Dictionary = meta_progression.advance_day()
 		if living_timeline.enabled: living_timeline.begin_day(meta_progression.day)
+		_begin_timeline_day(true)
 		_open_day_summary(next_day)
 		return
 	autosave_elapsed += maxf(delta, 0.0)
@@ -329,6 +341,7 @@ func _process(delta: float) -> void:
 		if structure_visuals.has(machine.instance_id):
 			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
+	_update_timeline_progress()
 	_update_living_hud()
 	dialogue_cooldown_seconds = maxf(0.0, dialogue_cooldown_seconds - delta)
 	_queue_context_dialogues()
@@ -337,7 +350,7 @@ func _process(delta: float) -> void:
 		_sync_artifact_nodes()
 		if not discoveries.is_empty(): interaction_label.text = "A temporal artifact has appeared nearby."
 	if objective_label != null:
-		objective_label.text = _museum_objective_text() if scenario.scenario_id == "time_museum" else campaign.current_text()
+		objective_label.text = _museum_objective_text() if scenario.scenario_id == "time_museum" else (_post_keep_objective_text() if timeline_director.enabled and campaign.is_complete() else campaign.current_text())
 	if machine_open:
 		_update_machine_panel()
 	if not selected_villager_id.is_empty():
@@ -404,6 +417,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_pressed("quick_slot_7"): _living_explore()
 		elif event.is_action_pressed("quick_slot_8"): _living_improve()
 		return
+	if calendar_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_calendar"): set_calendar_open(false)
+		return
 	if pause_open:
 		if event.is_action_pressed("cancel"):
 			set_pause_open(false)
@@ -455,7 +471,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("open_collection"):
 		set_collection_open(true)
 		return
-	var world_input_free := not crafting_open and not storage_open and not machine_open and not building_details_open and not placement_mode and not scenario_select_open
+	var world_input_free := not crafting_open and not storage_open and not machine_open and not building_details_open and not placement_mode and not scenario_select_open and not calendar_open
+	if event.is_action_pressed("open_calendar") and timeline_director.enabled and world_input_free:
+		set_calendar_open(true)
+		return
 	if event.is_action_pressed("open_living_journal") and living_timeline.enabled and world_input_free:
 		set_living_open(true)
 		return
@@ -791,10 +810,11 @@ func _build_hud() -> void:
 	_build_portal_choice_panel(layer)
 	_build_museum_story_panel(layer)
 	_build_living_panel(layer)
+	_build_calendar_panel(layer)
 	_build_dialogue_panel(layer)
 	_build_splash_panel(layer)
 	_build_mobile_controls(layer)
-	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel, tech_panel, collection_panel, day_summary_panel, portal_choice_panel, museum_story_panel]:
+	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel, tech_panel, collection_panel, day_summary_panel, portal_choice_panel, museum_story_panel, calendar_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
 		_apply_scenario_panel_palette(panel)
 	GameThemeType.decorate_panel(inventory_background, true)
@@ -802,7 +822,7 @@ func _build_hud() -> void:
 	help_label = Label.new()
 	help_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help_label.position = Vector2(22, -118)
-	help_label.text = "Move: WASD  Action: Space  Craft: C  Tech: T  Collection: M  Routes: G  Menu: Esc"
+	help_label.text = "Move: WASD  Action: Space  Craft: C  Calendar: B  Journal: J  Menu: Esc"
 	help_label.add_theme_color_override("font_color", Color.WHITE)
 	help_label.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help_label)
@@ -1095,8 +1115,160 @@ func _build_living_panel(layer: CanvasLayer) -> void:
 	GameThemeType.decorate_panel(living_panel, true)
 
 
+func _build_calendar_panel(layer: CanvasLayer) -> void:
+	calendar_panel = ColorRect.new(); calendar_panel.position = Vector2(120, 58); calendar_panel.size = Vector2(1040, 610); calendar_panel.color = Color(str(scenario.theme.get("dark", "#211b18"))); calendar_panel.visible = false; layer.add_child(calendar_panel)
+	var title := Label.new(); title.position = Vector2(36, 20); title.size = Vector2(968, 42); title.text = "THE LIVING YEAR"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 28); calendar_panel.add_child(title)
+	calendar_status = Label.new(); calendar_status.position = Vector2(45, 78); calendar_status.size = Vector2(565, 465); calendar_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; calendar_status.add_theme_font_size_override("font_size", 16); calendar_panel.add_child(calendar_status)
+	var scroll := ScrollContainer.new(); scroll.position = Vector2(635, 80); scroll.size = Vector2(360, 455); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; calendar_panel.add_child(scroll)
+	calendar_actions = VBoxContainer.new(); calendar_actions.custom_minimum_size = Vector2(334, 0); calendar_actions.add_theme_constant_override("separation", 10); scroll.add_child(calendar_actions)
+	var hint := Label.new(); hint.position = Vector2(45, 555); hint.size = Vector2(950, 30); hint.text = "B / ESC  Close     Choose only what matters to your village."; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; calendar_panel.add_child(hint)
+	GameThemeType.decorate_panel(calendar_panel, true)
+
+
+func set_calendar_open(value: bool) -> void:
+	if not timeline_director.enabled: return
+	calendar_open = value; calendar_panel.visible = value; player.movement_enabled = not value
+	if value: calendar_panel.move_to_front(); _refresh_calendar_panel()
+
+
+func _refresh_calendar_panel(message: String = "") -> void:
+	if calendar_status == null or not timeline_director.enabled: return
+	var weekly: String = "Complete the Keep to begin weekly ambitions."
+	if not timeline_director.active_weekly.is_empty():
+		var progress: Vector2i = timeline_director.weekly_progress(_timeline_context())
+		weekly = "%s\n%s\nProgress %d / %d" % [str(timeline_director.active_weekly.label), str(timeline_director.active_weekly.description), progress.x, progress.y]
+	elif not timeline_director.weekly_choices.is_empty(): weekly = "Choose one ambition for this week."
+	var project: String = timeline_director.project_progress_text()
+	var upcoming: String = _upcoming_timeline_text()
+	calendar_status.text = "%s\nDAY %d OF 28  |  WEEK %d  |  YEAR %d\n\nTHIS WEEK\n%s\n\nTHIS SEASON\n%s\n\nCOMING SOON\n%s\n\nVILLAGE MEMORY\n%d events, %d ambitions, %d great projects%s" % [meta_progression.calendar_text(), meta_progression.day, meta_progression.week_of_season(), meta_progression.year, weekly, project, upcoming, timeline_director.fired.size(), timeline_director.completed_weeklies.size(), timeline_director.completed_projects.size(), "\n\n" + message if not message.is_empty() else ""]
+	for child: Node in calendar_actions.get_children(): calendar_actions.remove_child(child); child.queue_free()
+	if not timeline_director.pending_choice.is_empty():
+		_add_calendar_heading(str(timeline_director.pending_choice.title))
+		for index in range(timeline_director.pending_choice.choices.size()): _add_calendar_button(str(timeline_director.pending_choice.choices[index].label), _choose_timeline_event.bind(index))
+	if not timeline_director.weekly_choices.is_empty():
+		_add_calendar_heading("CHOOSE THIS WEEK'S AMBITION")
+		for index in range(timeline_director.weekly_choices.size()):
+			var row: Dictionary = timeline_director.weekly_choices[index]
+			_add_calendar_button("%s\n%s" % [str(row.label), str(row.description)], _choose_weekly_ambition.bind(index))
+	if not timeline_director.seasonal_choices.is_empty():
+		_add_calendar_heading("CHOOSE A SEASONAL PROJECT")
+		for index in range(timeline_director.seasonal_choices.size()):
+			var row: Dictionary = timeline_director.seasonal_choices[index]
+			_add_calendar_button("%s\n%s" % [str(row.label), _cost_text(row.cost)], _choose_seasonal_project.bind(index))
+	if not timeline_director.active_project.is_empty(): _add_calendar_button("CONTRIBUTE AVAILABLE MATERIALS", _contribute_seasonal_project)
+
+
+func _add_calendar_heading(value: String) -> void:
+	var label := Label.new(); label.text = value.to_upper(); label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; label.add_theme_font_override("font", GameThemeType.PIXEL); label.add_theme_font_size_override("font_size", 18); calendar_actions.add_child(label)
+
+
+func _add_calendar_button(value: String, callback: Callable) -> void:
+	var button := Button.new(); button.text = value.to_upper(); button.custom_minimum_size = Vector2(330, 64); button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; button.add_theme_font_override("font", GameThemeType.PIXEL); button.pressed.connect(callback); calendar_actions.add_child(button)
+
+
+func _cost_text(cost: Dictionary) -> String:
+	var rows: Array[String] = []
+	for item_id: String in cost: rows.append("%s x%d" % [item_id.replace("_", " ").capitalize(), int(cost[item_id])])
+	return ", ".join(rows)
+
+
+func _choose_weekly_ambition(index: int) -> void:
+	if timeline_director.choose_weekly(index, _timeline_context()): _refresh_calendar_panel("Ambition chosen. It is optional, but the village will notice.")
+
+
+func _choose_seasonal_project(index: int) -> void:
+	if timeline_director.choose_project(index): _refresh_calendar_panel("Seasonal project begun. Contributions persist all season.")
+
+
+func _contribute_seasonal_project() -> void:
+	var result: Dictionary = timeline_director.contribute_project(inventory); _update_inventory_hud()
+	if result.has("completed"):
+		_apply_timeline_reward(result.completed.get("reward", {})); _refresh_calendar_panel("PROJECT COMPLETE: %s now permanently shapes the valley." % str(result.completed.label)); queue_redraw()
+	else: _refresh_calendar_panel("Materials delivered." if not result.get("moved", {}).is_empty() else "You are not carrying any required materials.")
+
+
+func _choose_timeline_event(index: int) -> void:
+	var choice: Dictionary = timeline_director.choose_event(index)
+	if not choice.is_empty(): _apply_timeline_reward(choice.get("reward", {})); _refresh_calendar_panel("The village will remember: %s" % str(choice.label))
+
+
+func _upcoming_timeline_text() -> String:
+	var weekday: String = meta_progression.weekday_name()
+	if weekday == "Friday": return "Tomorrow the weekend market opens. Prices and visitors change."
+	if weekday in ["Saturday", "Sunday"]: return "The weekend market is open; villagers socialize and trade."
+	if meta_progression.season_name() == "Autumn" and meta_progression.day >= 15: return "The Harvest Feast arrives on Autumn 28."
+	return "Weekend market in %d day(s). Weather tomorrow: %s." % [5 - meta_progression.weekday_index() if meta_progression.weekday_index() < 5 else 0, living_timeline.tomorrow_weather]
+
+
 func _build_living_world() -> void:
 	living_light = CanvasModulate.new(); living_light.color = Color.WHITE; add_child(living_light); move_child(living_light, 0)
+	precipitation_layer = Node2D.new(); precipitation_layer.set_script(preload("res://world/terrain/seasonal_weather_fx.gd")); precipitation_layer.configure(self); add_child(precipitation_layer)
+
+
+func _timeline_context() -> Dictionary:
+	var friendship_total: int = 0
+	for value: Variant in living_timeline.friendship.values(): friendship_total += int(value)
+	var loaves: int = inventory.count("loaf")
+	for machine: Variant in machines_by_entity_id.values(): loaves += machine.output_inventory.count("loaf")
+	return {"keep_built":campaign.completed_entities.has("KEEP"),"prosperity":living_timeline.prosperity,"community":living_timeline.community,"beauty":living_timeline.beauty,"friendship":friendship_total,"exploration":living_timeline.exploration_depth,"loaves":loaves}
+
+
+func _begin_timeline_day(show_dialogue: bool) -> void:
+	if not timeline_director.enabled: return
+	_apply_seasonal_weather()
+	if meta_progression.weekday_index() == 0 and not timeline_director.active_weekly.is_empty(): timeline_director.expire_weekly()
+	var events: Array[Dictionary] = timeline_director.begin_day(meta_progression, _timeline_context())
+	for event: Dictionary in events: _apply_timeline_event(event, show_dialogue)
+	if precipitation_layer != null: precipitation_layer.queue_redraw()
+
+
+func _apply_seasonal_weather() -> void:
+	var day: int = meta_progression.day; var season: String = meta_progression.season_name()
+	match season:
+		"Spring": living_timeline.weather = "Rain" if day % 5 in [0, 1] else ("Mist" if day % 7 == 0 else "Clear")
+		"Summer": living_timeline.weather = "Rain" if day % 3 == 0 else ("Storm" if day == 22 else "Clear")
+		"Autumn": living_timeline.weather = "Mist" if day % 4 == 0 else ("Rain" if day % 7 == 0 else "Clear")
+		"Winter": living_timeline.weather = "Snow"
+	var next_day: int = day + 1; var next_season: String = season
+	if next_day > meta_progression.DAYS_PER_SEASON:
+		next_day = 1; next_season = str(meta_progression.catalog.get("seasons", [])[posmod(meta_progression.season_index + 1, 4)])
+	living_timeline.tomorrow_weather = "Snow" if next_season == "Winter" else ("Rain" if (next_season == "Summer" and next_day % 3 == 0) else "Clear")
+
+
+func _apply_timeline_event(event: Dictionary, show_dialogue: bool) -> void:
+	var effects: Dictionary = event.get("effects", {})
+	if effects.has("weather"): living_timeline.weather = str(effects.weather)
+	for item_id: String in effects.get("grant_items", {}): inventory.add(item_id, int(effects.grant_items[item_id]))
+	for row: Dictionary in effects.get("spawn_pickups", []):
+		var exists := pickups.any(func(pickup: Variant) -> bool: return is_instance_valid(pickup) and pickup.stable_id == str(row.id))
+		if not exists: _spawn_pickup(str(row.id), str(row.item), int(row.amount), Vector2(float(row.cell[0]), float(row.cell[1])) * CELL_SIZE)
+	if str(event.get("id", "")) == "harvest_feast": timeline_director.festival_score = living_timeline.feast_food + living_timeline.community + living_timeline.beauty
+	_update_inventory_hud()
+	if show_dialogue:
+		var event_text: String = str(event.get("text", ""))
+		if not event.get("choices", []).is_empty(): event_text += "\n\nOpen the Calendar (B) to make this decision."
+		dialogue_queue.append({"id":"timeline_%s" % str(event.id),"speaker":str(event.get("speaker", "The Village")),"text":event_text})
+
+
+func _apply_timeline_reward(reward: Dictionary) -> void:
+	living_timeline.community += int(reward.get("community", 0)); living_timeline.beauty += int(reward.get("beauty", 0)); living_timeline.prosperity += int(reward.get("prosperity", 0))
+	if int(reward.get("coin", 0)) > 0: inventory.add("coin", int(reward.coin))
+	_update_inventory_hud()
+
+
+func _update_timeline_progress() -> void:
+	if not timeline_director.enabled: return
+	if meta_progression.season_name() == "Autumn" and meta_progression.day == 28: timeline_director.festival_score = living_timeline.feast_food + living_timeline.community + living_timeline.beauty
+	var completed: Dictionary = timeline_director.update(_timeline_context())
+	if completed.is_empty(): return
+	_apply_timeline_reward(completed.get("reward", {})); interaction_label.text = "Weekly ambition complete: %s" % str(completed.label)
+	if calendar_open: _refresh_calendar_panel(interaction_label.text)
+
+
+func _post_keep_objective_text() -> String:
+	var weekly := "Choose a weekly ambition (B)" if timeline_director.active_weekly.is_empty() else str(timeline_director.active_weekly.label)
+	var seasonal := "Choose a seasonal project (B)" if timeline_director.active_project.is_empty() else str(timeline_director.active_project.label)
+	return "TODAY  %s   |   WEEK  %s   |   SEASON  %s" % [str(living_timeline.current_request.get("label", "Choose your own work")), weekly, seasonal]
 
 
 func _update_living_light() -> void:
@@ -1139,7 +1311,7 @@ func _refresh_living_panel(message: String = "") -> void:
 	var merchant_text := "Away - returns on Day 6" if offer.is_empty() else "%s for %d Silver coin%s" % [str(offer.label), int(offer.price), " - SOLD" if living_timeline.merchant_purchases.has(str(meta_progression.day)) else ""]
 	var discovery_text := ", ".join(living_timeline.discoveries.keys()) if not living_timeline.discoveries.is_empty() else "Rumors point toward the northern ruins"
 	var skills := "Foraging %d  Crafting %d  Exploration %d  Community %d" % [living_timeline.skill_level("foraging"), living_timeline.skill_level("crafting"), living_timeline.skill_level("exploration"), living_timeline.skill_level("community")]
-	living_status.text = "DAY %d  %s -> %s   ENERGY %d\n%s\n\nTODAY'S STORY\n%s\n\nREQUEST\n%s\n\nPEOPLE\n%s\n\nVALLEY\nCommunity %d  Beauty %d  Prosperity %d  Home %d\n%s\nRuins: %d searches left | %s\nShop: %s%s" % [meta_progression.day, living_timeline.weather, living_timeline.tomorrow_weather, roundi(living_timeline.player_energy), living_timeline.daily_event, living_timeline.day_story(meta_progression.day), request_text, "\n".join(bonds), living_timeline.community, living_timeline.beauty, living_timeline.prosperity, living_timeline.home_level, skills, living_timeline.exploration_attempts, discovery_text, merchant_text, "\n\n" + message if not message.is_empty() else ""]
+	living_status.text = "DAY %d  %s -> %s   ENERGY %d\n%s\n\nTODAY'S STORY\n%s\n\nREQUEST\n%s\n\nPEOPLE\n%s\n\nVALLEY\nCommunity %d  Beauty %d  Prosperity %d  Home %d\n%s\nRuins: %d searches left | %s\nShop: %s%s" % [meta_progression.day, living_timeline.weather, living_timeline.tomorrow_weather, roundi(living_timeline.player_energy), living_timeline.daily_event, living_timeline.day_story(meta_progression.day, meta_progression.season_name()), request_text, "\n".join(bonds), living_timeline.community, living_timeline.beauty, living_timeline.prosperity, living_timeline.home_level, skills, living_timeline.exploration_attempts, discovery_text, merchant_text, "\n\n" + message if not message.is_empty() else ""]
 
 
 func _heart_text(count: int) -> String:
@@ -1160,6 +1332,8 @@ func _apply_living_schedule(villager: Variant) -> void:
 	if villager.last_schedule_hour == hour: return
 	villager.last_schedule_hour = hour
 	var destination: Vector2 = villager.home_position
+	if meta_progression.season_name() == "Autumn" and meta_progression.day == 28:
+		destination = Vector2(620 + posmod(villager.stable_id.hash(), 5) * 24, 360); villager.assign_move(destination); return
 	if living_timeline.weather != "Rain":
 		if hour in range(9, 13):
 			destination = {"Alys":Vector2(560, 250), "Edwin":Vector2(1080, 185), "Mabel":Vector2(610, 390), "Hugh":Vector2(790, 470)}.get(villager.villager_name, villager.home_position)
@@ -1188,6 +1362,8 @@ func _living_sell() -> void:
 	var slot: Dictionary = inventory.slots[selected_slot]
 	if slot.is_empty(): _refresh_living_panel("Select produce or materials in your hotbar first."); return
 	var result: Dictionary = living_timeline.sell(str(slot.item_id), inventory)
+	if not result.is_empty() and meta_progression.weekday_name() in ["Saturday", "Sunday"]:
+		inventory.add("coin", 1); living_timeline.prosperity += 1; result.coins = int(result.coins) + 1
 	_update_inventory_hud()
 	_refresh_living_panel("Sold one item for %d coin." % int(result.coins) if not result.is_empty() else "The village market does not buy that item, or your inventory is full.")
 
@@ -1239,12 +1415,21 @@ func _sleep_to_next_day() -> void:
 	var home: Variant = _player_home_target()
 	if home != null: player.position = home.global_position + Vector2(0, 38)
 	day_time_seconds = MORNING_TIME_SECONDS
+	_record_year_end_if_needed()
 	var next_day: Dictionary = meta_progression.advance_day()
 	living_timeline.begin_day(meta_progression.day)
+	_begin_timeline_day(true)
 	for villager: Variant in villagers.values():
 		if villager.state in ["sleeping", "going_home"]:
 			villager.energy = 100.0; villager.state = villager._resume_state(); villager.visible = true
 	_open_day_summary(next_day)
+
+
+func _record_year_end_if_needed() -> void:
+	if not timeline_director.enabled or meta_progression.season_index != 3 or meta_progression.day != meta_progression.DAYS_PER_SEASON: return
+	var review: Dictionary = timeline_director.make_year_review(meta_progression, _timeline_context())
+	TimeTravelStateType.save_meta()
+	interaction_label.text = "Year %d complete: %s" % [int(review.year), str(review.title)]
 
 
 func _player_home_target() -> Variant:
@@ -1261,7 +1446,10 @@ func _player_home_target() -> Variant:
 func _open_day_summary(summary: Dictionary) -> void:
 	day_summary_open = true; day_summary_panel.visible = true; player.movement_enabled = false
 	if living_timeline.enabled:
-		day_summary_label.text = "%s, Day %d - Year %d\n%s\n\n%s\nTomorrow: %s" % [str(summary.season), int(summary.day), int(summary.year), living_timeline.weather, living_timeline.day_story(meta_progression.day), living_timeline.tomorrow_weather]
+		var review_text := ""
+		if not timeline_director.last_year_review.is_empty() and int(timeline_director.last_year_review.year) == meta_progression.year - 1:
+			var review: Dictionary = timeline_director.last_year_review; review_text = "\n\nYEAR %d LEGACY: %s\n%d ambitions, %d projects, festival score %d" % [int(review.year), str(review.title), int(review.weeklies), int(review.projects), int(review.festival)]
+		day_summary_label.text = "%s, Day %d - Year %d\n%s\n\n%s\nTomorrow: %s%s" % [str(summary.season), int(summary.day), int(summary.year), living_timeline.weather, living_timeline.day_story(meta_progression.day, meta_progression.season_name()), living_timeline.tomorrow_weather, review_text]
 	else:
 		day_summary_label.text = "%s, Day %d - Year %d\n\nThe settlement gained 1 knowledge.\nMachines, crops and animals keep their progress." % [str(summary.season), int(summary.day), int(summary.year)]
 	physical_save.save_to_path(self, _autosave_path())
@@ -1269,6 +1457,7 @@ func _open_day_summary(summary: Dictionary) -> void:
 
 func close_day_summary() -> void:
 	day_summary_open = false; day_summary_panel.visible = false; player.movement_enabled = true
+	if not dialogue_queue.is_empty(): _show_next_dialogue()
 
 
 func _build_portal_choice_panel(layer: CanvasLayer) -> void:
@@ -1937,8 +2126,8 @@ func _update_building_details() -> void:
 		return
 	if placed.definition_id == "CHICKEN_COOP":
 		var chicken_count := _dependent_count(building_details_id, "chicken")
-		building_details_body.text = "CHICKEN COOP\n\nChickens: %d / 3\n\nAssign an animal keeper. Feed each chicken Grain and Water. Adults lay eggs every 35 seconds; collect them with Space.\n\nNew chicken cost: Grain x5" % chicken_count
-		building_details_controls.text = "Space: raise chicken (Grain x5)    Esc: close" if chicken_count < 3 else "Coop full    Esc: close"
+		building_details_body.text = "CHICKEN COOP\n\nChickens: %d / 3\n\nAssign an animal keeper. Feed each chicken Wheat and Water. Adults lay eggs every 35 seconds; collect them with Space.\n\nNew chicken cost: Wheat x5" % chicken_count
+		building_details_controls.text = "Space: raise chicken (Wheat x5)    Esc: close" if chicken_count < 3 else "Coop full    Esc: close"
 		return
 	if definition.population_capacity > 0:
 		var resident_rows: Array[String] = []
@@ -2649,6 +2838,9 @@ func craft_selected_recipe() -> bool:
 	if not meta_progression.recipe_unlocked(recipe_id):
 		_update_crafting_ui("Locked - discover it in the Technology Tree (T).")
 		return false
+	if timeline_director.enabled and not timeline_director.recipe_unlocked(recipe_id):
+		_update_crafting_ui("Not discovered yet - new knowledge arrives as the living year unfolds.")
+		return false
 	var craft_cost: float = living_timeline.action_cost(3.0, "crafting") if living_timeline.enabled else 3.0
 	if not _spend_player_energy(craft_cost, "Too exhausted to craft. Sleep to begin a new day."):
 		_update_crafting_ui("Too exhausted to craft. Sleep to begin a new day.")
@@ -2680,7 +2872,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 	for index in range(crafting_recipe_buttons.size()):
 		var button := crafting_recipe_buttons[index]
 		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
-		var unlocked: bool = campaign.is_unlocked(recipe.unlock_after) and meta_progression.recipe_unlocked(recipe.recipe_id)
+		var unlocked: bool = campaign.is_unlocked(recipe.unlock_after) and meta_progression.recipe_unlocked(recipe.recipe_id) and (not timeline_director.enabled or timeline_director.recipe_unlocked(recipe.recipe_id))
 		var available: bool = unlocked and crafting.query(inventory, recipe.recipe_id).valid
 		var text_color := Color("#fffaf0") if available else (Color("#777777") if unlocked else Color("#665e58"))
 		button.text = "%s%d.  %s" % ["> " if index == selected_recipe_index else "   ", index + 1, recipe.label]
@@ -2690,7 +2882,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		button.add_theme_color_override("font_pressed_color", text_color)
 		button.add_theme_color_override("font_focus_color", text_color)
 	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
-	var selected_unlocked: bool = campaign.is_unlocked(selected.unlock_after) and meta_progression.recipe_unlocked(selected.recipe_id)
+	var selected_unlocked: bool = campaign.is_unlocked(selected.unlock_after) and meta_progression.recipe_unlocked(selected.recipe_id) and (not timeline_director.enabled or timeline_director.recipe_unlocked(selected.recipe_id))
 	var ingredients: Array[String] = []
 	var icon_index := 0
 	for icon: TextureRect in crafting_resource_icons: icon.visible = false
@@ -2972,6 +3164,7 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		if definition != null:
 			_add_structure_visual(instance_id, definition.entity_id, placed.cells)
 			campaign.record_completion(definition.entity_id)
+			if timeline_director.enabled and definition.entity_id == "KEEP": _begin_timeline_day(true)
 			if definition.population_capacity > 0:
 				spawn_villagers_for_home(instance_id, definition.population_capacity)
 			for dependent_id: Variant in definition.dependent_spawns:
@@ -3100,10 +3293,13 @@ func _raise_chicken(home_id: String) -> bool:
 	if _dependent_count(home_id, "chicken") >= 3:
 		interaction_label.text = "Chicken coop is full"
 		return false
-	if inventory.count("grain") < 5:
-		interaction_label.text = "Need Grain x5 to raise a chicken"
+	var feed_id := "grain"
+	for row: Dictionary in scenario.dependents:
+		if str(row.get("id", "")) == "chicken": feed_id = str(row.get("feed_item", "grain")); break
+	if inventory.count(feed_id) < 5:
+		interaction_label.text = "Need %s x5 to raise a chicken" % item_registry.get_item(feed_id).label
 		return false
-	inventory.remove("grain", 5)
+	inventory.remove(feed_id, 5)
 	spawn_dependent("chicken", home_id)
 	_update_inventory_hud()
 	interaction_label.text = "A new young chicken joined the coop"
@@ -3250,14 +3446,14 @@ func _update_machine_panel() -> void:
 	for child: Node in machine_action_list.get_children(): machine_action_list.remove_child(child); child.queue_free()
 	if machine.broken:
 		var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
-		repair_button.disabled = inventory.count(scenario.repair_item_id) < 2; repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
+		repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.disabled = inventory.count(scenario.repair_item_id) < 2; repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
 	else:
 		for item_id: String in machine.recipe_inputs:
 			var input_button := Button.new(); input_button.text = "PUT  %s  (%d carried / %d loaded)" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
-			input_button.disabled = inventory.count(item_id) <= 0; input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
+			input_button.text = input_button.text.to_upper(); input_button.add_theme_font_override("font", GameThemeType.PIXEL); input_button.disabled = inventory.count(item_id) <= 0; input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
 	for item_id: String in machine.recipe_outputs:
 		var output_button := Button.new(); output_button.text = "TAKE  %s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
-		output_button.disabled = machine.output_inventory.count(item_id) <= 0; output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
+		output_button.text = output_button.text.to_upper(); output_button.add_theme_font_override("font", GameThemeType.PIXEL); output_button.disabled = machine.output_inventory.count(item_id) <= 0; output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
 	machine_worker_icon.visible = assigned_worker != null
 	machine_remove_worker_button.visible = assigned_worker != null
 	if assigned_worker != null:
@@ -3493,10 +3689,17 @@ func active_environment_event() -> Dictionary:
 
 func environment_multiplier(property_name: String) -> float:
 	var event := active_environment_event()
-	return float(event.get(property_name, 1.0)) if not event.is_empty() else 1.0
+	var result := float(event.get(property_name, 1.0)) if not event.is_empty() else 1.0
+	if timeline_director != null and timeline_director.enabled:
+		if meta_progression.season_name() == "Winter": result *= 0.72 if property_name == "worker_speed" else 0.85
+		if living_timeline.weather in ["Rain", "Storm"]: result *= 0.86
+		if meta_progression.weekday_name() == "Saturday" and property_name == "production_speed": result *= 1.15
+		if meta_progression.weekday_name() == "Sunday": result *= 0.65
+	return result
 
 
 func is_work_time() -> bool:
+	if timeline_director != null and timeline_director.enabled and (meta_progression.weekday_name() == "Sunday" or (meta_progression.season_name() == "Autumn" and meta_progression.day == 28)): return false
 	var fraction := day_time_seconds / DAY_LENGTH_SECONDS
 	return fraction >= 0.18 and fraction < 0.75
 
@@ -3870,9 +4073,12 @@ func _draw_structure_sprite(definition_id: String, cells: Array[Vector2i], ghost
 		var texture := load(str(visual.texture)) as Texture2D
 		var columns_count := maxi(1, int(visual.get("columns", 1)))
 		var rows_count := maxi(1, int(visual.get("rows", 1)))
-		var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
-		var source := Rect2(Vector2(int(visual.get("column", 0)), int(visual.get("row", 0))) * region_size, region_size)
-		draw_texture_rect_region(texture, destination, source, tint if ghost else Color.WHITE)
+		if columns_count == 1 and rows_count == 1:
+			draw_texture_rect(texture, destination, false, tint if ghost else Color.WHITE)
+		else:
+			var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
+			var source := Rect2(Vector2(int(visual.get("column", 0)), int(visual.get("row", 0))) * region_size, region_size)
+			draw_texture_rect_region(texture, destination, source, tint if ghost else Color.WHITE)
 	elif industry_columns.has(definition_id):
 		var cell_width := INDUSTRY_BUILDING_TEXTURE.get_width() / 5.0
 		draw_texture_rect_region(INDUSTRY_BUILDING_TEXTURE, destination, Rect2(int(industry_columns[definition_id]) * cell_width, 0, cell_width, INDUSTRY_BUILDING_TEXTURE.get_height()), tint if ghost else Color.WHITE)

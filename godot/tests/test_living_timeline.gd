@@ -16,7 +16,7 @@ func _initialize() -> void:
 	var result: Dictionary = living.try_complete_request(inventory)
 	_expect(not result.is_empty() and living.community > 0 and not living.friendship.is_empty(), "Optional requests should reward relationships and settlement identity.", failures)
 	living.begin_day(8); inventory.add("loaf", 8); living.contribute_feast(inventory); living.contribute_feast(inventory)
-	_expect(living.feast_food >= 8 and living.day_story(8).contains("abundance"), "Feast preparation should affect the authored Day 8 outcome.", failures)
+	_expect(living.feast_food >= 8 and living.day_story(28, "Autumn").contains("abundance"), "Feast preparation should affect the authored autumn festival outcome.", failures)
 	living.begin_day(6); inventory.add("coin", 2)
 	var purchase: Dictionary = living.buy_merchant_offer(6, inventory)
 	_expect(str(purchase.get("item", "")) == "village_lantern" and inventory.count("village_lantern") == 1, "The Day 6 merchant should sell an optional placeable decoration.", failures)

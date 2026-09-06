@@ -15,4 +15,15 @@
  {"id":"flower_bed","label":"Flower bed","color":"#d45a73","max_stack":10,"placeable_entity_id":"DECOR_FLOWERS"}
  ,{"id":"wild_herbs","label":"Wild herbs","color":"#75a64e","max_stack":30}
  ,{"id":"ruin_fragment","label":"Carved ruin fragment","color":"#85847d","max_stack":10}
+ ,{"id":"egg","label":"Fresh egg","color":"#f4e8c0","max_stack":30}
+ ,{"id":"chicken_meat","label":"Chicken meat","color":"#c97a66","max_stack":20}
+ ,{"id":"honey","label":"Wildflower honey","color":"#e4a92c","max_stack":30}
+ ,{"id":"medicinal_herbs","label":"Medicinal herbs","color":"#5c9b48","max_stack":30}
+ ,{"id":"ancient_relic","label":"Northern relic","color":"#65b6bd","max_stack":5}
+ ,{"id":"star_chart","label":"Illuminated star chart","color":"#52689b","max_stack":10}
+ ,{"id":"festival_platter","label":"Festival platter","color":"#d77e42","max_stack":20}
+ ,{"id":"chicken_coop_plan","label":"Chicken Coop","color":"#d7b276","max_stack":3,"placeable_entity_id":"CHICKEN_COOP"}
+ ,{"id":"herb_garden_plan","label":"Herb Garden","color":"#8eb36b","max_stack":3,"placeable_entity_id":"HERB_GARDEN"}
+ ,{"id":"apiary_plan","label":"Village Apiary","color":"#d9ae54","max_stack":3,"placeable_entity_id":"APIARY"}
+ ,{"id":"astronomer_tower_plan","label":"Astronomer's Tower","color":"#7588ad","max_stack":2,"placeable_entity_id":"ASTRONOMER_TOWER"}
 ]}

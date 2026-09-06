@@ -30,6 +30,7 @@ const ACTIONS := {
 	"open_tech_tree": [KEY_T],
 	"open_collection": [KEY_M],
 	"open_living_journal": [KEY_J],
+	"open_calendar": [KEY_B],
 	"sleep_day": [KEY_N],
 	"building_details": [],
 }

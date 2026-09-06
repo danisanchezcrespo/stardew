@@ -7,5 +7,10 @@
  {"id":"forge_plan","label":"Forge","inputs":{"oak_wood":8,"field_stone":12},"outputs":{"forge_plan":1},"unlock_after":"make_flour"},
  {"id":"market_plan","label":"Market","inputs":{"oak_wood":12,"field_stone":10,"iron_tools":2},"outputs":{"market_plan":1},"unlock_after":"forge_tools"},
  {"id":"keep_plan","label":"Stone Keep","inputs":{"field_stone":35,"oak_wood":20,"iron_tools":5,"coin":12},"outputs":{"keep_plan":1},"unlock_after":"earn_coin"},
- {"id":"hand_loaf","label":"Hearth Bread","inputs":{"flour":2},"outputs":{"loaf":2},"unlock_after":"make_flour"}
+ {"id":"hand_loaf","label":"Hearth Bread","inputs":{"flour":2},"outputs":{"loaf":2},"unlock_after":"make_flour"},
+ {"id":"chicken_coop_plan","label":"Chicken Coop","inputs":{"oak_wood":12,"field_stone":4},"outputs":{"chicken_coop_plan":1}},
+ {"id":"herb_garden_plan","label":"Herb Garden","inputs":{"oak_wood":6,"wild_herbs":4},"outputs":{"herb_garden_plan":1}},
+ {"id":"apiary_plan","label":"Village Apiary","inputs":{"oak_wood":10,"wild_herbs":6,"iron_tools":1},"outputs":{"apiary_plan":1}},
+ {"id":"astronomer_tower_plan","label":"Astronomer's Tower","inputs":{"field_stone":20,"oak_wood":10,"iron_tools":3,"ruin_fragment":2},"outputs":{"astronomer_tower_plan":1}},
+ {"id":"festival_platter","label":"Honeyed Festival Platter","inputs":{"loaf":2,"egg":2,"honey":1},"outputs":{"festival_platter":1}}
 ]}
