@@ -2135,7 +2135,7 @@ func _update_building_details() -> void:
 	building_upgrade_button.visible = site == null or site.complete
 	building_context_button.visible = false
 	building_upgrade_button.disabled = building_level >= 3
-	building_upgrade_button.text = _upgrade_button_text(building_details_id)
+	_set_upgrade_button_content(building_upgrade_button, building_details_id)
 	if site != null and not site.complete:
 		var materials: Array[String] = []
 		for item_id: String in site.requirements:
@@ -3565,7 +3565,7 @@ func _update_machine_panel(rebuild_actions: bool = true) -> void:
 	machine_title_label.text = _placed_definition_label(active_machine_id).to_upper()
 	var level: int = meta_progression.building_level(active_machine_id)
 	machine_upgrade_button.visible = machine.recipe_catalog.is_empty()
-	machine_upgrade_button.text = _upgrade_button_text(active_machine_id)
+	_set_upgrade_button_content(machine_upgrade_button, active_machine_id)
 	machine_upgrade_button.disabled = level >= 3
 	var input_rows: Array[String] = []
 	for item_id: String in machine.recipe_inputs:
@@ -3598,17 +3598,18 @@ func _update_machine_panel(rebuild_actions: bool = true) -> void:
 			for recipe_index in range(machine.recipe_catalog.size()):
 				var recipe: Dictionary = machine.recipe_catalog[recipe_index]
 				var unlocked: bool = machine.recipe_is_unlocked(recipe_index)
-				var recipe_button := Button.new(); recipe_button.text = (("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.get("id", "Recipe"))).to_upper() + "\n" + _compact_machine_cost(recipe.get("inputs", {}))) if unlocked else ("LOCKED - MASTERY %d\n???" % (recipe_index / 2 + 1))
+				var recipe_button := Button.new(); recipe_button.text = (("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.get("id", "Recipe"))).to_upper()) if unlocked else ("LOCKED - MASTERY %d" % (recipe_index / 2 + 1))
 				_configure_machine_action_button(recipe_button); recipe_button.disabled = machine.is_running() or not unlocked; recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
+				if unlocked: _add_resource_strip(recipe_button, recipe.get("inputs", {}), 155.0)
 		if machine.broken:
-			var repair_button := Button.new(); repair_button.text = "REPAIR\n%s x2  |  CARRIED %d" % [repair_label, inventory.count(scenario.repair_item_id)]
+			var repair_button := Button.new(); repair_button.text = "REPAIR   x2  |  CARRIED %d" % inventory.count(scenario.repair_item_id); repair_button.icon = ItemIconAtlasType.icon(scenario.repair_item_id); repair_button.tooltip_text = repair_label
 			_configure_machine_action_button(repair_button); repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
 		else:
 			for item_id: String in machine.recipe_inputs:
-				var input_button := Button.new(); input_button.text = "LOAD %s\nCARRIED %d  |  LOADED %d" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
+				var input_button := Button.new(); input_button.text = "LOAD   CARRIED %d  |  LOADED %d" % [inventory.count(item_id), machine.input_inventory.count(item_id)]; input_button.icon = ItemIconAtlasType.icon(item_id); input_button.tooltip_text = item_registry.get_item(item_id).label
 				_configure_machine_action_button(input_button); input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
 		for item_id: String in output_ids:
-			var output_button := Button.new(); output_button.text = "COLLECT %s\nREADY x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
+			var output_button := Button.new(); output_button.text = "COLLECT   READY x%d" % machine.output_inventory.count(item_id); output_button.icon = ItemIconAtlasType.icon(item_id); output_button.tooltip_text = item_registry.get_item(item_id).label
 			_configure_machine_action_button(output_button); output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
 	machine_worker_icon.visible = assigned_worker != null
 	machine_remove_worker_button.visible = assigned_worker != null
@@ -3635,6 +3636,7 @@ func _configure_machine_action_button(button: Button) -> void:
 	button.clip_text = true
 	button.add_theme_font_override("font", GameThemeType.PIXEL)
 	button.add_theme_font_size_override("font_size", 13)
+	button.add_theme_constant_override("icon_max_width", 26)
 
 
 func _compact_machine_cost(cost: Dictionary) -> String:
@@ -4067,7 +4069,7 @@ func _update_storage_ui(feedback: String = "") -> void:
 	if storage == null:
 		return
 	var level: int = meta_progression.building_level(active_storage_id)
-	storage_upgrade_button.text = _upgrade_button_text(active_storage_id)
+	_set_upgrade_button_content(storage_upgrade_button, active_storage_id)
 	storage_upgrade_button.disabled = level >= 3
 	storage_player_label.text = ">  PLAYER" if storage_focus_side == 0 else "PLAYER"
 	for index in range(inventory.slots.size()):
@@ -4107,14 +4109,45 @@ func _upgrade_cost(instance_id: String) -> Dictionary:
 	return result
 
 
-func _upgrade_button_text(instance_id: String) -> String:
+func _set_upgrade_button_content(button: Button, instance_id: String) -> void:
+	for child: Node in button.get_children():
+		if child.name == "ResourceStrip": button.remove_child(child); child.queue_free()
 	if instance_id.is_empty() or meta_progression.building_level(instance_id) >= 3:
-		return "MAX LEVEL"
-	var parts: Array[String] = []
-	for item_id: String in _upgrade_cost(instance_id):
-		var item: Variant = item_registry.get_item(item_id)
-		parts.append("%s x%d" % [item.label if item != null else item_id.capitalize(), int(_upgrade_cost(instance_id)[item_id])])
-	return "Upgrade (Needs %s)" % ", ".join(parts)
+		button.text = "MAX LEVEL"
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		return
+	button.text = "UPGRADE"
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_add_resource_strip(button, _upgrade_cost(instance_id), 118.0)
+
+
+func _add_resource_strip(button: Button, resources: Dictionary, start_x: float) -> void:
+	var strip := HBoxContainer.new()
+	strip.name = "ResourceStrip"
+	strip.position = Vector2(start_x, 4)
+	strip.size = Vector2(maxf(40.0, button.size.x - start_x - 8.0), maxf(26.0, button.size.y - 8.0))
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.alignment = BoxContainer.ALIGNMENT_END
+	strip.add_theme_constant_override("separation", 3)
+	button.add_child(strip)
+	var tooltip_parts: Array[String] = []
+	for item_id: String in resources:
+		var icon := TextureRect.new()
+		icon.custom_minimum_size = Vector2(24, 24)
+		icon.texture = ItemIconAtlasType.icon(item_id)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		strip.add_child(icon)
+		var amount := Label.new()
+		amount.text = "x%d" % int(resources[item_id])
+		amount.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		amount.add_theme_font_size_override("font_size", 12)
+		amount.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		strip.add_child(amount)
+		var definition: Variant = item_registry.get_item(item_id)
+		tooltip_parts.append("%s x%d" % [definition.label if definition != null else item_id.capitalize(), int(resources[item_id])])
+	button.tooltip_text = ", ".join(tooltip_parts)
 
 
 func _try_upgrade_building(instance_id: String) -> bool:
