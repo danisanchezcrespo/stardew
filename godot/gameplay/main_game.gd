@@ -144,6 +144,8 @@ var machine_worker_icon: TextureRect
 var machine_remove_worker_button: Button
 var machine_upgrade_button: Button
 var machine_action_list: VBoxContainer
+var machine_controls_label: Label
+var machine_feedback := ""
 var villagers: Dictionary = {}
 var dependents: Dictionary = {}
 var next_dependent_id := 1
@@ -1878,14 +1880,14 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_machine_id)); machine_panel.add_child(machine_upgrade_button)
 	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 286); action_scroll.size = Vector2(364, 202); action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; machine_panel.add_child(action_scroll)
 	machine_action_list = VBoxContainer.new(); machine_action_list.custom_minimum_size = Vector2(340, 0); action_scroll.add_child(machine_action_list)
-	var controls := Label.new()
-	controls.position = Vector2(28, 504)
-	controls.size = Vector2(364, 40)
-	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	controls.text = "Press an ingredient to load it, repair material to fix, or output to collect. Esc: close"
-	controls.add_theme_font_size_override("font_size", 14)
-	controls.add_theme_color_override("font_color", Color("#6b3e20"))
-	machine_panel.add_child(controls)
+	machine_controls_label = Label.new()
+	machine_controls_label.position = Vector2(28, 504)
+	machine_controls_label.size = Vector2(364, 48)
+	machine_controls_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	machine_controls_label.text = "Press an ingredient to load it, repair material to fix, or output to collect. Esc: close"
+	machine_controls_label.add_theme_font_size_override("font_size", 14)
+	machine_controls_label.add_theme_color_override("font_color", Color("#6b3e20"))
+	machine_panel.add_child(machine_controls_label)
 
 
 func _build_villager_panel(layer: CanvasLayer) -> void:
@@ -3494,6 +3496,7 @@ func open_machine(instance_id: String) -> bool:
 	_hide_subject_panels()
 	machine_open = true
 	active_machine_id = instance_id
+	machine_feedback = ""
 	player.movement_enabled = false
 	player.velocity = Vector2.ZERO
 	machine_panel.visible = true
@@ -3514,6 +3517,8 @@ func _update_machine_panel() -> void:
 	if machine_status_label == null: return
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine == null: return
+	if machine_controls_label != null:
+		machine_controls_label.text = machine_feedback if not machine_feedback.is_empty() else "Press an ingredient to load it, repair material to fix, or output to collect. Esc: close"
 	machine_title_label.text = _placed_definition_label(active_machine_id).to_upper()
 	var level: int = meta_progression.building_level(active_machine_id)
 	machine_upgrade_button.visible = machine.recipe_catalog.is_empty()
@@ -3553,14 +3558,14 @@ func _update_machine_panel() -> void:
 			recipe_button.custom_minimum_size = Vector2(334, 54); recipe_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; recipe_button.add_theme_font_override("font", GameThemeType.PIXEL); recipe_button.disabled = machine.is_running() or not unlocked; recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
 	if machine.broken:
 		var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
-		repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.disabled = inventory.count(scenario.repair_item_id) < 2; repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
+		repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
 	else:
 		for item_id: String in machine.recipe_inputs:
 			var input_button := Button.new(); input_button.text = "PUT  %s  (%d carried / %d loaded)" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
-			input_button.text = input_button.text.to_upper(); input_button.add_theme_font_override("font", GameThemeType.PIXEL); input_button.disabled = inventory.count(item_id) <= 0; input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
+			input_button.text = input_button.text.to_upper(); input_button.add_theme_font_override("font", GameThemeType.PIXEL); input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
 	for item_id: String in output_ids:
 		var output_button := Button.new(); output_button.text = "TAKE  %s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
-		output_button.text = output_button.text.to_upper(); output_button.add_theme_font_override("font", GameThemeType.PIXEL); output_button.disabled = machine.output_inventory.count(item_id) <= 0; output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
+		output_button.text = output_button.text.to_upper(); output_button.add_theme_font_override("font", GameThemeType.PIXEL); output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
 	machine_worker_icon.visible = assigned_worker != null
 	machine_remove_worker_button.visible = assigned_worker != null
 	if assigned_worker != null:
@@ -3588,11 +3593,24 @@ func _machine_put_item(item_id: String) -> void:
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine == null: return
 	if machine.broken and item_id == scenario.repair_item_id:
+		if inventory.count(item_id) < 2:
+			machine_feedback = "You need %s x2 to repair this machine." % item_registry.get_item(item_id).label
+			_update_machine_panel()
+			return
 		var used: int = machine.repair(item_id, inventory.count(item_id), scenario.repair_item_id)
-		if used > 0: inventory.remove(item_id, used)
+		if used > 0:
+			inventory.remove(item_id, used)
+			machine_feedback = "Machine repaired."
 	else:
+		if inventory.count(item_id) <= 0:
+			machine_feedback = "You are not carrying any %s." % item_registry.get_item(item_id).label
+			_update_machine_panel()
+			return
 		var accepted: int = machine.add_input(item_id, inventory.count(item_id))
-		if accepted > 0: inventory.remove(item_id, accepted); machine.manually_activated = true
+		if accepted > 0:
+			inventory.remove(item_id, accepted); machine.manually_activated = true
+			machine_feedback = "Loaded %s x%d." % [item_registry.get_item(item_id).label, accepted]
+		else: machine_feedback = "This machine cannot accept more %s right now." % item_registry.get_item(item_id).label
 	_update_inventory_hud(); _update_machine_panel()
 
 
@@ -3600,8 +3618,15 @@ func _machine_take_item(item_id: String) -> void:
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine == null: return
 	var amount: int = machine.output_inventory.count(item_id)
+	if amount <= 0:
+		machine_feedback = "There is no %s ready to collect yet." % item_registry.get_item(item_id).label
+		_update_machine_panel()
+		return
 	var accepted: int = inventory.add(item_id, amount)
-	if accepted > 0: machine.output_inventory.remove(item_id, accepted)
+	if accepted > 0:
+		machine.output_inventory.remove(item_id, accepted)
+		machine_feedback = "Collected %s x%d." % [item_registry.get_item(item_id).label, accepted]
+	else: machine_feedback = "Your inventory is full."
 	_update_inventory_hud(); _update_machine_panel()
 
 

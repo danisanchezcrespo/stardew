@@ -41,6 +41,9 @@ func _test_kiln(failures: Array[String]) -> void:
 	game._unhandled_input(_action("use_selected"))
 	_expect(game.machine_open, "Space should open the nearby kiln status panel.", failures)
 	_expect(game.machine_status_label.text.contains("Health") and game.machine_status_label.text.contains("ACCUMULATED OUTPUT"), "Machine details should expose health and accumulated product.", failures)
+	for control: Node in game.machine_action_list.get_children():
+		if control is Button:
+			_expect(not (control as Button).disabled, "Available machine actions should stay clickable and explain missing resources.", failures)
 	game.close_machine()
 	game.inventory.add("grain", 3)
 	game.select_quick_slot(_find_slot(game.inventory, "grain"))
