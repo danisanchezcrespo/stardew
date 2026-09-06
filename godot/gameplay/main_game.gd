@@ -2279,12 +2279,12 @@ func _update_villager_happiness() -> void:
 
 
 func village_happiness_metrics() -> Dictionary:
-	if villagers.is_empty(): return {"average":100.0,"minimum":100.0,"cohesion":100.0}
+	if villagers.is_empty(): return {"count":0,"average":100.0,"minimum":100.0,"cohesion":100.0}
 	var total := 0.0; var minimum := 100.0
 	for villager: Variant in villagers.values(): total += villager.happiness; minimum = minf(minimum, villager.happiness)
 	var average := total / villagers.size(); var spread := 0.0
 	for villager: Variant in villagers.values(): spread += absf(villager.happiness - average)
-	return {"average":average,"minimum":minimum,"cohesion":clampf(100.0 - spread / villagers.size() * 2.0, 0.0, 100.0)}
+	return {"count":villagers.size(),"average":average,"minimum":minimum,"cohesion":clampf(100.0 - spread / villagers.size() * 2.0, 0.0, 100.0)}
 
 
 func _change_selected_villager_appearance(index: int) -> void:
