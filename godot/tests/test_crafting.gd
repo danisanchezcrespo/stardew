@@ -62,8 +62,11 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	_expect(game.crafting_recipe_buttons.size() == game.recipe_registry.recipe_order.size(), "Crafting should expose one clickable button per recipe.", failures)
 	_expect(game.crafting_recipe_scroll != null and game.crafting_recipe_scroll.get_v_scroll_bar().visible, "Long crafting lists should stay inside a vertical scroll area.", failures)
 	_expect(game.crafting_resource_icons[0].visible and game.crafting_resource_icons[0].texture != null, "Crafting ingredients should display their resource icons.", failures)
-	_expect(game.crafting_recipe_buttons[0].get_theme_color("font_color") == Color("#fffaf0"), "Craftable recipes should appear bright white.", failures)
+	_expect(game.crafting_recipe_buttons[0].get_theme_color("font_color") == Color("#30241d"), "Craftable recipes should use high-contrast ink on the light button.", failures)
 	_expect(game.crafting_recipe_buttons[1].get_theme_color("font_color") == Color("#777777"), "Unavailable recipes should appear grey.", failures)
+	_expect(game.crafting_recipe_scroll.position.x + game.crafting_recipe_scroll.size.x <= game.crafting_detail_label.position.x, "Crafting recipe list must not invade the detail column.", failures)
+	for button: Button in game.crafting_recipe_buttons:
+		_expect(button.size.x <= game.crafting_recipe_scroll.size.x, "Crafting recipe buttons must remain clipped inside the left column.", failures)
 	game.crafting_recipe_buttons[1].mouse_entered.emit()
 	_expect(game.selected_recipe_index == 1, "Hovering a recipe should preview it without crafting.", failures)
 	_expect(game.crafting_detail_label.text.contains("#d83232") and game.crafting_detail_label.text.contains("Clay: 0 / 2"), "Missing hovered ingredients should appear red in the detail panel.", failures)

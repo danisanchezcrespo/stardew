@@ -2035,7 +2035,9 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(building_details_id)); building_details_panel.add_child(building_upgrade_button)
 	building_context_button = Button.new()
 	building_context_button.position = Vector2(24, 382); building_context_button.size = Vector2(372, 44); building_context_button.visible = false
-	building_context_button.pressed.connect(building_details_context_action); building_details_panel.add_child(building_context_button)
+	# Fire on mouse/touch down. This shared contextual action can close its own
+	# panel (sleep/research), so waiting for release is fragile on scaled UI.
+	building_context_button.button_down.connect(building_details_context_action); building_details_panel.add_child(building_context_button)
 
 
 func _hide_subject_panels() -> void:
@@ -2562,6 +2564,7 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_panel.position = Vector2(290, 125)
 	crafting_panel.size = Vector2(700, 450)
 	crafting_panel.color = Color("#d8bd83")
+	crafting_panel.clip_contents = true
 	crafting_panel.visible = false
 	layer.add_child(crafting_panel)
 	var title := Label.new()
@@ -2583,15 +2586,20 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_recipe_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	crafting_panel.add_child(crafting_recipe_scroll)
 	var recipe_list := VBoxContainer.new()
-	recipe_list.custom_minimum_size = Vector2(296, maxi(304, recipe_registry.recipe_order.size() * 43 - 5))
+	recipe_list.custom_minimum_size = Vector2(296, maxi(304, recipe_registry.recipe_order.size() * 53 - 5))
+	recipe_list.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	recipe_list.add_theme_constant_override("separation", 5)
 	crafting_recipe_scroll.add_child(recipe_list)
 	for index in range(recipe_registry.recipe_order.size()):
 		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(292, 38)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size = Vector2(292, 48)
+		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		button.text = "%d.  %s" % [index + 1, recipe.label]
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		button.clip_text = true
+		button.add_theme_font_size_override("font_size", 15)
 		if not recipe.outputs.is_empty(): button.icon = ItemIconAtlasType.icon(str(recipe.outputs.keys()[0]))
 		button.add_theme_constant_override("icon_max_width", 30)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -2601,12 +2609,13 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 		crafting_recipe_buttons.append(button)
 	crafting_list_label.visible = false
 	crafting_detail_label = RichTextLabel.new()
-	crafting_detail_label.position = Vector2(375, 78)
-	crafting_detail_label.size = Vector2(295, 300)
+	crafting_detail_label.position = Vector2(374, 78)
+	crafting_detail_label.size = Vector2(296, 300)
+	crafting_detail_label.clip_contents = true
 	crafting_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	crafting_detail_label.bbcode_enabled = true
 	crafting_detail_label.scroll_active = false
-	crafting_detail_label.add_theme_font_size_override("normal_font_size", 17)
+	crafting_detail_label.add_theme_font_size_override("normal_font_size", 14)
 	crafting_detail_label.add_theme_color_override("default_color", Color("#3b281b"))
 	crafting_panel.add_child(crafting_detail_label)
 	for index in range(8):
@@ -2979,7 +2988,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		var recipe: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[index])
 		var unlocked: bool = campaign.is_unlocked(recipe.unlock_after) and meta_progression.recipe_unlocked(recipe.recipe_id) and (not timeline_director.enabled or timeline_director.recipe_unlocked(recipe.recipe_id))
 		var available: bool = unlocked and crafting.query(inventory, recipe.recipe_id).valid
-		var text_color := Color("#fffaf0") if available else (Color("#777777") if unlocked else Color("#665e58"))
+		var text_color := Color("#30241d") if available else (Color("#777777") if unlocked else Color("#665e58"))
 		button.text = "%s%d.  %s" % ["> " if index == selected_recipe_index else "   ", index + 1, recipe.label]
 		button.modulate = Color.WHITE
 		button.add_theme_color_override("font_color", text_color)

@@ -22,7 +22,7 @@ func _run() -> void:
 	_expect(not InputMap.has_action("open_tech_tree") and not InputMap.has_action("sleep_day"), "Technology and sleep must not expose global shortcut actions.", failures)
 	var university_id := _place_and_complete(game, "university_plan", Vector2i(20, 12))
 	_expect(game.open_building_details(university_id) and game.building_context_button.visible, "The University must expose its study action in-world.", failures)
-	game.building_context_button.pressed.emit()
+	game.building_context_button.button_down.emit()
 	_expect(game.tech_open, "Entering the University must open University Studies.", failures)
 	game.set_tech_open(false)
 	var home_id := _place_and_complete(game, "traveler_cottage_plan", Vector2i(10, 12))
@@ -31,7 +31,7 @@ func _run() -> void:
 	var active_button_style := game.building_context_button.get_theme_stylebox("normal") as StyleBoxFlat
 	_expect(active_button_style != null and active_button_style.bg_color.get_luminance() > 0.55, "Active panel buttons must use the clearly light visual style.", failures)
 	var wake_position: Vector2 = game.placed_targets[home_id].interaction_position()
-	game.building_context_button.pressed.emit()
+	game.building_context_button.button_down.emit()
 	_expect(is_equal_approx(game.day_time_seconds, game.MORNING_TIME_SECONDS), "Sleeping through the home must wake the world at 07:00.", failures)
 	_expect(game.player.position.is_equal_approx(wake_position), "Sleeping must wake the player at the cottage's exterior use port.", failures)
 	game.close_day_summary()
