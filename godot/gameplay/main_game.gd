@@ -1248,8 +1248,15 @@ func _apply_timeline_event(event: Dictionary, show_dialogue: bool) -> void:
 	if effects.has("weather"): living_timeline.weather = str(effects.weather)
 	for item_id: String in effects.get("grant_items", {}): inventory.add(item_id, int(effects.grant_items[item_id]))
 	for row: Dictionary in effects.get("spawn_pickups", []):
-		var exists := pickups.any(func(pickup: Variant) -> bool: return is_instance_valid(pickup) and pickup.stable_id == str(row.id))
-		if not exists: _spawn_pickup(str(row.id), str(row.item), int(row.amount), Vector2(float(row.cell[0]), float(row.cell[1])) * CELL_SIZE)
+		var pickup_id := str(row.get("id", ""))
+		var item_id := str(row.get("item", ""))
+		var amount := int(row.get("amount", 0))
+		var cell: Array = row.get("cell", [])
+		if pickup_id.is_empty() or item_id.is_empty() or amount <= 0 or cell.size() < 2:
+			push_warning("Ignoring malformed timeline pickup: %s" % str(row))
+			continue
+		var exists := pickups.any(func(pickup: Variant) -> bool: return is_instance_valid(pickup) and pickup.stable_id == pickup_id)
+		if not exists: _spawn_pickup(pickup_id, item_id, amount, Vector2(float(cell[0]), float(cell[1])) * CELL_SIZE)
 	if str(event.get("id", "")) == "harvest_feast": timeline_director.festival_score = living_timeline.feast_food + living_timeline.community + living_timeline.beauty
 	_update_inventory_hud()
 	if show_dialogue:
@@ -2078,8 +2085,11 @@ func building_details_context_action() -> void:
 		return
 	if construction_delivery_popup.visible:
 		for row: Dictionary in _construction_deliverable(site):
-			var accepted: int = site.deliver(str(row.item), int(row.amount))
-			if accepted > 0: inventory.remove(str(row.item), accepted)
+			var item_id := str(row.get("item", ""))
+			var amount := int(row.get("amount", 0))
+			if item_id.is_empty() or amount <= 0: continue
+			var accepted: int = site.deliver(item_id, amount)
+			if accepted > 0: inventory.remove(item_id, accepted)
 		_update_inventory_hud()
 	elif site.materials_complete():
 		active_player_build_id = building_details_id
@@ -2120,9 +2130,12 @@ func _update_building_details() -> void:
 			var delivery_rows: Array[String] = []
 			for index in range(deliverable.size()):
 				var row: Dictionary = deliverable[index]
-				delivery_rows.append("      %s  x%d" % [item_registry.get_item(str(row.item)).label, int(row.amount)])
+				var item_id := str(row.get("item", ""))
+				var amount := int(row.get("amount", 0))
+				if item_id.is_empty() or amount <= 0: continue
+				delivery_rows.append("      %s  x%d" % [item_registry.get_item(item_id).label, amount])
 				if index < construction_delivery_icons.size():
-					construction_delivery_icons[index].texture = ItemIconAtlasType.icon(str(row.item))
+					construction_delivery_icons[index].texture = ItemIconAtlasType.icon(item_id)
 					construction_delivery_icons[index].visible = true
 			for index in range(deliverable.size(), construction_delivery_icons.size()): construction_delivery_icons[index].visible = false
 			construction_delivery_label.text = "DELIVER MATERIALS\n\n%s\n\nSPACE  Deliver all available" % "\n".join(delivery_rows)
@@ -3459,7 +3472,11 @@ func _machine_prompt(instance_id: String) -> String:
 	if machine.broken:
 		return "%s broken | Space to open" % machine_name
 	var output_count := 0
-	for slot: Variant in machine.output_inventory.slots: output_count += int(slot.amount)
+	# Older saves may contain empty inventory slots as bare dictionaries.  Treat a
+	# missing amount as zero so merely approaching a machine can never crash.
+	for slot: Variant in machine.output_inventory.slots:
+		if slot is Dictionary:
+			output_count += int(slot.get("amount", 0))
 	if machine.is_running():
 		return "%s working %d%% | Output %d | Space to open" % [machine_name, roundi(machine.progress() * 100.0), output_count]
 	return "%s ready | Output %d | Space to open" % [machine_name, output_count]

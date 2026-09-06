@@ -33,6 +33,10 @@ func _test_kiln(failures: Array[String]) -> void:
 	game.apply_construction_work(instance_id, 10.0)
 	var machine: Variant = game.machines_by_entity_id.get(instance_id)
 	_expect(machine != null, "Completed kiln should create a physical machine runtime.", failures)
+	# Legacy saves represented unused slots as {}. Approaching a restored
+	# machine must treat those slots as empty instead of reading a missing key.
+	machine.output_inventory.slots[0] = {}
+	_expect(game._machine_prompt(instance_id).contains("Space to open"), "Approaching a machine with legacy empty slots should not crash.", failures)
 	game.interaction_target = game.placed_targets[instance_id]
 	game._unhandled_input(_action("use_selected"))
 	_expect(game.machine_open, "Space should open the nearby kiln status panel.", failures)

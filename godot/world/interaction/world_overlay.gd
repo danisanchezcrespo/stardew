@@ -91,10 +91,15 @@ func _draw_requirement_hint(anchor: Vector2, title: String, needs: Array[Diction
 	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, 33), "Needs", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#f0cc72"))
 	for index in range(needs.size()):
 		var row: Dictionary = needs[index]
+		var item_id := str(row.get("item", ""))
+		var amount := int(row.get("amount", 0))
+		if item_id.is_empty() or amount <= 0:
+			continue
 		var pos := rect.position + Vector2(12, 38 + index * 28)
-		draw_texture_rect_region(ItemIconAtlasType.texture(str(row.item)), Rect2(pos, Vector2(22, 22)), ItemIconAtlasType.region(str(row.item)))
-		var definition: Variant = game.item_registry.get_item(str(row.item))
-		draw_string(ThemeDB.fallback_font, pos + Vector2(29, 16), "%s  x%d" % [definition.label, int(row.amount)], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+		draw_texture_rect_region(ItemIconAtlasType.texture(item_id), Rect2(pos, Vector2(22, 22)), ItemIconAtlasType.region(item_id))
+		var definition: Variant = game.item_registry.get_item(item_id)
+		var label: String = str(definition.label) if definition != null else item_id.replace("_", " ").capitalize()
+		draw_string(ThemeDB.fallback_font, pos + Vector2(29, 16), "%s  x%d" % [label, amount], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, height - 8), "Space to open", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 func _draw_progress_hint(anchor: Vector2, progress: float) -> void:
