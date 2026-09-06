@@ -19,14 +19,16 @@ func _run() -> void:
 	_expect(not InputMap.has_action("open_tech_tree") and not InputMap.has_action("sleep_day"), "Technology and sleep must not expose global shortcut actions.", failures)
 	var university_id := _place_and_complete(game, "university_plan", Vector2i(20, 12))
 	_expect(game.open_building_details(university_id) and game.building_context_button.visible, "The University must expose its study action in-world.", failures)
-	game.building_details_context_action()
+	game.building_context_button.pressed.emit()
 	_expect(game.tech_open, "Entering the University must open University Studies.", failures)
 	game.set_tech_open(false)
 	var home_id := _place_and_complete(game, "traveler_cottage_plan", Vector2i(10, 12))
 	game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.6
 	_expect(game.open_building_details(home_id) and game.building_context_button.text.contains("SLEEP"), "The Traveler's home must expose a Sleep button.", failures)
+	var wake_position: Vector2 = game.placed_targets[home_id].interaction_position()
 	game.building_details_context_action()
 	_expect(is_equal_approx(game.day_time_seconds, game.MORNING_TIME_SECONDS), "Sleeping through the home must wake the world at 07:00.", failures)
+	_expect(game.player.position.is_equal_approx(wake_position), "Sleeping must wake the player at the cottage's exterior use port.", failures)
 	game.queue_free(); await process_frame
 	if failures.is_empty(): print("PASS: diegetic UX"); quit(0); return
 	for failure: String in failures: push_error(failure)

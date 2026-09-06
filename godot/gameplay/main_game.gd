@@ -766,11 +766,11 @@ func _build_hud() -> void:
 	population_label.add_theme_font_size_override("font_size", 16)
 	layer.add_child(population_label)
 	objective_label = Label.new()
-	objective_label.position = Vector2(500, 84)
-	objective_label.size = Vector2(670, 58)
+	objective_label.position = Vector2(420, 82)
+	objective_label.size = Vector2(390, 78)
 	objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	objective_label.add_theme_font_size_override("font_size", 16)
+	objective_label.add_theme_font_size_override("font_size", 14)
 	objective_label.add_theme_color_override("font_color", Color("#f0cc72"))
 	layer.add_child(objective_label)
 	interaction_label = Label.new()
@@ -1433,7 +1433,9 @@ func _buy_living_offer() -> void:
 func _sleep_to_next_day() -> void:
 	if day_summary_open: return
 	var home: Variant = _player_home_target()
-	if home != null: player.position = home.global_position + Vector2(0, 38)
+	# Wake at the building's configured exterior use port, never inside its
+	# collision footprint.
+	if home != null: player.position = home.interaction_position()
 	day_time_seconds = MORNING_TIME_SECONDS
 	_record_year_end_if_needed()
 	var next_day: Dictionary = meta_progression.advance_day()
@@ -2129,6 +2131,8 @@ func _update_building_details() -> void:
 		building_details_body.text = "UNDER CONSTRUCTION\n\nMaterials\n%s\n\nWork: %d%%\nHealth: stable" % ["\n".join(materials), roundi(site.work_progress() * 100.0)]
 		var deliverable := _construction_deliverable(site)
 		construction_delivery_popup.visible = not deliverable.is_empty()
+		building_context_button.visible = not deliverable.is_empty()
+		building_context_button.text = "DELIVER ALL AVAILABLE MATERIALS"
 		if not deliverable.is_empty():
 			var delivery_rows: Array[String] = []
 			for index in range(deliverable.size()):
@@ -2141,8 +2145,8 @@ func _update_building_details() -> void:
 					construction_delivery_icons[index].texture = ItemIconAtlasType.icon(item_id)
 					construction_delivery_icons[index].visible = true
 			for index in range(deliverable.size(), construction_delivery_icons.size()): construction_delivery_icons[index].visible = false
-			construction_delivery_label.text = "DELIVER MATERIALS\n\n%s\n\nSPACE  Deliver all available" % "\n".join(delivery_rows)
-		building_details_controls.text = "Space: %s    Esc: close" % ("deliver shown materials" if not deliverable.is_empty() else ("start building" if site.materials_complete() else "select a required material"))
+			construction_delivery_label.text = "AVAILABLE TO DELIVER\n\n%s" % "\n".join(delivery_rows)
+		building_details_controls.text = "%s    Esc: close" % ("Use the Deliver button" if not deliverable.is_empty() else ("Space: start building" if site.materials_complete() else "Bring one of the required materials"))
 		return
 	construction_delivery_popup.visible = false
 	building_details_controls.text = "Upgrade levels improve output speed by 25% - Esc: close"
