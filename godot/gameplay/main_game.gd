@@ -368,7 +368,8 @@ func _process(delta: float) -> void:
 	if objective_label != null:
 		objective_label.text = _museum_objective_text() if scenario.scenario_id == "time_museum" else (_post_keep_objective_text() if timeline_director.enabled and campaign.is_complete() else campaign.current_text())
 	if machine_open:
-		_update_machine_panel()
+		# Refresh live status/progress without replacing buttons under the mouse.
+		_update_machine_panel(false)
 	if not selected_villager_id.is_empty():
 		_update_villager_panel()
 	if building_details_open:
@@ -3513,7 +3514,7 @@ func close_machine() -> void:
 	machine_panel.visible = false
 
 
-func _update_machine_panel() -> void:
+func _update_machine_panel(rebuild_actions: bool = true) -> void:
 	if machine_status_label == null: return
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine == null: return
@@ -3548,24 +3549,25 @@ func _update_machine_panel() -> void:
 		var next_threshold: int = machine.next_mastery_threshold()
 		mastery_text = "\nMastery %d | %d batches%s" % [machine.mastery_level(), machine.batches_completed, " | next designs at %d" % next_threshold if next_threshold >= 0 else " | catalogue mastered"]
 	machine_status_label.text = "State: %s\nHealth: %d / %d\nWorker: %s\nProgress: %d%%%s\n\nINPUT\n%s\n\nACCUMULATED OUTPUT\n%s" % [state, machine.durability, machine.max_durability, ", ".join(worker_names) if not worker_names.is_empty() else "none", roundi(machine.progress() * 100.0), mastery_text, "\n".join(input_rows), "\n".join(output_rows)]
-	for child: Node in machine_action_list.get_children(): machine_action_list.remove_child(child); child.queue_free()
-	if not machine.recipe_catalog.is_empty():
-		var recipe_heading := Label.new(); recipe_heading.text = "CHOOSE WHAT TO MAKE"; recipe_heading.add_theme_font_override("font", GameThemeType.PIXEL); machine_action_list.add_child(recipe_heading)
-		for recipe_index in range(machine.recipe_catalog.size()):
-			var recipe: Dictionary = machine.recipe_catalog[recipe_index]
-			var unlocked: bool = machine.recipe_is_unlocked(recipe_index)
-			var recipe_button := Button.new(); recipe_button.text = (("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.id)).to_upper() + "\n" + _compact_machine_cost(recipe.inputs)) if unlocked else ("LOCKED - MASTERY %d\n???" % (recipe_index / 2 + 1))
-			recipe_button.custom_minimum_size = Vector2(334, 54); recipe_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; recipe_button.add_theme_font_override("font", GameThemeType.PIXEL); recipe_button.disabled = machine.is_running() or not unlocked; recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
-	if machine.broken:
-		var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
-		repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
-	else:
-		for item_id: String in machine.recipe_inputs:
-			var input_button := Button.new(); input_button.text = "PUT  %s  (%d carried / %d loaded)" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
-			input_button.text = input_button.text.to_upper(); input_button.add_theme_font_override("font", GameThemeType.PIXEL); input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
-	for item_id: String in output_ids:
-		var output_button := Button.new(); output_button.text = "TAKE  %s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
-		output_button.text = output_button.text.to_upper(); output_button.add_theme_font_override("font", GameThemeType.PIXEL); output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
+	if rebuild_actions:
+		for child: Node in machine_action_list.get_children(): machine_action_list.remove_child(child); child.queue_free()
+		if not machine.recipe_catalog.is_empty():
+			var recipe_heading := Label.new(); recipe_heading.text = "CHOOSE WHAT TO MAKE"; recipe_heading.add_theme_font_override("font", GameThemeType.PIXEL); machine_action_list.add_child(recipe_heading)
+			for recipe_index in range(machine.recipe_catalog.size()):
+				var recipe: Dictionary = machine.recipe_catalog[recipe_index]
+				var unlocked: bool = machine.recipe_is_unlocked(recipe_index)
+				var recipe_button := Button.new(); recipe_button.text = (("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.get("id", "Recipe"))).to_upper() + "\n" + _compact_machine_cost(recipe.get("inputs", {}))) if unlocked else ("LOCKED - MASTERY %d\n???" % (recipe_index / 2 + 1))
+				recipe_button.custom_minimum_size = Vector2(334, 54); recipe_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; recipe_button.add_theme_font_override("font", GameThemeType.PIXEL); recipe_button.disabled = machine.is_running() or not unlocked; recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
+		if machine.broken:
+			var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
+			repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
+		else:
+			for item_id: String in machine.recipe_inputs:
+				var input_button := Button.new(); input_button.text = "PUT  %s  (%d carried / %d loaded)" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
+				input_button.text = input_button.text.to_upper(); input_button.add_theme_font_override("font", GameThemeType.PIXEL); input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
+		for item_id: String in output_ids:
+			var output_button := Button.new(); output_button.text = "TAKE  %s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
+			output_button.text = output_button.text.to_upper(); output_button.add_theme_font_override("font", GameThemeType.PIXEL); output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
 	machine_worker_icon.visible = assigned_worker != null
 	machine_remove_worker_button.visible = assigned_worker != null
 	if assigned_worker != null:

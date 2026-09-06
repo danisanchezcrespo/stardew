@@ -44,6 +44,22 @@ func _test_kiln(failures: Array[String]) -> void:
 	for control: Node in game.machine_action_list.get_children():
 		if control is Button:
 			_expect(not (control as Button).disabled, "Available machine actions should stay clickable and explain missing resources.", failures)
+	var stable_action: Node = game.machine_action_list.get_child(0)
+	game._process(0.016)
+	game._process(0.016)
+	_expect(is_instance_valid(stable_action) and game.machine_action_list.get_child(0) == stable_action, "Live machine updates must not replace a button while it is being clicked.", failures)
+	machine.output_inventory.add("mud_bricks", 1)
+	machine.broken = true
+	game._update_machine_panel()
+	var take_button: Button = null
+	for control: Node in game.machine_action_list.get_children():
+		if control is Button and (control as Button).text.begins_with("TAKE"):
+			take_button = control as Button
+	_expect(take_button != null and not take_button.disabled, "Broken machines must still expose a usable output collection button.", failures)
+	var carried_before: int = game.inventory.count("mud_bricks")
+	if take_button != null: take_button.pressed.emit()
+	_expect(game.inventory.count("mud_bricks") == carried_before + 1, "Output must remain collectible while its machine is broken.", failures)
+	machine.broken = false
 	game.close_machine()
 	game.inventory.add("grain", 3)
 	game.select_quick_slot(_find_slot(game.inventory, "grain"))
