@@ -81,8 +81,12 @@ var crafting_panel: Control
 var crafting_title_label: Label
 var crafting_list_label: Label
 var crafting_detail_label: RichTextLabel
+var crafting_selected_title: Label
+var crafting_needs_title: Label
+var crafting_outputs_title: Label
 var crafting_recipe_buttons: Array[Button] = []
 var crafting_resource_icons: Array[TextureRect] = []
+var crafting_resource_labels: Array[Label] = []
 var crafting_recipe_scroll: ScrollContainer
 var crafting_craft_button: Button
 var placement_registry: Variant
@@ -2669,9 +2673,29 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 		recipe_list.add_child(button)
 		crafting_recipe_buttons.append(button)
 	crafting_list_label.visible = false
+	crafting_selected_title = Label.new()
+	crafting_selected_title.position = Vector2(374, 78)
+	crafting_selected_title.size = Vector2(296, 32)
+	crafting_selected_title.add_theme_font_size_override("font_size", 19)
+	crafting_selected_title.add_theme_color_override("font_color", Color("#3b281b"))
+	crafting_panel.add_child(crafting_selected_title)
+	crafting_needs_title = Label.new()
+	crafting_needs_title.position = Vector2(374, 122)
+	crafting_needs_title.size = Vector2(296, 24)
+	crafting_needs_title.text = "NEEDS"
+	crafting_needs_title.add_theme_font_size_override("font_size", 14)
+	crafting_needs_title.add_theme_color_override("font_color", Color("#6b3e20"))
+	crafting_panel.add_child(crafting_needs_title)
+	crafting_outputs_title = Label.new()
+	crafting_outputs_title.position = Vector2(374, 258)
+	crafting_outputs_title.size = Vector2(296, 24)
+	crafting_outputs_title.text = "PRODUCES"
+	crafting_outputs_title.add_theme_font_size_override("font_size", 14)
+	crafting_outputs_title.add_theme_color_override("font_color", Color("#6b3e20"))
+	crafting_panel.add_child(crafting_outputs_title)
 	crafting_detail_label = RichTextLabel.new()
-	crafting_detail_label.position = Vector2(374, 78)
-	crafting_detail_label.size = Vector2(296, 300)
+	crafting_detail_label.position = Vector2(374, 338)
+	crafting_detail_label.size = Vector2(296, 42)
 	crafting_detail_label.clip_contents = true
 	crafting_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	crafting_detail_label.bbcode_enabled = true
@@ -2680,9 +2704,17 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_detail_label.add_theme_color_override("default_color", Color("#3b281b"))
 	crafting_panel.add_child(crafting_detail_label)
 	for index in range(8):
-		var resource_icon := _make_item_icon(Vector2(345, 142 + index * 25), Vector2(23, 23))
+		var resource_icon := _make_item_icon(Vector2(374, 150), Vector2(28, 28))
 		crafting_panel.add_child(resource_icon)
 		crafting_resource_icons.append(resource_icon)
+		var resource_label := Label.new()
+		resource_label.position = Vector2(412, 150)
+		resource_label.size = Vector2(258, 28)
+		resource_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		resource_label.add_theme_font_size_override("font_size", 14)
+		resource_label.add_theme_color_override("font_color", Color("#3b281b"))
+		crafting_panel.add_child(resource_label)
+		crafting_resource_labels.append(resource_label)
 	crafting_craft_button = Button.new()
 	crafting_craft_button.position = Vector2(374, 390)
 	crafting_craft_button.size = Vector2(296, 38)
@@ -3050,33 +3082,40 @@ func _update_crafting_ui(feedback: String = "") -> void:
 		button.add_theme_color_override("font_focus_color", text_color)
 	var selected: Variant = recipe_registry.get_recipe(recipe_registry.recipe_order[selected_recipe_index])
 	var selected_unlocked: bool = campaign.is_unlocked(selected.unlock_after) and meta_progression.recipe_unlocked(selected.recipe_id) and (not timeline_director.enabled or timeline_director.recipe_unlocked(selected.recipe_id))
-	var ingredients: Array[String] = []
 	var icon_index := 0
 	for icon: TextureRect in crafting_resource_icons: icon.visible = false
+	for label: Label in crafting_resource_labels: label.visible = false
 	for item_id: String in selected.inputs:
 		var owned: int = inventory.count(item_id)
 		var required: int = int(selected.inputs[item_id])
-		var ingredient_color := "#fffaf0" if owned >= required else "#d83232"
-		ingredients.append("[color=%s]      %d / %d[/color]" % [ingredient_color, owned, required])
 		if icon_index < crafting_resource_icons.size():
-			crafting_resource_icons[icon_index].position.y = 139 + icon_index * 22
+			crafting_resource_icons[icon_index].position = Vector2(374, 150 + icon_index * 34)
 			crafting_resource_icons[icon_index].texture = ItemIconAtlasType.icon(item_id)
-			crafting_resource_icons[icon_index].modulate = Color("#fffaf0") if owned >= required else Color("#d83232")
+			crafting_resource_icons[icon_index].modulate = Color.WHITE
 			crafting_resource_icons[icon_index].visible = true
+			crafting_resource_labels[icon_index].position = Vector2(412, 150 + icon_index * 34)
+			crafting_resource_labels[icon_index].text = "%d / %d" % [owned, required]
+			crafting_resource_labels[icon_index].add_theme_color_override("font_color", Color("#3b281b") if owned >= required else Color("#d83232"))
+			crafting_resource_labels[icon_index].visible = true
 			icon_index += 1
-	var outputs: Array[String] = []
 	for item_id: String in selected.outputs:
-		outputs.append("      x%d" % int(selected.outputs[item_id]))
 		if icon_index < crafting_resource_icons.size():
-			crafting_resource_icons[icon_index].position.y = 183 + selected.inputs.size() * 22 + (icon_index - selected.inputs.size()) * 22
+			var output_row: int = icon_index - selected.inputs.size()
+			crafting_resource_icons[icon_index].position = Vector2(374, 286 + output_row * 34)
 			crafting_resource_icons[icon_index].texture = ItemIconAtlasType.icon(item_id)
+			crafting_resource_icons[icon_index].modulate = Color.WHITE
 			crafting_resource_icons[icon_index].visible = true
+			crafting_resource_labels[icon_index].position = Vector2(412, 286 + output_row * 34)
+			crafting_resource_labels[icon_index].text = "x%d" % int(selected.outputs[item_id])
+			crafting_resource_labels[icon_index].add_theme_color_override("font_color", Color("#3b281b"))
+			crafting_resource_labels[icon_index].visible = true
 			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
 	var status := "" if selected_unlocked else "LOCKED - advance the story or study at the University"
 	if not feedback.is_empty():
 		status = feedback
-	crafting_detail_label.text = "[color=#3b281b]%s\n\nNeeds:\n[/color]%s[color=#3b281b]\n\nProduces:\n%s\n\n%s[/color]" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
+	crafting_selected_title.text = selected.label.to_upper()
+	crafting_detail_label.text = "[color=#6b3e20]%s[/color]" % status
 	if crafting_craft_button != null:
 		crafting_craft_button.disabled = not selected_unlocked or not query.valid
 
