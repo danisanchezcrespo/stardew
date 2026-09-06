@@ -53,8 +53,9 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	for _step in range(160): game._process(0.1)
 	_expect(villager.position.distance_to(move_destination) < 6.0 and villager.task.is_empty(), "A direct move order should walk to its point and finish.", failures)
 
-	var source_id := _place(game, "storage_crate", Vector2i(15, 12))
-	var destination_id := _place(game, "storage_crate", Vector2i(18, 12))
+	# The dwelling now occupies four columns; leave a full collision-safe gap.
+	var source_id := _place(game, "storage_crate", Vector2i(17, 12))
+	var destination_id := _place(game, "storage_crate", Vector2i(20, 12))
 	game.storage_by_entity_id[source_id].add("clay", 5)
 	_expect(game.create_logistics_route(source_id, destination_id, villager.stable_id, "clay"), "A selected villager should receive a transport order.", failures)
 	villager.hunger = 0.0
@@ -72,7 +73,7 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	_expect(villager.hunger > 60.0, "A hungry villager should autonomously eat a stored ration.", failures)
 	_expect(game.storage_by_entity_id[destination_id].count("food_ration") == 0, "Eating should consume a physical food ration.", failures)
 
-	game.day_time_seconds = 200.0
+	game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.85
 	villager.energy = 40.0
 	for _step in range(160): game._process(0.1)
 	_expect(villager.state == "sleeping" and villager.position.distance_to(villager.home_position) < 1.0, "At night a villager should return home and sleep.", failures)

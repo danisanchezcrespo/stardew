@@ -31,6 +31,7 @@ var work_priority := 1 # 0 relaxed, 1 normal, 2 urgent
 var profession := "generalist"
 var experience: Dictionary = {}
 var inside_workplace := false
+var last_schedule_hour := -1
 var environment_speed_multiplier := 1.0
 var scenario_character_sheet: Texture2D = null
 var scenario_character_sheets: Array[Texture2D] = []

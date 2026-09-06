@@ -285,6 +285,7 @@ func _process(delta: float) -> void:
 		physical_save.save_to_path(self, _autosave_path())
 	workforce.process(delta)
 	for villager: Variant in villagers.values():
+		_apply_living_schedule(villager)
 		villager.environment_speed_multiplier = environment_multiplier("worker_speed")
 		villager.process_life(self, delta)
 	for dependent: Variant in dependents.values():
@@ -389,6 +390,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_pressed("use_selected") or event.is_action_pressed("quick_slot_1"): _complete_living_request()
 		elif event.is_action_pressed("quick_slot_2"): _contribute_living_feast()
 		elif event.is_action_pressed("quick_slot_3"): _buy_living_offer()
+		elif event.is_action_pressed("quick_slot_4"): _living_talk()
+		elif event.is_action_pressed("quick_slot_5"): _living_gift()
+		elif event.is_action_pressed("quick_slot_6"): _living_sell()
+		elif event.is_action_pressed("quick_slot_7"): _living_explore()
+		elif event.is_action_pressed("quick_slot_8"): _living_improve()
 		return
 	if pause_open:
 		if event.is_action_pressed("cancel"):
@@ -1076,7 +1082,7 @@ func _build_living_panel(layer: CanvasLayer) -> void:
 	living_panel = ColorRect.new(); living_panel.position = Vector2(215, 65); living_panel.size = Vector2(850, 565); living_panel.color = Color(str(scenario.theme.get("dark", "#211b18"))); living_panel.visible = false; layer.add_child(living_panel)
 	var title := Label.new(); title.position = Vector2(35, 20); title.size = Vector2(780, 42); title.text = "VALLEY JOURNAL"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 26); living_panel.add_child(title)
 	living_status = Label.new(); living_status.position = Vector2(48, 72); living_status.size = Vector2(754, 430); living_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; living_status.add_theme_font_size_override("font_size", 15); living_panel.add_child(living_status)
-	var hint := Label.new(); hint.position = Vector2(30, 522); hint.size = Vector2(790, 28); hint.text = "1 / SPACE Request    2 Feast    3 Merchant    ESC Close"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; living_panel.add_child(hint)
+	var hint := Label.new(); hint.position = Vector2(30, 510); hint.size = Vector2(790, 45); hint.text = "1 Request  2 Feast  3 Shop  4 Talk  5 Gift  6 Sell  7 Explore  8 Improve  ESC Close"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; living_panel.add_child(hint)
 	GameThemeType.decorate_panel(living_panel, true)
 
 
@@ -1099,7 +1105,7 @@ func _update_living_light() -> void:
 
 func _update_living_hud() -> void:
 	if not living_timeline.enabled or living_energy_label == null: return
-	living_energy_label.text = "ENERGY %d / 100  |  %s  |  J JOURNAL  N SLEEP" % [roundi(living_timeline.player_energy), living_timeline.weather.to_upper()]
+	living_energy_label.text = "ENERGY %d / %d  |  %s  |  J JOURNAL  N SLEEP" % [roundi(living_timeline.player_energy), roundi(living_timeline.max_energy), living_timeline.weather.to_upper()]
 
 
 func set_living_open(value: bool) -> void:
@@ -1117,11 +1123,85 @@ func _refresh_living_panel(message: String = "") -> void:
 		var item: Variant = item_registry.get_item(str(row.item))
 		request_text = "%s\n%s wants %s x%d\nReward: +%d friendship and Community" % [str(row.label), str(row.from), item.label if item != null else str(row.item), int(row.amount), int(row.reward)]
 	var bonds: Array[String] = []
-	for person: String in living_timeline.friendship: bonds.append("%s %d" % [person, int(living_timeline.friendship[person])])
+	var hour := int(fmod(day_time_seconds / DAY_LENGTH_SECONDS, 1.0) * 24.0)
+	for person: String in living_timeline.PEOPLE:
+		bonds.append("%s %s  - %s" % [person, _heart_text(living_timeline.heart_level(person)), living_timeline.schedule_for(person, hour, living_timeline.weather)])
 	var offer: Dictionary = living_timeline.merchant_offer(meta_progression.day)
 	var merchant_text := "Away - returns on Day 6" if offer.is_empty() else "%s for %d Silver coin%s" % [str(offer.label), int(offer.price), " - SOLD" if living_timeline.merchant_purchases.has(str(meta_progression.day)) else ""]
 	var discovery_text := ", ".join(living_timeline.discoveries.keys()) if not living_timeline.discoveries.is_empty() else "Rumors point toward the northern ruins"
-	living_status.text = "DAY %d  %s\nTomorrow: %s\nEnergy: %d / 100\n\nTODAY'S STORY\n%s\n\nOPTIONAL REQUEST\n%s\n\nTRAVELLING MERCHANT\n%s\nDISCOVERY: %s\n\nSETTLEMENT\nCommunity %d  Beauty %d  Prosperity %d\nFeast food %d / 8\nRelationships: %s%s" % [meta_progression.day, living_timeline.weather, living_timeline.tomorrow_weather, roundi(living_timeline.player_energy), living_timeline.day_story(meta_progression.day), request_text, merchant_text, discovery_text, living_timeline.community, living_timeline.beauty, living_timeline.prosperity, living_timeline.feast_food, ", ".join(bonds) if not bonds.is_empty() else "New acquaintances", "\n\n" + message if not message.is_empty() else ""]
+	var skills := "Foraging %d  Crafting %d  Exploration %d  Community %d" % [living_timeline.skill_level("foraging"), living_timeline.skill_level("crafting"), living_timeline.skill_level("exploration"), living_timeline.skill_level("community")]
+	living_status.text = "DAY %d  %s -> %s   ENERGY %d\n%s\n\nTODAY'S STORY\n%s\n\nREQUEST\n%s\n\nPEOPLE\n%s\n\nVALLEY\nCommunity %d  Beauty %d  Prosperity %d  Home %d\n%s\nRuins: %d searches left | %s\nShop: %s%s" % [meta_progression.day, living_timeline.weather, living_timeline.tomorrow_weather, roundi(living_timeline.player_energy), living_timeline.daily_event, living_timeline.day_story(meta_progression.day), request_text, "\n".join(bonds), living_timeline.community, living_timeline.beauty, living_timeline.prosperity, living_timeline.home_level, skills, living_timeline.exploration_attempts, discovery_text, merchant_text, "\n\n" + message if not message.is_empty() else ""]
+
+
+func _heart_text(count: int) -> String:
+	return "<3".repeat(count) + "-".repeat(maxi(0, 5 - count))
+
+
+func _nearest_named_villager() -> Variant:
+	var best: Variant = null; var best_distance := 180.0
+	for villager: Variant in villagers.values():
+		var distance: float = villager.global_position.distance_to(player.global_position)
+		if distance < best_distance: best = villager; best_distance = distance
+	return best
+
+
+func _apply_living_schedule(villager: Variant) -> void:
+	if not living_timeline.enabled or not villager.task.is_empty() or villager.state not in ["available", "moving"]: return
+	var hour := int(fmod(day_time_seconds / DAY_LENGTH_SECONDS, 1.0) * 24.0)
+	if villager.last_schedule_hour == hour: return
+	villager.last_schedule_hour = hour
+	var destination: Vector2 = villager.home_position
+	if living_timeline.weather != "Rain":
+		if hour in range(9, 13):
+			destination = {"Alys":Vector2(560, 250), "Edwin":Vector2(1080, 185), "Mabel":Vector2(610, 390), "Hugh":Vector2(790, 470)}.get(villager.villager_name, villager.home_position)
+		elif hour in range(13, 18): destination = Vector2(600 + posmod(villager.stable_id.hash(), 5) * 28, 350)
+		elif hour in range(18, 21) and living_timeline.beauty >= 2: destination = Vector2(650, 390)
+	if destination.distance_to(villager.position) > 12.0: villager.assign_move(destination)
+
+
+func _living_talk() -> void:
+	var villager: Variant = _nearest_named_villager()
+	if villager == null: _refresh_living_panel("Nobody is close enough to talk. Find a villager in the world."); return
+	var result: Dictionary = living_timeline.talk_to(villager.villager_name, meta_progression.day)
+	_refresh_living_panel("%s: %s%s" % [villager.villager_name, str(result.get("text", "They are busy.")), "  (+friendship)" if bool(result.get("new", false)) else ""])
+
+
+func _living_gift() -> void:
+	var villager: Variant = _nearest_named_villager()
+	var slot: Dictionary = inventory.slots[selected_slot]
+	if villager == null or slot.is_empty(): _refresh_living_panel("Stand near a villager and select the gift in your hotbar."); return
+	var result: Dictionary = living_timeline.give_gift(villager.villager_name, str(slot.item_id), inventory)
+	_update_inventory_hud()
+	_refresh_living_panel("%s: %s" % [villager.villager_name, str(result.get("reaction", "One gift per villager each day."))])
+
+
+func _living_sell() -> void:
+	var slot: Dictionary = inventory.slots[selected_slot]
+	if slot.is_empty(): _refresh_living_panel("Select produce or materials in your hotbar first."); return
+	var result: Dictionary = living_timeline.sell(str(slot.item_id), inventory)
+	_update_inventory_hud()
+	_refresh_living_panel("Sold one item for %d coin." % int(result.coins) if not result.is_empty() else "The village market does not buy that item, or your inventory is full.")
+
+
+func _living_explore() -> void:
+	var result: Dictionary = living_timeline.explore(inventory, meta_progression.day)
+	_update_inventory_hud(); _update_living_hud()
+	if result.has("error"): _refresh_living_panel(str(result.error))
+	elif result.is_empty(): _refresh_living_panel("No searches remain today. Sleep and return tomorrow.")
+	else: _refresh_living_panel("The northern ruins yielded %s x%d." % [str(result.item).replace("_", " ").capitalize(), int(result.amount)])
+
+
+func _living_improve() -> void:
+	var result: Dictionary = living_timeline.improve_home(inventory)
+	if result.is_empty():
+		var tool := "foraging"
+		for candidate: String in ["crafting", "exploration"]:
+			if int(living_timeline.tool_levels[candidate]) < int(living_timeline.tool_levels[tool]): tool = candidate
+		result = living_timeline.upgrade_tool(tool, inventory)
+	_update_inventory_hud()
+	if result.has("tool"): _refresh_living_panel("Your %s tools are now level %d." % [str(result.tool), int(result.level)])
+	elif result.has("wood"): _refresh_living_panel("Your cottage is now comfort level %d. The valley feels more like home." % int(result.level))
+	else: _refresh_living_panel("Improvements need Oak wood, Iron tools, and coin.")
 
 
 func _complete_living_request() -> void:
@@ -1578,7 +1658,7 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_panel = ColorRect.new()
 	villager_panel.position = Vector2(835, 55)
-	villager_panel.size = Vector2(420, 610)
+	villager_panel.size = Vector2(420, 650)
 	villager_panel.color = Color("#d8bd83")
 	villager_panel.visible = false
 	layer.add_child(villager_panel)
@@ -1623,27 +1703,33 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_resource_option.size = Vector2(376, 36)
 	villager_resource_option.visible = false
 	villager_panel.add_child(villager_resource_option)
+	var talk := Button.new()
+	talk.position = Vector2(22, 370); talk.size = Vector2(376, 34); talk.text = "Talk"
+	talk.pressed.connect(_talk_selected_villager); villager_panel.add_child(talk)
+	var gift := Button.new()
+	gift.position = Vector2(22, 408); gift.size = Vector2(376, 34); gift.text = "Give selected item"
+	gift.pressed.connect(_gift_selected_villager); villager_panel.add_child(gift)
 	var assign := Button.new()
-	assign.position = Vector2(22, 374)
-	assign.size = Vector2(376, 42)
+	assign.position = Vector2(22, 446)
+	assign.size = Vector2(376, 34)
 	assign.text = "Assign transport"
 	assign.pressed.connect(begin_villager_transport_order)
 	villager_panel.add_child(assign)
 	var work := Button.new()
-	work.position = Vector2(22, 424)
-	work.size = Vector2(376, 42)
+	work.position = Vector2(22, 484)
+	work.size = Vector2(376, 34)
 	work.text = "Assign work"
 	work.pressed.connect(begin_villager_work_order)
 	villager_panel.add_child(work)
 	var stop := Button.new()
-	stop.position = Vector2(22, 474)
-	stop.size = Vector2(376, 42)
+	stop.position = Vector2(22, 522)
+	stop.size = Vector2(376, 34)
 	stop.text = "Stop task"
 	stop.pressed.connect(stop_selected_villager_task)
 	villager_panel.add_child(stop)
 	villager_order_feedback = Label.new()
-	villager_order_feedback.position = Vector2(22, 530)
-	villager_order_feedback.size = Vector2(376, 62)
+	villager_order_feedback.position = Vector2(22, 566)
+	villager_order_feedback.size = Vector2(376, 60)
 	villager_order_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	villager_order_feedback.add_theme_color_override("font_color", Color("#6b3e20"))
 	villager_panel.add_child(villager_order_feedback)
@@ -1869,6 +1955,24 @@ func _commit_villager_name() -> void:
 	_rename_selected_villager(villager_name_edit.text)
 
 
+func _talk_selected_villager() -> void:
+	if not living_timeline.enabled or not villagers.has(selected_villager_id): return
+	var villager: Variant = villagers[selected_villager_id]
+	var result: Dictionary = living_timeline.talk_to(villager.villager_name, meta_progression.day)
+	villager_order_feedback.text = str(result.get("text", "They are busy."))
+	_update_villager_panel()
+
+
+func _gift_selected_villager() -> void:
+	if not living_timeline.enabled or not villagers.has(selected_villager_id): return
+	var slot: Dictionary = inventory.slots[selected_slot]
+	if slot.is_empty(): villager_order_feedback.text = "Select a gift in the hotbar first."; return
+	var villager: Variant = villagers[selected_villager_id]
+	var result: Dictionary = living_timeline.give_gift(villager.villager_name, str(slot.item_id), inventory)
+	villager_order_feedback.text = str(result.get("reaction", "You already gave them a gift today."))
+	_update_inventory_hud(); _update_villager_panel()
+
+
 func _update_villager_panel() -> void:
 	if not villagers.has(selected_villager_id): return
 	var villager: Variant = villagers[selected_villager_id]
@@ -1891,7 +1995,8 @@ func _update_villager_panel() -> void:
 	var level := 1 + floori(skill_seconds / 120.0)
 	villager_status_label.text = "Home: %s\nStatus: %s\nRole: %s - level %d\nHunger %d%%  Energy %d%%\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), villager.profession.capitalize(), level, roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
 	if living_timeline.enabled:
-		villager_status_label.text += "\n\nBOND %d\n%s" % [int(living_timeline.friendship.get(villager.villager_name, 0)), living_timeline.villager_story(villager.villager_name, meta_progression.day)]
+		var hour := int(fmod(day_time_seconds / DAY_LENGTH_SECONDS, 1.0) * 24.0)
+		villager_status_label.text += "\n\nBOND %s\n%s" % [_heart_text(living_timeline.heart_level(villager.villager_name)), living_timeline.schedule_for(villager.villager_name, hour, living_timeline.weather)]
 
 
 func _change_selected_villager_appearance(index: int) -> void:
@@ -2331,6 +2436,7 @@ func confirm_placement() -> bool:
 		storage_by_entity_id[instance_id] = PlayerInventoryType.new(item_registry, definition.storage_slots)
 	if living_timeline.enabled and definition.entity_id.begins_with("DECOR_"):
 		living_timeline.beauty += 2
+	if living_timeline.enabled: living_timeline.add_skill_xp("crafting", 2)
 	cancel_placement()
 	_update_inventory_hud()
 	interaction_label.text = "Placed %s" % definition.label
@@ -2482,13 +2588,15 @@ func craft_selected_recipe() -> bool:
 	if not meta_progression.recipe_unlocked(recipe_id):
 		_update_crafting_ui("Locked - discover it in the Technology Tree (T).")
 		return false
-	if not _spend_player_energy(3.0, "Too exhausted to craft. Sleep to begin a new day."):
+	var craft_cost: float = living_timeline.action_cost(3.0, "crafting") if living_timeline.enabled else 3.0
+	if not _spend_player_energy(craft_cost, "Too exhausted to craft. Sleep to begin a new day."):
 		_update_crafting_ui("Too exhausted to craft. Sleep to begin a new day.")
 		return false
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
 	if result.valid:
 		_play_feedback(CRAFT_SOUND)
 		campaign.record_craft(recipe_id)
+		if living_timeline.enabled: living_timeline.add_skill_xp("crafting", 3)
 		_update_inventory_hud()
 		_update_crafting_ui("Crafted successfully.")
 		return true
@@ -2700,7 +2808,8 @@ func collect_target() -> int:
 		var delivered := deliver_selected_to_machine(machine_id)
 		if delivered == 0: open_machine(machine_id)
 		return delivered
-	if not _spend_player_energy(2.0, "Too exhausted to gather. Sleep to begin a new day."): return 0
+	var gather_cost: float = living_timeline.action_cost(2.0, "foraging") if living_timeline.enabled else 2.0
+	if not _spend_player_energy(gather_cost, "Too exhausted to gather. Sleep to begin a new day."): return 0
 	var accepted: int = inventory.add(interaction_target.item_id, interaction_target.amount)
 	if accepted <= 0:
 		interaction_label.text = "Inventory full"
@@ -2708,6 +2817,7 @@ func collect_target() -> int:
 	interaction_target.take(accepted)
 	_play_feedback(PICKUP_SOUND)
 	campaign.record_pickup(interaction_target.item_id)
+	if living_timeline.enabled: living_timeline.add_skill_xp("foraging", accepted)
 	var discovery_message: String = living_timeline.discover(str(interaction_target.item_id))
 	if not discovery_message.is_empty(): interaction_label.text = discovery_message
 	if interaction_target.amount == 0:
@@ -2721,7 +2831,8 @@ func collect_target() -> int:
 
 func collect_resource_source(source: Variant) -> int:
 	if source == null: return 0
-	if not _spend_player_energy(3.0, "Too exhausted to gather. Sleep to begin a new day."): return 0
+	var gather_cost: float = living_timeline.action_cost(3.0, "foraging") if living_timeline.enabled else 3.0
+	if not _spend_player_energy(gather_cost, "Too exhausted to gather. Sleep to begin a new day."): return 0
 	var requested: int = source.available_grant()
 	if requested <= 0: return 0
 	var accepted: int = inventory.add(source.item_id, requested)
@@ -2729,6 +2840,7 @@ func collect_resource_source(source: Variant) -> int:
 	source.take(accepted)
 	_play_feedback(PICKUP_SOUND)
 	campaign.record_pickup(source.item_id)
+	if living_timeline.enabled: living_timeline.add_skill_xp("foraging", accepted)
 	_update_inventory_hud()
 	if world_overlay != null: world_overlay.queue_redraw()
 	return accepted
@@ -3244,6 +3356,7 @@ func restore_villager(data: Dictionary) -> Variant:
 	villager.profession = str(data.get("profession", "generalist"))
 	villager.experience = data.get("experience", {}).duplicate(true)
 	villager.inside_workplace = bool(data.get("inside_workplace", false))
+	villager.last_schedule_hour = int(data.get("schedule_hour", -1))
 	villager.visible = not villager.inside_workplace
 	villager.facing = str(data.get("facing", "south"))
 	villager.task = data.get("task", {}).duplicate(true)
