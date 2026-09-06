@@ -175,6 +175,7 @@ var building_upgrade_button: Button
 var building_context_button: Button
 var building_resident_icons: Array[TextureRect] = []
 var storage_upgrade_button: Button
+var upgrade_requirement_dialog: AcceptDialog
 var world_overlay: Node2D
 var terrain_renderer: Node2D
 var active_player_build_id := ""
@@ -684,7 +685,7 @@ func _build_items() -> void:
 	item_registry = ItemRegistryType.new()
 	var result: Error = item_registry.load_from_path(scenario.items_path)
 	assert(result == OK, "Item definitions must load: %s" % str(item_registry.errors))
-	inventory = PlayerInventoryType.new(item_registry, 12)
+	inventory = PlayerInventoryType.new(item_registry, 8)
 	recipe_registry = RecipeRegistryType.new()
 	result = recipe_registry.load_from_path(scenario.recipes_path, item_registry)
 	assert(result == OK, "Recipe definitions must load: %s" % str(recipe_registry.errors))
@@ -1889,18 +1890,10 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_remove_worker_button.visible = false
 	machine_panel.add_child(machine_remove_worker_button)
 	machine_upgrade_button = Button.new()
-	machine_upgrade_button.position = Vector2(278, 232); machine_upgrade_button.size = Vector2(112, 42); machine_upgrade_button.text = "Upgrade"
+	machine_upgrade_button.position = Vector2(28, 510); machine_upgrade_button.size = Vector2(364, 36); machine_upgrade_button.text = "Upgrade"
 	machine_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_machine_id)); machine_panel.add_child(machine_upgrade_button)
-	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 286); action_scroll.size = Vector2(364, 202); action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; machine_panel.add_child(action_scroll)
+	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 286); action_scroll.size = Vector2(364, 212); action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; machine_panel.add_child(action_scroll)
 	machine_action_list = VBoxContainer.new(); machine_action_list.custom_minimum_size = Vector2(340, 0); action_scroll.add_child(machine_action_list)
-	machine_controls_label = Label.new()
-	machine_controls_label.position = Vector2(28, 504)
-	machine_controls_label.size = Vector2(364, 48)
-	machine_controls_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	machine_controls_label.text = "Press an ingredient to load it, repair material to fix, or output to collect. Esc: close"
-	machine_controls_label.add_theme_font_size_override("font_size", 14)
-	machine_controls_label.add_theme_color_override("font_color", Color("#6b3e20"))
-	machine_panel.add_child(machine_controls_label)
 
 
 func _build_villager_panel(layer: CanvasLayer) -> void:
@@ -2009,8 +2002,10 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.visible = false
 		building_details_panel.add_child(portrait); building_resident_icons.append(portrait)
 	building_details_controls = Label.new()
-	building_details_controls.position = Vector2(24, 438)
-	building_details_controls.text = "Esc: close"
+	building_details_controls.position = Vector2(24, 410)
+	building_details_controls.size = Vector2(372, 22)
+	building_details_controls.text = ""
+	building_details_controls.add_theme_font_size_override("font_size", 13)
 	building_details_controls.add_theme_color_override("font_color", Color("#6b3e20"))
 	building_details_panel.add_child(building_details_controls)
 	construction_delivery_popup = ColorRect.new()
@@ -2031,8 +2026,13 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 		construction_delivery_popup.add_child(icon)
 		construction_delivery_icons.append(icon)
 	building_upgrade_button = Button.new()
-	building_upgrade_button.position = Vector2(250, 18); building_upgrade_button.size = Vector2(145, 42); building_upgrade_button.text = "Upgrade"
+	building_upgrade_button.position = Vector2(24, 438); building_upgrade_button.size = Vector2(372, 34); building_upgrade_button.text = "Upgrade"
 	building_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(building_details_id)); building_details_panel.add_child(building_upgrade_button)
+	upgrade_requirement_dialog = AcceptDialog.new()
+	upgrade_requirement_dialog.title = "UPGRADE"
+	upgrade_requirement_dialog.min_size = Vector2i(420, 170)
+	upgrade_requirement_dialog.theme = ui_theme
+	layer.add_child(upgrade_requirement_dialog)
 	building_context_button = Button.new()
 	building_context_button.position = Vector2(24, 382); building_context_button.size = Vector2(372, 44); building_context_button.visible = false
 	# Fire on mouse/touch down. This shared contextual action can close its own
@@ -2135,7 +2135,7 @@ func _update_building_details() -> void:
 	building_upgrade_button.visible = site == null or site.complete
 	building_context_button.visible = false
 	building_upgrade_button.disabled = building_level >= 3
-	building_upgrade_button.text = "MAX LEVEL" if building_level >= 3 else "Upgrade L%d" % (building_level + 1)
+	building_upgrade_button.text = _upgrade_button_text(building_details_id)
 	if site != null and not site.complete:
 		var materials: Array[String] = []
 		for item_id: String in site.requirements:
@@ -2158,10 +2158,10 @@ func _update_building_details() -> void:
 					construction_delivery_icons[index].visible = true
 			for index in range(deliverable.size(), construction_delivery_icons.size()): construction_delivery_icons[index].visible = false
 			construction_delivery_label.text = "AVAILABLE TO DELIVER\n\n%s" % "\n".join(delivery_rows)
-		building_details_controls.text = "%s    Esc: close" % ("Use the Deliver button" if not deliverable.is_empty() else ("Space: start building" if site.materials_complete() else "Bring one of the required materials"))
+		building_details_controls.text = ""
 		return
 	construction_delivery_popup.visible = false
-	building_details_controls.text = "Upgrade levels improve output speed by 25% - Esc: close"
+	building_details_controls.text = ""
 	if storage_by_entity_id.has(building_details_id):
 		var rows: Array[String] = []
 		for slot: Dictionary in storage_by_entity_id[building_details_id].slots:
@@ -2181,18 +2181,18 @@ func _update_building_details() -> void:
 		building_upgrade_button.visible = false
 		building_context_button.visible = true; building_context_button.text = "SLEEP UNTIL 07:00"
 		building_details_body.text = "YOUR COTTAGE\n\nRest here when you are ready to end the day. Everyone wakes together at 07:00.\n\nComfort level: %d\nStyle: %s" % [living_timeline.home_level, living_timeline.home_style]
-		building_details_controls.text = "Choose Sleep when your day is complete.    Esc: close"
+		building_details_controls.text = ""
 		return
 	if _is_research_building(str(definition.entity_id)):
 		building_upgrade_button.visible = false
 		building_context_button.visible = true; building_context_button.text = "ENTER UNIVERSITY"
 		building_details_body.text = "%s\n\nKnowledge: %d\nFields discovered: %d / %d\n\nDonate discoveries to earn Knowledge, then study connected fields here. Each discovery opens recipes and the next layer of research." % [str(definition.label).to_upper(), meta_progression.research_points, meta_progression.unlocked_tech.size(), meta_progression.tech_nodes().size()]
-		building_details_controls.text = "Enter to study the technology tree.    Esc: close"
+		building_details_controls.text = ""
 		return
 	if placed.definition_id == "CHICKEN_COOP":
 		var chicken_count := _dependent_count(building_details_id, "chicken")
 		building_details_body.text = "CHICKEN COOP\n\nChickens: %d / 3\n\nAssign an animal keeper. Feed each chicken Wheat and Water. Adults lay eggs every 35 seconds; collect them with Space.\n\nNew chicken cost: Wheat x5" % chicken_count
-		building_details_controls.text = "Space: raise chicken (Wheat x5)    Esc: close" if chicken_count < 3 else "Coop full    Esc: close"
+		building_details_controls.text = ""
 		return
 	if definition.population_capacity > 0:
 		var resident_rows: Array[String] = []
@@ -2645,7 +2645,7 @@ func _build_storage_panel(layer: CanvasLayer) -> void:
 	title.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(title)
 	storage_upgrade_button = Button.new()
-	storage_upgrade_button.position = Vector2(275, 14); storage_upgrade_button.size = Vector2(125, 40); storage_upgrade_button.text = "Upgrade"
+	storage_upgrade_button.position = Vector2(24, 438); storage_upgrade_button.size = Vector2(372, 34); storage_upgrade_button.text = "Upgrade"
 	storage_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_storage_id)); storage_panel.add_child(storage_upgrade_button)
 	storage_player_label = Label.new()
 	storage_player_label.position = Vector2(18, 58)
@@ -2675,36 +2675,28 @@ func _build_storage_panel(layer: CanvasLayer) -> void:
 	storage_contents_label.add_theme_font_size_override("font_size", 15)
 	storage_contents_label.add_theme_color_override("font_color", Color("#3b281b"))
 	storage_panel.add_child(storage_contents_label)
-	for index in range(12):
+	for index in range(16):
 		var row := ColorRect.new()
-		row.position = Vector2(214, 86 + index * 23)
-		row.size = Vector2(188, 21)
+		row.position = Vector2(214, 86 + index * 20)
+		row.size = Vector2(188, 18)
 		storage_panel.add_child(row)
 		storage_crate_rows.append(row)
-		var crate_icon := _make_item_icon(Vector2(218, 87 + index * 23), Vector2(19, 19))
+		var crate_icon := _make_item_icon(Vector2(218, 86 + index * 20), Vector2(18, 18))
 		storage_panel.add_child(crate_icon)
 		storage_crate_icons.append(crate_icon)
 		var slot_label := Label.new()
-		slot_label.position = Vector2(241, 86 + index * 23)
-		slot_label.size = Vector2(157, 21)
+		slot_label.position = Vector2(241, 86 + index * 20)
+		slot_label.size = Vector2(157, 18)
 		slot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		slot_label.add_theme_font_size_override("font_size", 12)
 		storage_panel.add_child(slot_label)
 		storage_crate_slot_labels.append(slot_label)
 	storage_feedback_label = Label.new()
-	storage_feedback_label.position = Vector2(24, 370)
-	storage_feedback_label.size = Vector2(372, 36)
-	storage_feedback_label.add_theme_font_size_override("font_size", 16)
+	storage_feedback_label.position = Vector2(24, 410)
+	storage_feedback_label.size = Vector2(372, 22)
+	storage_feedback_label.add_theme_font_size_override("font_size", 13)
 	storage_feedback_label.add_theme_color_override("font_color", Color("#6b3e20"))
 	storage_panel.add_child(storage_feedback_label)
-	var controls := Label.new()
-	controls.position = Vector2(24, 420)
-	controls.size = Vector2(372, 48)
-	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	controls.text = "Left/Right: choose inventory    Up/Down: choose item    Space: move stack    Esc: close"
-	controls.add_theme_font_size_override("font_size", 13)
-	controls.add_theme_color_override("font_color", Color("#3b281b"))
-	storage_panel.add_child(controls)
 
 
 func set_crafting_open(value: bool) -> void:
@@ -3570,12 +3562,10 @@ func _update_machine_panel(rebuild_actions: bool = true) -> void:
 	if machine_status_label == null: return
 	var machine: Variant = machines_by_entity_id.get(active_machine_id)
 	if machine == null: return
-	if machine_controls_label != null:
-		machine_controls_label.text = machine_feedback if not machine_feedback.is_empty() else "Press an ingredient to load it, repair material to fix, or output to collect. Esc: close"
 	machine_title_label.text = _placed_definition_label(active_machine_id).to_upper()
 	var level: int = meta_progression.building_level(active_machine_id)
 	machine_upgrade_button.visible = machine.recipe_catalog.is_empty()
-	machine_upgrade_button.text = "MAX LEVEL" if level >= 3 else "Upgrade L%d" % (level + 1)
+	machine_upgrade_button.text = _upgrade_button_text(active_machine_id)
 	machine_upgrade_button.disabled = level >= 3
 	var input_rows: Array[String] = []
 	for item_id: String in machine.recipe_inputs:
@@ -3638,13 +3628,13 @@ func _select_machine_recipe(index: int) -> void:
 
 func _configure_machine_action_button(button: Button) -> void:
 	button.text = button.text.to_upper()
-	button.custom_minimum_size = Vector2(330, 58)
+	button.custom_minimum_size = Vector2(330, 44)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	button.clip_text = true
 	button.add_theme_font_override("font", GameThemeType.PIXEL)
-	button.add_theme_font_size_override("font_size", 15)
+	button.add_theme_font_size_override("font_size", 13)
 
 
 func _compact_machine_cost(cost: Dictionary) -> String:
@@ -4077,7 +4067,7 @@ func _update_storage_ui(feedback: String = "") -> void:
 	if storage == null:
 		return
 	var level: int = meta_progression.building_level(active_storage_id)
-	storage_upgrade_button.text = "MAX LEVEL" if level >= 3 else "Upgrade L%d" % (level + 1)
+	storage_upgrade_button.text = _upgrade_button_text(active_storage_id)
 	storage_upgrade_button.disabled = level >= 3
 	storage_player_label.text = ">  PLAYER" if storage_focus_side == 0 else "PLAYER"
 	for index in range(inventory.slots.size()):
@@ -4117,6 +4107,16 @@ func _upgrade_cost(instance_id: String) -> Dictionary:
 	return result
 
 
+func _upgrade_button_text(instance_id: String) -> String:
+	if instance_id.is_empty() or meta_progression.building_level(instance_id) >= 3:
+		return "MAX LEVEL"
+	var parts: Array[String] = []
+	for item_id: String in _upgrade_cost(instance_id):
+		var item: Variant = item_registry.get_item(item_id)
+		parts.append("%s x%d" % [item.label if item != null else item_id.capitalize(), int(_upgrade_cost(instance_id)[item_id])])
+	return "Upgrade (Needs %s)" % ", ".join(parts)
+
+
 func _try_upgrade_building(instance_id: String) -> bool:
 	if instance_id.is_empty() or meta_progression.building_level(instance_id) >= 3: return false
 	var cost := _upgrade_cost(instance_id)
@@ -4127,7 +4127,10 @@ func _try_upgrade_building(instance_id: String) -> bool:
 	for item_id: String in cost:
 		if inventory.count(item_id) < int(cost[item_id]): missing.append("%s x%d" % [item_registry.get_item(item_id).label, int(cost[item_id]) - inventory.count(item_id)])
 	if not missing.is_empty():
-		var message := "Upgrade needs: %s" % ", ".join(missing)
+		var message := "You need %s" % ", ".join(missing)
+		if upgrade_requirement_dialog != null:
+			upgrade_requirement_dialog.dialog_text = message
+			upgrade_requirement_dialog.popup_centered()
 		if machine_open: machine_status_label.text += "\n\n" + message
 		elif storage_open: storage_feedback_label.text = message
 		else: building_details_controls.text = message
@@ -4142,7 +4145,7 @@ func _try_upgrade_building(instance_id: String) -> bool:
 		upgraded_machine.durability += 2
 	elif storage_by_entity_id.has(instance_id):
 		var upgraded_storage: Variant = storage_by_entity_id[instance_id]
-		for unused in range(mini(2, 12 - upgraded_storage.slots.size())): upgraded_storage.slots.append({})
+		for unused in range(mini(4, 16 - upgraded_storage.slots.size())): upgraded_storage.slots.append({})
 		upgraded_storage.slot_count = upgraded_storage.slots.size()
 	elif definition != null and definition.population_capacity > 0:
 		spawn_villagers_for_home(instance_id, 1)

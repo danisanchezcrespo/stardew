@@ -20,6 +20,7 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 	root.add_child(game_root)
 	await process_frame
 	var game: Node2D = game_root.get_node("MainGame")
+	_expect(game.inventory.slot_count == 8, "The player inventory should expose exactly eight slots.", failures)
 
 	game.inventory.add("wood", 10)
 	_expect(game.craft_selected_recipe(), "Storage test should craft a crate.", failures)
@@ -30,6 +31,7 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 	_expect(game.confirm_placement(), "Storage test should place the crate.", failures)
 	var instance_id: String = game.world_grid.occupant_at(crate_origin)
 	_expect(game.storage_by_entity_id.has(instance_id), "Placed storage definition should create an independent container.", failures)
+	_expect(game.storage_by_entity_id[instance_id].slot_count == 8, "A new storage crate should start with eight slots.", failures)
 
 	game._update_interaction_target()
 	_expect(game.interaction_target != null and game.interaction_target.target_kind == "storage", "Crate use point should become the nearby contextual target.", failures)

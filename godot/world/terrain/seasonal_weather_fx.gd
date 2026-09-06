@@ -26,7 +26,8 @@ func _draw() -> void:
 	elif weather in ["Rain", "Storm"] or (season == "Summer" and game.meta_progression.day % 6 == 0):
 		draw_rect(Rect2(Vector2.ZERO, game.WORLD_PIXELS), Color(0.12, 0.22, 0.30, 0.18 if weather != "Storm" else 0.3))
 		for index in range(120 if weather != "Storm" else 190):
-			var x: float = fmod(float(index * 109) + phase * 2.4, game.WORLD_PIXELS.x)
+			# Travel down-left, in the same direction as the painted streak.
+			var x: float = fposmod(float(index * 109) - phase * 1.75, game.WORLD_PIXELS.x)
 			var y: float = fmod(float(index * 71) + phase * 4.5, game.WORLD_PIXELS.y)
 			draw_line(Vector2(x, y), Vector2(x - 7, y + 18), Color(0.65, 0.84, 1.0, 0.62), 2.0)
 	elif weather == "Eclipse":

@@ -29,8 +29,8 @@ static func create(palette: Dictionary = {}) -> Theme:
 		result.set_font("font", control_type, PIXEL)
 	for rich_font: String in ["normal_font", "bold_font", "italics_font", "bold_italics_font", "mono_font"]:
 		result.set_font(rich_font, "RichTextLabel", PIXEL)
-	result.set_font_size("font_size", "Button", 19)
-	result.set_font_size("font_size", "OptionButton", 18)
+	result.set_font_size("font_size", "Button", 16)
+	result.set_font_size("font_size", "OptionButton", 16)
 	result.set_color("font_color", "Button", ink)
 	result.set_color("font_hover_color", "Button", Color("#201710"))
 	result.set_color("font_pressed_color", "Button", Color("#201710"))
@@ -89,8 +89,8 @@ static func _box(fill: Color, border: Color, width: int, radius: int) -> StyleBo
 	box.border_color = border
 	box.set_border_width_all(width)
 	box.set_corner_radius_all(radius)
-	box.content_margin_left = 12
-	box.content_margin_right = 12
-	box.content_margin_top = 7
-	box.content_margin_bottom = 7
+	box.content_margin_left = 7
+	box.content_margin_right = 7
+	box.content_margin_top = 3
+	box.content_margin_bottom = 3
 	return box
