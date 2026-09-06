@@ -33,6 +33,8 @@ func _test_kiln(failures: Array[String]) -> void:
 	game.apply_construction_work(instance_id, 10.0)
 	var machine: Variant = game.machines_by_entity_id.get(instance_id)
 	_expect(machine != null, "Completed kiln should create a physical machine runtime.", failures)
+	machine.staffed = false
+	_expect(str(game.machine_diagnostic(instance_id).code) == "no_worker", "An idle machine should clearly report that no worker is assigned.", failures)
 	# Legacy saves represented unused slots as {}. Approaching a restored
 	# machine must treat those slots as empty instead of reading a missing key.
 	machine.output_inventory.slots[0] = {}
@@ -73,6 +75,19 @@ func _test_kiln(failures: Array[String]) -> void:
 	game.add_child(worker)
 	game.villagers[worker.stable_id] = worker
 	worker.assign_work(instance_id)
+	machine.staffed = false
+	worker.state = "sleeping"
+	_expect(str(game.machine_diagnostic(instance_id).code) == "worker_sleeping", "A sleeping assigned worker should be named as the blocking cause.", failures)
+	worker.state = "seeking_food"
+	worker.hunger = 10.0
+	_expect(str(game.machine_diagnostic(instance_id).code) == "worker_hungry", "A hungry assigned worker should be named as the blocking cause.", failures)
+	worker.state = "working"
+	worker.hunger = 100.0
+	machine.staffed = true
+	var clay_loaded: int = machine.input_inventory.count("clay")
+	machine.input_inventory.remove("clay", clay_loaded)
+	_expect(str(game.machine_diagnostic(instance_id).message).contains("Clay x%d" % int(machine.recipe_inputs.clay)), "Missing machine inputs should name the exact resource and quantity.", failures)
+	machine.input_inventory.add("clay", clay_loaded)
 	game._process(0.1)
 	_expect(machine.manually_activated and machine.is_running(), "A supplied and staffed machine should start a timed batch.", failures)
 	game.player.position += Vector2(500, 0)

@@ -55,8 +55,7 @@ func _draw() -> void:
 	elif target.target_kind == "storage":
 		_draw_hint(anchor, [target.item_label, "Space to open"])
 	elif target.target_kind == "machine":
-		var machine: Variant = game.machines_by_entity_id.get(target.stable_id)
-		var state := "Broken" if machine != null and machine.broken else ("Working %d%%" % roundi(machine.progress() * 100.0) if machine != null and machine.is_running() else "Ready")
+		var state := str(game.machine_diagnostic(target.stable_id).get("message", "Machine unavailable"))
 		_draw_hint(anchor, [target.item_label, state, "Space to open"])
 	else:
 		_draw_hint(anchor, [target.item_label, "Space to open"])

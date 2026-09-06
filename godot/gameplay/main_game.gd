@@ -3485,17 +3485,46 @@ func _machine_prompt(instance_id: String) -> String:
 	if machine == null:
 		return "Machine unavailable"
 	var machine_name := _placed_definition_label(instance_id)
-	if machine.broken:
-		return "%s broken | Space to open" % machine_name
 	var output_count := 0
 	# Older saves may contain empty inventory slots as bare dictionaries.  Treat a
 	# missing amount as zero so merely approaching a machine can never crash.
 	for slot: Variant in machine.output_inventory.slots:
 		if slot is Dictionary:
 			output_count += int(slot.get("amount", 0))
-	if machine.is_running():
-		return "%s working %d%% | Output %d | Space to open" % [machine_name, roundi(machine.progress() * 100.0), output_count]
-	return "%s ready | Output %d | Space to open" % [machine_name, output_count]
+	var diagnostic := machine_diagnostic(instance_id)
+	return "%s | %s | Output %d | Space to open" % [machine_name, str(diagnostic.get("message", "Unavailable")), output_count]
+
+
+func machine_diagnostic(instance_id: String) -> Dictionary:
+	var machine: Variant = machines_by_entity_id.get(instance_id)
+	if machine == null: return {"code":"missing", "message":"MACHINE UNAVAILABLE"}
+	var repair_item: Variant = item_registry.get_item(scenario.repair_item_id)
+	var repair_label: String = str(repair_item.label) if repair_item != null else scenario.repair_item_id.capitalize()
+	if machine.broken: return {"code":"broken", "message":"BROKEN - NEEDS %s x2" % repair_label}
+	if machine.is_running(): return {"code":"working", "message":"WORKING %d%%" % roundi(machine.progress() * 100.0)}
+	var assigned: Array = []
+	for villager: Variant in villagers.values():
+		if not villager.task.is_empty() and str(villager.task.get("type", "")) == "work" and str(villager.task.get("target", "")) == instance_id:
+			assigned.append(villager)
+	var definition: Variant = definition_for_instance(instance_id)
+	var required_workers: int = ceili(definition.workers_required) if definition != null else 1
+	if required_workers > 0 and assigned.is_empty(): return {"code":"no_worker", "message":"STOPPED - NO ASSIGNED WORKER"}
+	if required_workers > 0 and not machine.staffed:
+		var worker: Variant = assigned[0]
+		if worker.state in ["sleeping", "going_home"]: return {"code":"worker_sleeping", "message":"STOPPED - %s IS SLEEPING" % worker.villager_name}
+		if worker.state in ["hungry", "seeking_food"] or worker.hunger <= 0.0: return {"code":"worker_hungry", "message":"STOPPED - %s IS HUNGRY" % worker.villager_name}
+		if not is_work_time_for(instance_id) or worker.state == "off duty": return {"code":"off_duty", "message":"STOPPED - %s IS OFF DUTY" % worker.villager_name}
+		if worker.state == "to_work": return {"code":"worker_travelling", "message":"WAITING - %s IS WALKING TO WORK" % worker.villager_name}
+		return {"code":"worker_unavailable", "message":"STOPPED - %s: %s" % [worker.villager_name, worker.status_text().to_upper()]}
+	var missing: Array[String] = []
+	for item_id: String in machine.recipe_inputs:
+		var needed: int = maxi(0, int(machine.recipe_inputs[item_id]) - machine.input_inventory.count(item_id))
+		if needed > 0: missing.append("%s x%d" % [item_registry.get_item(item_id).label, needed])
+	if not missing.is_empty(): return {"code":"missing_input", "message":"MISSING RESOURCE: %s" % ", ".join(missing)}
+	for item_id: String in machine.recipe_outputs:
+		if machine.output_inventory.capacity_for(item_id) < int(machine.recipe_outputs[item_id]):
+			return {"code":"output_full", "message":"STOPPED - OUTPUT STORAGE FULL"}
+	return {"code":"ready", "message":"READY TO START"}
 
 
 func _placed_definition_label(instance_id: String) -> String:
@@ -3550,7 +3579,7 @@ func _update_machine_panel(rebuild_actions: bool = true) -> void:
 		output_rows.append("%s: %d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
 	var repair_item: Variant = item_registry.get_item(scenario.repair_item_id)
 	var repair_label: String = repair_item.label if repair_item != null else scenario.repair_item_id.capitalize()
-	var state := "BROKEN - needs %s x2" % repair_label if machine.broken else ("UNSTAFFED" if not machine.staffed else ("FIRING %d%%" % roundi(machine.progress() * 100.0) if machine.is_running() else "READY / WAITING FOR INPUT"))
+	var state: String = str(machine_diagnostic(active_machine_id).get("message", "MACHINE UNAVAILABLE"))
 	var worker_names: Array[String] = []
 	var assigned_worker: Variant = null
 	for villager: Variant in villagers.values():
