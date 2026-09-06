@@ -15,6 +15,8 @@ var home_id := ""
 var home_position := Vector2.ZERO
 var hunger := 100.0
 var energy := 100.0
+var happiness := 50.0
+var happiness_details: Dictionary = {}
 var state := "available"
 var facing := "south"
 var animation_time := 0.0
@@ -262,6 +264,12 @@ func _draw() -> void:
 func _draw_status_marks() -> void:
 	if selected or targeted:
 		draw_circle(Vector2(0, 11), 18.0, Color("#ffe27a"), false, 3.0)
+		var mood_color := Color("#6bcf72") if happiness >= 65.0 else (Color("#e5b84a") if happiness >= 40.0 else Color("#d95757"))
+		var pulse := 1.0 + sin(animation_time * 3.0) * 0.08
+		draw_circle(Vector2(-5, -72), 4.5 * pulse, mood_color)
+		draw_circle(Vector2(5, -72), 4.5 * pulse, mood_color)
+		var heart := PackedVector2Array([Vector2(-9,-71), Vector2(9,-71), Vector2(0,-60)])
+		draw_colored_polygon(heart, mood_color)
 	if carrying_amount > 0:
 		draw_circle(Vector2(19, -24), 7.0, Color("#dca763"))
 		draw_string(ThemeDB.fallback_font, Vector2(16, -31), str(carrying_amount), HORIZONTAL_ALIGNMENT_CENTER, 12, 11, Color.WHITE)

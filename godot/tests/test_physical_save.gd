@@ -22,6 +22,7 @@ func _initialize() -> void:
 	source_villager.villager_name = "Kiya"
 	source_villager.hunger = 63.0
 	source_villager.energy = 47.0
+	source_villager.happiness = 76.0
 	source.day_time_seconds = 173.0
 	source.inventory.add("brick_kiln_plan", 1)
 	source.select_quick_slot(_find_slot(source.inventory, "brick_kiln_plan"))
@@ -53,6 +54,7 @@ func _initialize() -> void:
 	var restored_villager: Variant = restored.villagers.values()[0]
 	_expect(restored_villager.villager_name == "Kiya" and is_equal_approx(restored_villager.hunger, 63.0), "Villager name and hunger should round-trip.", failures)
 	_expect(is_equal_approx(restored_villager.energy, 47.0) and is_equal_approx(restored.day_time_seconds, 173.0), "Villager energy and world time should round-trip.", failures)
+	_expect(is_equal_approx(restored_villager.happiness, 76.0), "Villager happiness should round-trip.", failures)
 	_expect(is_equal_approx(restored.construction_by_entity_id[kiln_id].work_done_seconds, 1.25), "Partial construction work should round-trip without crashing.", failures)
 	_expect(not restored.construction_by_entity_id[kiln_id].complete, "Partial construction should remain incomplete after load.", failures)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

@@ -34,6 +34,7 @@ const GameThemeType = preload("res://ui/game_theme.gd")
 const SettlementProgressionType = preload("res://world/progression/settlement_progression.gd")
 const TimeTravelStateType = preload("res://world/time_travel/time_travel_state.gd")
 const LivingTimelineType = preload("res://world/progression/living_timeline.gd")
+const VillagerHappinessType = preload("res://world/population/villager_happiness.gd")
 const TimelineDirectorType = preload("res://world/progression/timeline_director.gd")
 const TimePortalType = preload("res://world/time_travel/time_portal.gd")
 const TimeArtifactType = preload("res://world/time_travel/time_artifact.gd")
@@ -153,6 +154,8 @@ var villager_name_edit: LineEdit
 var villager_appearance_option: OptionButton
 var villager_priority_option: OptionButton
 var villager_status_label: Label
+var villager_happiness_bar: ProgressBar
+var villager_happiness_label: Label
 var villager_order_feedback: Label
 var villager_resource_option: OptionButton
 var villager_order_mode := ""
@@ -212,6 +215,7 @@ var living_panel: Control
 var living_open := false
 var living_status: Label
 var living_energy_label: Label
+var happiness_update_elapsed := 0.0
 var timeline_director: Variant
 var calendar_panel: Control
 var calendar_open := false
@@ -303,6 +307,10 @@ func _process(delta: float) -> void:
 		_apply_living_schedule(villager)
 		villager.environment_speed_multiplier = environment_multiplier("worker_speed")
 		villager.process_life(self, delta)
+	happiness_update_elapsed += delta
+	if happiness_update_elapsed >= 1.0:
+		happiness_update_elapsed = 0.0
+		_update_villager_happiness()
 	if not villager_order_mode.is_empty():
 		var pan := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 		camera.position += pan * delta * 360.0 / maxf(camera.zoom.x, 0.1)
@@ -1311,7 +1319,9 @@ func _refresh_living_panel(message: String = "") -> void:
 	var merchant_text := "Away - returns on Day 6" if offer.is_empty() else "%s for %d Silver coin%s" % [str(offer.label), int(offer.price), " - SOLD" if living_timeline.merchant_purchases.has(str(meta_progression.day)) else ""]
 	var discovery_text := ", ".join(living_timeline.discoveries.keys()) if not living_timeline.discoveries.is_empty() else "Rumors point toward the northern ruins"
 	var skills := "Foraging %d  Crafting %d  Exploration %d  Community %d" % [living_timeline.skill_level("foraging"), living_timeline.skill_level("crafting"), living_timeline.skill_level("exploration"), living_timeline.skill_level("community")]
-	living_status.text = "DAY %d  %s -> %s   ENERGY %d\n%s\n\nTODAY'S STORY\n%s\n\nREQUEST\n%s\n\nPEOPLE\n%s\n\nVALLEY\nCommunity %d  Beauty %d  Prosperity %d  Home %d\n%s\nRuins: %d searches left | %s\nShop: %s%s" % [meta_progression.day, living_timeline.weather, living_timeline.tomorrow_weather, roundi(living_timeline.player_energy), living_timeline.daily_event, living_timeline.day_story(meta_progression.day, meta_progression.season_name()), request_text, "\n".join(bonds), living_timeline.community, living_timeline.beauty, living_timeline.prosperity, living_timeline.home_level, skills, living_timeline.exploration_attempts, discovery_text, merchant_text, "\n\n" + message if not message.is_empty() else ""]
+	var joy := village_happiness_metrics()
+	var joy_text := "No villagers yet" if int(joy.count) == 0 else "%d average  |  %d lowest  |  %d cohesion" % [roundi(joy.average), roundi(joy.minimum), roundi(joy.cohesion)]
+	living_status.text = "DAY %d  %s -> %s   ENERGY %d\n%s\n\nTODAY'S STORY\n%s\n\nREQUEST\n%s\n\nPEOPLE\n%s\nVillage happiness: %s\n\nVALLEY\nCommunity %d  Beauty %d  Prosperity %d  Home %d\n%s\nRuins: %d searches left | %s\nShop: %s%s" % [meta_progression.day, living_timeline.weather, living_timeline.tomorrow_weather, roundi(living_timeline.player_energy), living_timeline.daily_event, living_timeline.day_story(meta_progression.day, meta_progression.season_name()), request_text, "\n".join(bonds), joy_text, living_timeline.community, living_timeline.beauty, living_timeline.prosperity, living_timeline.home_level, skills, living_timeline.exploration_attempts, discovery_text, merchant_text, "\n\n" + message if not message.is_empty() else ""]
 
 
 func _heart_text(count: int) -> String:
@@ -1909,43 +1919,45 @@ func _build_villager_panel(layer: CanvasLayer) -> void:
 	villager_priority_option.item_selected.connect(_change_selected_villager_priority)
 	villager_panel.add_child(villager_priority_option)
 	villager_status_label = Label.new()
-	villager_status_label.position = Vector2(22, 194)
-	villager_status_label.size = Vector2(376, 126)
+	villager_happiness_label = Label.new(); villager_happiness_label.position = Vector2(22, 194); villager_happiness_label.size = Vector2(376, 24); villager_happiness_label.text = "HAPPINESS"; villager_panel.add_child(villager_happiness_label)
+	villager_happiness_bar = ProgressBar.new(); villager_happiness_bar.position = Vector2(22, 220); villager_happiness_bar.size = Vector2(376, 24); villager_happiness_bar.min_value = 0; villager_happiness_bar.max_value = 100; villager_happiness_bar.show_percentage = true; villager_panel.add_child(villager_happiness_bar)
+	villager_status_label.position = Vector2(22, 252)
+	villager_status_label.size = Vector2(376, 166)
 	villager_status_label.add_theme_font_size_override("font_size", 16)
 	villager_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	villager_panel.add_child(villager_status_label)
 	villager_resource_option = OptionButton.new()
-	villager_resource_option.position = Vector2(22, 326)
+	villager_resource_option.position = Vector2(22, 422)
 	villager_resource_option.size = Vector2(376, 36)
 	villager_resource_option.visible = false
 	villager_panel.add_child(villager_resource_option)
 	var talk := Button.new()
-	talk.position = Vector2(22, 370); talk.size = Vector2(376, 34); talk.text = "Talk"
+	talk.position = Vector2(22, 426); talk.size = Vector2(184, 34); talk.text = "Talk"
 	talk.pressed.connect(_talk_selected_villager); villager_panel.add_child(talk)
 	var gift := Button.new()
-	gift.position = Vector2(22, 408); gift.size = Vector2(376, 34); gift.text = "Give selected item"
+	gift.position = Vector2(214, 426); gift.size = Vector2(184, 34); gift.text = "Give gift"
 	gift.pressed.connect(_gift_selected_villager); villager_panel.add_child(gift)
 	var assign := Button.new()
-	assign.position = Vector2(22, 446)
+	assign.position = Vector2(22, 466)
 	assign.size = Vector2(376, 34)
 	assign.text = "Assign transport"
 	assign.pressed.connect(begin_villager_transport_order)
 	villager_panel.add_child(assign)
 	var work := Button.new()
-	work.position = Vector2(22, 484)
+	work.position = Vector2(22, 504)
 	work.size = Vector2(376, 34)
 	work.text = "Assign work"
 	work.pressed.connect(begin_villager_work_order)
 	villager_panel.add_child(work)
 	var stop := Button.new()
-	stop.position = Vector2(22, 522)
+	stop.position = Vector2(22, 542)
 	stop.size = Vector2(376, 34)
 	stop.text = "Stop task"
 	stop.pressed.connect(stop_selected_villager_task)
 	villager_panel.add_child(stop)
 	villager_order_feedback = Label.new()
-	villager_order_feedback.position = Vector2(22, 566)
-	villager_order_feedback.size = Vector2(376, 60)
+	villager_order_feedback.position = Vector2(22, 584)
+	villager_order_feedback.size = Vector2(376, 48)
 	villager_order_feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	villager_order_feedback.add_theme_color_override("font_color", Color("#6b3e20"))
 	villager_panel.add_child(villager_order_feedback)
@@ -2214,6 +2226,7 @@ func _gift_selected_villager() -> void:
 func _update_villager_panel() -> void:
 	if not villagers.has(selected_villager_id): return
 	var villager: Variant = villagers[selected_villager_id]
+	if villager.happiness_details.is_empty(): _evaluate_villager_happiness(villager)
 	if villager_appearance_option != null and villager_appearance_option.selected != villager.appearance_id:
 		villager_appearance_option.select(villager.appearance_id)
 	if villager_priority_option != null and villager_priority_option.selected != villager.work_priority:
@@ -2231,10 +2244,47 @@ func _update_villager_panel() -> void:
 		task_text = "Carry %s\n%s -> %s" % [resource.label if resource != null else str(villager.task.item), source_target.item_label if source_target != null else str(villager.task.source), destination_target.item_label if destination_target != null else str(villager.task.destination)]
 	var skill_seconds := float(villager.experience.get(villager.profession, 0.0))
 	var level := 1 + floori(skill_seconds / 120.0)
-	villager_status_label.text = "Home: %s\nStatus: %s\nRole: %s - level %d\nHunger %d%%  Energy %d%%\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), villager.profession.capitalize(), level, roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
+	var happiness: Dictionary = villager.happiness_details
+	var profile: Dictionary = happiness.get("profile", {})
+	var positive: Array = happiness.get("positive", [])
+	var negative: Array = happiness.get("negative", [])
+	villager_happiness_bar.value = villager.happiness
+	villager_happiness_label.text = "HAPPINESS  %s  |  %s" % [_happiness_word(villager.happiness), str(profile.get("label", "Unknown nature"))]
+	var fill := StyleBoxFlat.new(); fill.bg_color = Color("#62b45b") if villager.happiness >= 65.0 else (Color("#d5a13b") if villager.happiness >= 40.0 else Color("#c94c46")); fill.corner_radius_top_left = 5; fill.corner_radius_top_right = 5; fill.corner_radius_bottom_left = 5; fill.corner_radius_bottom_right = 5; villager_happiness_bar.add_theme_stylebox_override("fill", fill)
+	var mood_rows: Array[String] = []
+	for index in range(mini(2, positive.size())): mood_rows.append("+ " + str(positive[index]))
+	for index in range(mini(2, negative.size())): mood_rows.append("- " + str(negative[index]))
+	villager_status_label.text = "Status: %s | %s L%d\nFood %d%%  Energy %d%%\nTask: %s\nLikes: %s\nHates: %s\n%s" % [villager.status_text(), villager.profession.capitalize(), level, roundi(villager.hunger), roundi(villager.energy), task_text, ", ".join(profile.get("likes", [])), ", ".join(profile.get("hates", [])), "\n".join(mood_rows)]
 	if living_timeline.enabled:
 		var hour := int(fmod(day_time_seconds / DAY_LENGTH_SECONDS, 1.0) * 24.0)
-		villager_status_label.text += "\n\nBOND %s\n%s" % [_heart_text(living_timeline.heart_level(villager.villager_name)), living_timeline.schedule_for(villager.villager_name, hour, living_timeline.weather)]
+		villager_status_label.text += "\nBond %s | %s" % [_heart_text(living_timeline.heart_level(villager.villager_name)), living_timeline.schedule_for(villager.villager_name, hour, living_timeline.weather)]
+
+
+func _happiness_word(value: float) -> String:
+	if value >= 80.0: return "JOYFUL"
+	if value >= 65.0: return "CONTENT"
+	if value >= 40.0: return "UNEASY"
+	return "MISERABLE"
+
+
+func _evaluate_villager_happiness(villager: Variant) -> void:
+	if not living_timeline.enabled: return
+	villager.happiness_details = VillagerHappinessType.evaluate(villager, self)
+	villager.happiness = float(villager.happiness_details.score)
+
+
+func _update_villager_happiness() -> void:
+	if not living_timeline.enabled: return
+	for villager: Variant in villagers.values(): _evaluate_villager_happiness(villager)
+
+
+func village_happiness_metrics() -> Dictionary:
+	if villagers.is_empty(): return {"average":100.0,"minimum":100.0,"cohesion":100.0}
+	var total := 0.0; var minimum := 100.0
+	for villager: Variant in villagers.values(): total += villager.happiness; minimum = minf(minimum, villager.happiness)
+	var average := total / villagers.size(); var spread := 0.0
+	for villager: Variant in villagers.values(): spread += absf(villager.happiness - average)
+	return {"average":average,"minimum":minimum,"cohesion":clampf(100.0 - spread / villagers.size() * 2.0, 0.0, 100.0)}
 
 
 func _change_selected_villager_appearance(index: int) -> void:
@@ -3676,6 +3726,7 @@ func restore_villager(data: Dictionary) -> Variant:
 	villager.home_position = Vector2(float(data.get("home_position", [fallback_position.x, fallback_position.y])[0]), float(data.get("home_position", [fallback_position.x, fallback_position.y])[1]))
 	villager.hunger = float(data.get("hunger", 100.0))
 	villager.energy = float(data.get("energy", 100.0))
+	villager.happiness = float(data.get("happiness", 50.0))
 	villager.state = str(data.get("state", "available"))
 	villager.work_priority = clampi(int(data.get("priority", 1)), 0, 2)
 	villager.profession = str(data.get("profession", "generalist"))
@@ -3761,7 +3812,8 @@ func worker_efficiency_at(instance_id: String) -> float:
 	for villager: Variant in villagers.values():
 		if villager.state != "working" or villager.task.is_empty() or str(villager.task.get("target", "")) != instance_id: continue
 		var skill := float(villager.experience.get(villager.profession, 0.0))
-		total += 1.0 + minf(0.5, floorf(skill / 120.0) * 0.1)
+		var happiness_factor := lerpf(0.65, 1.15, clampf(villager.happiness / 100.0, 0.0, 1.0)) if living_timeline.enabled else 1.0
+		total += (1.0 + minf(0.5, floorf(skill / 120.0) * 0.1)) * happiness_factor
 		count += 1
 	return total / count if count > 0 else 1.0
 
@@ -3991,7 +4043,10 @@ func _update_population_hud() -> void:
 		var people_word := str(scenario.terminology.get("people", "people"))
 		var event := active_environment_event()
 		var event_text := " | WARNING: %s" % str(event.label) if not event.is_empty() else ""
-		population_label.text = "%d %s | %d assigned | %d meals | %s | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, meta_progression.calendar_text(), (total_minutes / 60) % 24, total_minutes % 60, event_text]
+		var happiness_text := ""
+		if living_timeline.enabled and not villagers.is_empty():
+			var happiness := village_happiness_metrics(); happiness_text = " | Joy %d avg / %d low" % [roundi(happiness.average), roundi(happiness.minimum)]
+		population_label.text = "%d %s | %d assigned | %d meals%s | %s | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, happiness_text, meta_progression.calendar_text(), (total_minutes / 60) % 24, total_minutes % 60, event_text]
 
 
 func _refresh_population_capacity() -> void:

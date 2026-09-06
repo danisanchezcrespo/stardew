@@ -42,6 +42,22 @@ func _capture() -> void:
 			if game.splash_open: game._close_splash()
 			if game.dialogue_open: game._advance_dialogue()
 			game.set_living_open(true)
+		elif str(args[5]) == "happiness" and game.scenario.scenario_id == "medieval":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			var home_cell := Vector2i(17, 10)
+			game.player.position = Vector2(home_cell + Vector2i(0,-1)) * game.CELL_SIZE + Vector2.ONE * 16.0
+			game.inventory.add("cottage_plan", 1); game.select_quick_slot(0); game.begin_placement(); game.placement_cursor = home_cell; game.confirm_placement()
+			var home_id: String = game.world_grid.occupant_at(home_cell); var home_site: Variant = game.construction_by_entity_id.get(home_id)
+			if home_site != null:
+				for item_id: String in home_site.requirements: home_site.deliver(item_id, home_site.receivable(item_id))
+				game.apply_construction_work(home_id, 40.0)
+			for row: Dictionary in [{"item":"rose_bed","cell":Vector2i(15,14)},{"item":"angel_fountain","cell":Vector2i(20,14)}]:
+				game.player.position = Vector2(row.cell + Vector2i(0,-1)) * game.CELL_SIZE + Vector2.ONE * 16.0
+				game.inventory.add(str(row.item), 1); game.select_quick_slot(0); game.begin_placement(); game.placement_cursor = row.cell; game.confirm_placement()
+			game._update_villager_happiness()
+			if not game.villagers.is_empty(): game.select_villager(str(game.villagers.keys()[0]))
+			game.player.position = capture_cell * game.CELL_SIZE
 		elif str(args[5]) == "night":
 			if game.splash_open: game._close_splash()
 			if game.dialogue_open: game._advance_dialogue()

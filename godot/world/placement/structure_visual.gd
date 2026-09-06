@@ -25,7 +25,15 @@ func set_upgrade_level(level: int) -> void:
 func set_machine_state(running: bool, broken: bool, delta: float) -> void:
 	machine_running = running
 	machine_broken = broken
-	if running: effect_time += maxf(delta, 0.0)
+	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	var ambient := definition_id in ["DECOR_ROSES","DECOR_BLUEBELLS","DECOR_SUNFLOWERS","DECOR_LAVENDER","DECOR_TOPIARY","DECOR_TRELLIS","DECOR_HERB_POTS","DECOR_CHERRY_TREE","DECOR_ANGEL_FOUNTAIN","DECOR_BIRDBATH","CHICKEN_COOP"]
+	if not machine_running and not ambient: return
+	effect_time += maxf(delta, 0.0)
+	if authored_sprite != null and definition_id in ["DECOR_ROSES","DECOR_BLUEBELLS","DECOR_SUNFLOWERS","DECOR_LAVENDER","DECOR_TOPIARY","DECOR_TRELLIS","DECOR_HERB_POTS","DECOR_CHERRY_TREE"]:
+		authored_sprite.rotation = sin(effect_time * 1.25 + global_position.x * 0.01) * 0.012
 	queue_redraw()
 
 
@@ -84,6 +92,7 @@ func _draw() -> void:
 			var phase := fmod(effect_time * 16.0 + index * 11.0, 34.0)
 			var drift := sin(effect_time * 2.2 + index) * 4.0
 			draw_circle(Vector2(sprite_size.x * 0.12 + drift, -sprite_size.y * 0.78 - phase), 4.5 + index, Color(0.92, 0.9, 0.82, 0.52 - index * 0.1))
+		_draw_working_delight()
 	elif machine_broken:
 		draw_circle(Vector2(sprite_size.x * 0.27, -sprite_size.y * 0.72), 11.0, Color("#8b2f2f"))
 		draw_string(ThemeDB.fallback_font, Vector2(sprite_size.x * 0.235, -sprite_size.y * 0.675), "!", HORIZONTAL_ALIGNMENT_CENTER, 10, 18, Color.WHITE)
@@ -92,6 +101,57 @@ func _draw() -> void:
 		draw_circle(badge_position, 15.0, Color("#d9ae54"))
 		draw_circle(badge_position, 15.0, Color("#fff3d2"), false, 2.0)
 		draw_string(ThemeDB.fallback_font, badge_position + Vector2(-10, 6), "L%d" % upgrade_level, HORIZONTAL_ALIGNMENT_CENTER, 20, 15, Color("#30241d"))
+	_draw_ambient_delight()
+
+
+func _draw_working_delight() -> void:
+	if definition_id == "WINDMILL":
+		var hub := Vector2(4, -sprite_size.y * 0.62); var angle := effect_time * 2.4
+		for index in range(4):
+			var direction := Vector2.RIGHT.rotated(angle + index * PI * 0.5)
+			draw_line(hub, hub + direction * 42.0, Color("#f2ddb0"), 7.0); draw_line(hub + direction * 12.0, hub + direction * 42.0, Color("#6f4a2c"), 2.0)
+		draw_circle(hub, 7.0, Color("#8a5b30"))
+	elif definition_id == "FORGE":
+		var fire := Vector2(sprite_size.x * 0.17, -sprite_size.y * 0.34)
+		draw_circle(fire, 10.0 + sin(effect_time * 13.0) * 2.0, Color("#ff7a2f")); draw_circle(fire + Vector2(0,2), 5.0, Color("#ffe36e"))
+		_draw_tiny_worker(fire + Vector2(-32, -4), absf(sin(effect_time * 5.5)))
+		for index in range(5):
+			var spark := Vector2(fmod(index * 13.0 + effect_time * 34.0, 45.0) - 18.0, -fmod(index * 9.0 + effect_time * 28.0, 34.0))
+			draw_circle(fire + spark, 1.5, Color("#ffd36a"))
+	elif definition_id == "SCULPTOR_WORKSHOP":
+		var bench := Vector2(-sprite_size.x * 0.12, -sprite_size.y * 0.25); var strike := absf(sin(effect_time * 5.0))
+		_draw_tiny_worker(bench + Vector2(-20, -2), strike)
+		draw_line(bench + Vector2(12,-25), bench + Vector2(-4 + strike * 12,-4), Color("#6b4528"), 4.0)
+		for index in range(3): draw_circle(bench + Vector2(index * 9 - 8, -index * 5 - fmod(effect_time * 8.0, 8.0)), 2.0, Color(0.8,0.77,0.68,0.65))
+	elif definition_id == "GARDEN_NURSERY" or definition_id == "HERB_GARDEN":
+		for index in range(7):
+			var drop := Vector2(-45 + index * 15, -35 + fmod(effect_time * 24.0 + index * 11.0, 28.0))
+			draw_line(drop, drop + Vector2(-2,5), Color(0.55,0.82,1.0,0.7), 2.0)
+	elif definition_id == "APIARY":
+		for index in range(8):
+			var bee := Vector2(sin(effect_time * 2.2 + index) * (34 + index * 2), -55 + cos(effect_time * 2.8 + index * 1.7) * 22)
+			draw_circle(bee, 2.5, Color("#f3c64f")); draw_line(bee - Vector2(2,0), bee + Vector2(2,0), Color("#3a2b1e"), 1.0)
+	elif definition_id in ["BAKERY","KITCHEN"]:
+		var glow := Vector2(sprite_size.x * 0.12, -sprite_size.y * 0.3); draw_circle(glow, 7.0 + sin(effect_time * 9.0), Color(1.0,0.48,0.18,0.72))
+
+
+func _draw_tiny_worker(origin: Vector2, strike: float) -> void:
+	draw_circle(origin + Vector2(0, -22), 6.0, Color("#d6a06c"))
+	draw_rect(Rect2(origin + Vector2(-6, -16), Vector2(12, 17)), Color("#446b8c"), true)
+	var hand := origin + Vector2(7 + strike * 8.0, -13 + strike * 12.0)
+	draw_line(origin + Vector2(4, -13), hand, Color("#d6a06c"), 4.0)
+	draw_line(hand, hand + Vector2(7, -9), Color("#65452f"), 3.0)
+
+
+func _draw_ambient_delight() -> void:
+	if definition_id in ["DECOR_ANGEL_FOUNTAIN","DECOR_BIRDBATH"]:
+		for index in range(4):
+			var phase := fmod(effect_time * 18.0 + index * 7.0, 24.0)
+			draw_circle(Vector2(index * 5 - 8, -sprite_size.y * 0.38 - phase * 0.25), 1.8, Color(0.68,0.9,1.0,0.78))
+	if definition_id == "CHICKEN_COOP":
+		for index in range(3):
+			var peck := Vector2(-25 + index * 22 + sin(effect_time * 2.0 + index) * 5.0, -13 + cos(effect_time * 4.0 + index) * 2.0)
+			draw_circle(peck, 3.0, Color("#f2e4bc")); draw_circle(peck + Vector2(3,-1), 1.2, Color("#d86a34"))
 
 
 static func sprite_size_for(type_id: String, cells: Array[Vector2i], visual_data: Dictionary = {}) -> Vector2:

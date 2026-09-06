@@ -37,10 +37,12 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	_expect(game.selected_villager_id == villager.stable_id and game.villager_panel.visible, "Space should open the villager in the shared right-side panel.", failures)
 	var action_buttons: Array[Button] = []
 	for child: Node in game.villager_panel.get_children():
-		if child is Button: action_buttons.append(child)
-	action_buttons.sort_custom(func(a: Button, b: Button) -> bool: return a.position.y < b.position.y)
-	for index in range(1, action_buttons.size()):
-		_expect(action_buttons[index - 1].position.y + action_buttons[index - 1].size.y < action_buttons[index].position.y, "Villager action buttons must not overlap.", failures)
+		if child is Button and child.visible: action_buttons.append(child)
+	for index in range(action_buttons.size()):
+		for other_index in range(index + 1, action_buttons.size()):
+			var first := Rect2(action_buttons[index].position, action_buttons[index].size)
+			var second := Rect2(action_buttons[other_index].position, action_buttons[other_index].size)
+			_expect(not first.intersects(second), "Villager action buttons must not overlap.", failures)
 	game.close_villager_panel()
 	game.select_villager(villager.stable_id)
 	game._rename_selected_villager("Merit")
