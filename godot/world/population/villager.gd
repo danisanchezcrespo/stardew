@@ -191,7 +191,7 @@ func _process_work(game: Node2D, delta: float) -> void:
 		_leave_workplace()
 		state = "blocked: workplace missing"
 		return
-	if not game.is_work_time():
+	if not game.is_work_time_for(str(task.target)):
 		_leave_workplace()
 		state = "off duty"
 		_move_to(home_position, delta)

@@ -227,6 +227,7 @@ var calendar_actions: VBoxContainer
 var precipitation_layer: Node2D
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
 var feedback_audio: AudioStreamPlayer
+var ui_theme: Theme
 
 
 func _ready() -> void:
@@ -240,7 +241,8 @@ func _ready() -> void:
 		scenario_path = PhysicalScenarioType.requested_path
 		PhysicalScenarioType.requested_path = ""
 	assert(scenario.load_from_path(scenario_path) == OK, "Physical scenario must load")
-	get_tree().root.theme = GameThemeType.create(scenario.theme)
+	ui_theme = GameThemeType.create(scenario.theme)
+	get_tree().root.theme = ui_theme
 	ground_texture = load(scenario.ground_texture_path) as Texture2D
 	path_texture = load(scenario.path_texture_path) as Texture2D if not scenario.path_texture_path.is_empty() else null
 	sand_color = scenario.sand_color
@@ -762,8 +764,11 @@ func _build_hud() -> void:
 	position_label.visible = false
 	layer.add_child(position_label)
 	population_label = Label.new()
-	population_label.position = Vector2(500, 58)
-	population_label.add_theme_font_size_override("font_size", 16)
+	population_label.position = Vector2(390, 52)
+	population_label.size = Vector2(420, 58)
+	population_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	population_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	population_label.add_theme_font_size_override("font_size", 13)
 	layer.add_child(population_label)
 	objective_label = Label.new()
 	objective_label.position = Vector2(420, 82)
@@ -837,6 +842,10 @@ func _build_hud() -> void:
 	help_label.add_theme_color_override("font_color", Color.WHITE)
 	help_label.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help_label)
+	# CanvasLayer is not a Control, so explicitly seed every top-level HUD branch
+	# with the game theme. Dynamic buttons then inherit the light active style.
+	for child: Node in layer.get_children():
+		if child is Control: (child as Control).theme = ui_theme
 
 
 func _apply_scenario_panel_palette(node: Node) -> void:
@@ -3855,6 +3864,16 @@ func is_work_time() -> bool:
 	return fraction >= 0.18 and fraction < 0.75
 
 
+func is_work_time_for(instance_id: String) -> bool:
+	var fraction := day_time_seconds / DAY_LENGTH_SECONDS
+	var definition: Variant = definition_for_instance(instance_id)
+	# The Village Market's weekly purpose is the weekend trade. It must not
+	# close on Sunday with a merchant assigned and valid stock already loaded.
+	if definition != null and str(definition.entity_id) == "MARKET":
+		return fraction >= 0.18 and fraction < 0.75
+	return is_work_time()
+
+
 func definition_for_instance(instance_id: String) -> Variant:
 	var placed: Variant = world_grid.entities_by_id.get(instance_id)
 	return placement_registry.get_entity(placed.definition_id) if placed != null else null
@@ -4125,7 +4144,7 @@ func _update_population_hud() -> void:
 		var happiness_text := ""
 		if living_timeline.enabled and not villagers.is_empty():
 			var happiness := village_happiness_metrics(); happiness_text = " | Joy %d avg / %d low" % [roundi(happiness.average), roundi(happiness.minimum)]
-		population_label.text = "%d %s | %d assigned | %d meals%s | %s | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, happiness_text, meta_progression.calendar_text(), (total_minutes / 60) % 24, total_minutes % 60, event_text]
+		population_label.text = "%d %s | %d assigned | %d meals%s\n%s | %02d:%02d%s" % [1 + villagers.size(), people_word, active, food, happiness_text, meta_progression.calendar_text(), (total_minutes / 60) % 24, total_minutes % 60, event_text]
 
 
 func _refresh_population_capacity() -> void:

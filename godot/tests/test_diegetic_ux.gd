@@ -25,10 +25,17 @@ func _run() -> void:
 	var home_id := _place_and_complete(game, "traveler_cottage_plan", Vector2i(10, 12))
 	game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.6
 	_expect(game.open_building_details(home_id) and game.building_context_button.text.contains("SLEEP"), "The Traveler's home must expose a Sleep button.", failures)
+	var active_button_style := game.building_context_button.get_theme_stylebox("normal") as StyleBoxFlat
+	_expect(active_button_style != null and active_button_style.bg_color.get_luminance() > 0.55, "Active panel buttons must use the clearly light visual style.", failures)
 	var wake_position: Vector2 = game.placed_targets[home_id].interaction_position()
-	game.building_details_context_action()
+	game.building_context_button.pressed.emit()
 	_expect(is_equal_approx(game.day_time_seconds, game.MORNING_TIME_SECONDS), "Sleeping through the home must wake the world at 07:00.", failures)
 	_expect(game.player.position.is_equal_approx(wake_position), "Sleeping must wake the player at the cottage's exterior use port.", failures)
+	game.close_day_summary()
+	var market_id := _place_and_complete(game, "market_plan", Vector2i(26, 12))
+	game.meta_progression.day = 7 # Sunday
+	game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.5
+	_expect(not game.is_work_time() and game.is_work_time_for(market_id), "The Village Market must trade on Sunday even while ordinary workshops rest.", failures)
 	game.queue_free(); await process_frame
 	if failures.is_empty(): print("PASS: diegetic UX"); quit(0); return
 	for failure: String in failures: push_error(failure)
