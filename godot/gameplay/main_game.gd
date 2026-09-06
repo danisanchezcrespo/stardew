@@ -2897,7 +2897,7 @@ func _add_placed_target(instance_id: String, definition: Variant, origin: Vector
 	var use_cell: Vector2i = ports.get("use", origin)
 	var use_position := Vector2(use_cell * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5)
 	var target := PlacedTargetType.new()
-	var kind := "construction" if construction_by_entity_id.has(instance_id) else ("storage" if definition.storage_slots > 0 else "machine")
+	var kind := "construction" if construction_by_entity_id.has(instance_id) else ("storage" if definition.storage_slots > 0 else ("building" if definition.entity_id == "TRAVELER_HOME" else "machine"))
 	var footprint_points: Array[Vector2] = []
 	for cell: Vector2i in definition.spatial_footprint.transformed_cells(origin, placed_rotation):
 		footprint_points.append(Vector2(cell * CELL_SIZE) + Vector2.ONE * (CELL_SIZE * 0.5))
