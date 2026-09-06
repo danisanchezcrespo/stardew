@@ -16,6 +16,7 @@ func _initialize() -> void:
 		"res://scenarios/physical/medieval.json",
 		"res://scenarios/physical/mars_colony.json",
 	]
+	var research_hubs := {"prehistory":"STORY_CIRCLE", "ancient_egypt":"HOUSE_OF_WISDOM", "medieval":"UNIVERSITY", "mars_colony":"RESEARCH_LAB"}
 	for path: String in paths:
 		var scenario := ScenarioType.new()
 		_expect(scenario.load_from_path(path) == OK, "%s must load" % path, failures)
@@ -30,6 +31,7 @@ func _initialize() -> void:
 		_expect(recipes.load_from_path(scenario.recipes_path, items) == OK, "%s recipes must load" % scenario.scenario_id, failures)
 		var placeables := PlacementRegistryType.new()
 		_expect(placeables.load_from_path(scenario.placeables_path) == OK, "%s buildings must load" % scenario.scenario_id, failures)
+		_expect(placeables.get_entity(str(research_hubs.get(scenario.scenario_id, ""))) != null, "%s needs an in-world research building" % scenario.scenario_id, failures)
 		_expect(FileAccess.file_exists(scenario.campaign_path), "%s campaign must exist" % scenario.scenario_id, failures)
 		_expect(ResourceLoader.exists(scenario.ground_texture_path), "%s ground must exist" % scenario.scenario_id, failures)
 		_expect(ResourceLoader.exists(scenario.character_sheet_path) or scenario.character_sheet_path.is_empty(), "%s character must exist" % scenario.scenario_id, failures)
@@ -43,12 +45,15 @@ func _initialize() -> void:
 	medieval_placeables.load_from_path(medieval.placeables_path)
 	var granary: Variant = medieval_placeables.get_entity("GRANARY")
 	_expect(granary != null and not granary.construction_cost.is_empty() and granary.construction_work_seconds > 0.0, "The medieval granary must pass through blueprint construction so its completion quest can fire.", failures)
+	var university: Variant = medieval_placeables.get_entity("UNIVERSITY")
+	_expect(university != null and not university.construction_cost.is_empty(), "Medieval technology must have a physical University building.", failures)
 	var medieval_items := ItemRegistryType.new()
 	medieval_items.load_from_path(medieval.items_path)
 	var medieval_recipes := RecipeRegistryType.new()
 	medieval_recipes.load_from_path(medieval.recipes_path, medieval_items)
 	var recovery_food: Variant = medieval_recipes.get_recipe("coarse_flatbread")
 	_expect(recovery_food != null and int(recovery_food.inputs.get("wheat", 0)) > 0 and int(recovery_food.outputs.get("loaf", 0)) > 0 and recovery_food.unlock_after.is_empty(), "Medieval villagers need an always-available manual food recipe to prevent a hungry-worker deadlock.", failures)
+	_expect(medieval_recipes.get_recipe("university_plan") != null and medieval_items.get_item("university_plan") != null, "The University must be craftable and placeable through normal play.", failures)
 	if failures.is_empty():
 		print("PASS: four era content")
 		quit(0)

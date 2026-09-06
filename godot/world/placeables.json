@@ -142,6 +142,11 @@
       "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[0,1],[1,1],[2,1],[3,1],[0,2],[1,2],[2,2],[3,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[1,-1]}}
     },
     {
+      "id":"HOUSE_OF_WISDOM","label":"House of Wisdom","color":"#d7bf75","construction_cost":{"mud_bricks":10,"wood":8},"construction_work_seconds":6.0,
+      "visual":{"texture":"res://assets/generated/buildings/egypt_shrine_v2.png","size":[190,190]},
+      "spatial":{"footprint":[[0,0],[1,0],[2,0],[3,0],[4,0],[0,1],[1,1],[2,1],[3,1],[4,1],[0,2],[1,2],[2,2],[3,2],[4,2]],"rotations":[0,1,2,3],"allowed_terrain":["sand"],"ports":{"use":[2,3]}}
+    },
+    {
       "id": "TREE_CROP", "label": "Tree Seed", "color": "#73913a",
       "spatial": {"footprint": [[0,0]], "rotations": [0], "allowed_terrain": ["sand"], "ports": {"use": [0,0]}}
     }

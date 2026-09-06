@@ -170,6 +170,7 @@ var construction_delivery_popup: ColorRect
 var construction_delivery_label: Label
 var construction_delivery_icons: Array[TextureRect] = []
 var building_upgrade_button: Button
+var building_context_button: Button
 var building_resident_icons: Array[TextureRect] = []
 var storage_upgrade_button: Button
 var world_overlay: Node2D
@@ -344,10 +345,15 @@ func _process(delta: float) -> void:
 		var definition: Variant = definition_for_instance(machine.instance_id)
 		var required_workers := ceili(definition.workers_required) if definition != null else 1
 		machine.staffed = required_workers <= 0 or assigned_villagers_to(machine.instance_id) >= required_workers
-		var upgrade_speed := 1.0 + float(meta_progression.building_level(machine.instance_id) - 1) * 0.25
+		var old_mastery: int = machine.mastery_level()
+		var effective_level: int = machine.mastery_level() if not machine.recipe_catalog.is_empty() else meta_progression.building_level(machine.instance_id)
+		var upgrade_speed := 1.0 + float(effective_level - 1) * 0.25
 		machine.process(delta * worker_efficiency_at(machine.instance_id) * environment_multiplier("production_speed") * upgrade_speed)
 		if structure_visuals.has(machine.instance_id):
 			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
+			if not machine.recipe_catalog.is_empty(): structure_visuals[machine.instance_id].set_upgrade_level(machine.mastery_level())
+		if machine.mastery_level() > old_mastery:
+			interaction_label.text = "%s reached Mastery %d - new designs unlocked" % [_placed_definition_label(machine.instance_id), machine.mastery_level()]
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
 	_update_timeline_progress()
 	_update_living_hud()
@@ -443,7 +449,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("use_selected"): _close_museum_story()
 		return
 	if tech_open:
-		if event.is_action_pressed("cancel") or event.is_action_pressed("open_tech_tree"): set_tech_open(false)
+		if event.is_action_pressed("cancel"): set_tech_open(false)
 		return
 	if collection_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_collection"): set_collection_open(false)
@@ -473,9 +479,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("open_logistics"):
 		set_logistics_open(true)
 		return
-	if event.is_action_pressed("open_tech_tree"):
-		set_tech_open(true)
-		return
 	if event.is_action_pressed("open_collection"):
 		set_collection_open(true)
 		return
@@ -485,9 +488,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("open_living_journal") and living_timeline.enabled and world_input_free:
 		set_living_open(true)
-		return
-	if event.is_action_pressed("sleep_day") and living_timeline.enabled and world_input_free:
-		_sleep_to_next_day()
 		return
 	if building_details_open:
 		if event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down"):
@@ -972,7 +972,7 @@ func _build_tech_panel(layer: CanvasLayer) -> void:
 	layer.add_child(tech_panel)
 	var title := Label.new()
 	title.position = Vector2(34, 20); title.size = Vector2(700, 42)
-	title.text = "TECHNOLOGY TREE"; title.add_theme_font_size_override("font_size", 28)
+	title.text = "UNIVERSITY STUDIES"; title.add_theme_font_size_override("font_size", 28)
 	tech_panel.add_child(title)
 	tech_points_label = Label.new()
 	tech_points_label.position = Vector2(820, 26); tech_points_label.size = Vector2(280, 32)
@@ -2011,6 +2011,9 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_upgrade_button = Button.new()
 	building_upgrade_button.position = Vector2(250, 18); building_upgrade_button.size = Vector2(145, 42); building_upgrade_button.text = "Upgrade"
 	building_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(building_details_id)); building_details_panel.add_child(building_upgrade_button)
+	building_context_button = Button.new()
+	building_context_button.position = Vector2(24, 382); building_context_button.size = Vector2(372, 44); building_context_button.visible = false
+	building_context_button.pressed.connect(building_details_context_action); building_details_panel.add_child(building_context_button)
 
 
 func _hide_subject_panels() -> void:
@@ -2059,6 +2062,14 @@ func building_details_context_action() -> void:
 	var site: Variant = construction_by_entity_id.get(building_details_id)
 	if site == null or site.complete:
 		var placed: Variant = world_grid.entities_by_id.get(building_details_id)
+		if placed != null and placed.definition_id == "TRAVELER_HOME":
+			close_building_details()
+			_sleep_to_next_day()
+			return
+		if placed != null and _is_research_building(str(placed.definition_id)):
+			close_building_details()
+			set_tech_open(true)
+			return
 		if placed != null and placed.definition_id == "CHICKEN_COOP":
 			_raise_chicken(building_details_id)
 			_update_building_details()
@@ -2095,6 +2106,7 @@ func _update_building_details() -> void:
 	building_details_title.text = "%s - L%d" % [definition.label, building_level]
 	var site: Variant = construction_by_entity_id.get(building_details_id)
 	building_upgrade_button.visible = site == null or site.complete
+	building_context_button.visible = false
 	building_upgrade_button.disabled = building_level >= 3
 	building_upgrade_button.text = "MAX LEVEL" if building_level >= 3 else "Upgrade L%d" % (building_level + 1)
 	if site != null and not site.complete:
@@ -2126,6 +2138,7 @@ func _update_building_details() -> void:
 		return
 	if machines_by_entity_id.has(building_details_id):
 		var machine: Variant = machines_by_entity_id[building_details_id]
+		building_upgrade_button.visible = machine.recipe_catalog.is_empty()
 		var inputs: Array[String] = []
 		var outputs: Array[String] = []
 		for item_id: String in machine.recipe_inputs: inputs.append("%s x%d" % [item_registry.get_item(item_id).label, machine.input_inventory.count(item_id)])
@@ -2133,8 +2146,16 @@ func _update_building_details() -> void:
 		building_details_body.text = "KILN\n\nState: %s\nHealth: %d / %d\nProgress: %d%%\n\nInput\n%s\n\nOutput\n%s" % ["broken" if machine.broken else ("working" if machine.is_running() else "ready"), machine.durability, machine.max_durability, roundi(machine.progress() * 100.0), "\n".join(inputs), "\n".join(outputs)]
 		return
 	if definition.entity_id == "TRAVELER_HOME":
-		building_details_body.text = "YOUR COTTAGE\n\nThis is the Traveler's private home.\n\nPress N to end the day. You return here and wake at 07:00 with restored energy.\n\nComfort level: %d\nStyle: %s" % [living_timeline.home_level, living_timeline.home_style]
-		building_details_controls.text = "N: sleep until 07:00    Esc: close"
+		building_upgrade_button.visible = false
+		building_context_button.visible = true; building_context_button.text = "SLEEP UNTIL 07:00"
+		building_details_body.text = "YOUR COTTAGE\n\nRest here when you are ready to end the day. Everyone wakes together at 07:00.\n\nComfort level: %d\nStyle: %s" % [living_timeline.home_level, living_timeline.home_style]
+		building_details_controls.text = "Choose Sleep when your day is complete.    Esc: close"
+		return
+	if _is_research_building(str(definition.entity_id)):
+		building_upgrade_button.visible = false
+		building_context_button.visible = true; building_context_button.text = "ENTER UNIVERSITY"
+		building_details_body.text = "%s\n\nKnowledge: %d\nFields discovered: %d / %d\n\nDonate discoveries to earn Knowledge, then study connected fields here. Each discovery opens recipes and the next layer of research." % [str(definition.label).to_upper(), meta_progression.research_points, meta_progression.unlocked_tech.size(), meta_progression.tech_nodes().size()]
+		building_details_controls.text = "Enter to study the technology tree.    Esc: close"
 		return
 	if placed.definition_id == "CHICKEN_COOP":
 		var chicken_count := _dependent_count(building_details_id, "chicken")
@@ -2155,10 +2176,14 @@ func _update_building_details() -> void:
 						building_resident_icons[resident_index].texture = portrait; building_resident_icons[resident_index].visible = true
 				resident_index += 1
 		building_details_body.size.x = 240
-		var traveler_home := "\n\nTRAVELER'S HOME\nPress N to sleep here and wake at 07:00." if _player_home_target() == placed_targets.get(building_details_id) else ""
+		var traveler_home := "\n\nTRAVELER'S HOME\nOpen your own cottage to sleep." if _player_home_target() == placed_targets.get(building_details_id) else ""
 		building_details_body.text = "HOME\n\nBeds: %d / %d occupied\n\nResidents\n%s\n\nSleeping residents rest inside.%s" % [resident_rows.size(), definition.population_capacity, "\n".join(resident_rows) if not resident_rows.is_empty() else "None", traveler_home]
 		return
 	building_details_body.text = "Status: complete\n\nHealth: good\n\nNo active production."
+
+
+func _is_research_building(definition_id: String) -> bool:
+	return definition_id in ["UNIVERSITY", "STORY_CIRCLE", "HOUSE_OF_WISDOM", "RESEARCH_LAB"]
 
 
 func select_villager(villager_id: String) -> bool:
@@ -2886,7 +2911,7 @@ func craft_selected_recipe() -> bool:
 		_update_crafting_ui("Locked - advance the current campaign chapter first.")
 		return false
 	if not meta_progression.recipe_unlocked(recipe_id):
-		_update_crafting_ui("Locked - discover it in the Technology Tree (T).")
+		_update_crafting_ui("Locked - study this field at the University.")
 		return false
 	if timeline_director.enabled and not timeline_director.recipe_unlocked(recipe_id):
 		_update_crafting_ui("Not discovered yet - new knowledge arrives as the living year unfolds.")
@@ -2958,7 +2983,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 			crafting_resource_icons[icon_index].visible = true
 			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
-	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED - advance the campaign or Technology Tree (T)"
+	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED - advance the story or study at the University"
 	if not feedback.is_empty():
 		status = feedback
 	crafting_detail_label.text = "[color=#3b281b]%s\n\nNeeds:\n[/color]%s[color=#3b281b]\n\nProduces:\n%s\n\n%s[/color]" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
@@ -3474,6 +3499,7 @@ func _update_machine_panel() -> void:
 	if machine == null: return
 	machine_title_label.text = _placed_definition_label(active_machine_id).to_upper()
 	var level: int = meta_progression.building_level(active_machine_id)
+	machine_upgrade_button.visible = machine.recipe_catalog.is_empty()
 	machine_upgrade_button.text = "MAX LEVEL" if level >= 3 else "Upgrade L%d" % (level + 1)
 	machine_upgrade_button.disabled = level >= 3
 	var input_rows: Array[String] = []
@@ -3495,14 +3521,19 @@ func _update_machine_panel() -> void:
 		if not villager.task.is_empty() and str(villager.task.get("type", "")) == "work" and str(villager.task.get("target", "")) == active_machine_id:
 			worker_names.append(villager.villager_name)
 			if assigned_worker == null: assigned_worker = villager
-	machine_status_label.text = "State: %s\nHealth: %d / %d\nWorker: %s\nProgress: %d%%\n\nINPUT\n%s\n\nACCUMULATED OUTPUT\n%s" % [state, machine.durability, machine.max_durability, ", ".join(worker_names) if not worker_names.is_empty() else "none", roundi(machine.progress() * 100.0), "\n".join(input_rows), "\n".join(output_rows)]
+	var mastery_text := ""
+	if not machine.recipe_catalog.is_empty():
+		var next_threshold: int = machine.next_mastery_threshold()
+		mastery_text = "\nMastery %d | %d batches%s" % [machine.mastery_level(), machine.batches_completed, " | next designs at %d" % next_threshold if next_threshold >= 0 else " | catalogue mastered"]
+	machine_status_label.text = "State: %s\nHealth: %d / %d\nWorker: %s\nProgress: %d%%%s\n\nINPUT\n%s\n\nACCUMULATED OUTPUT\n%s" % [state, machine.durability, machine.max_durability, ", ".join(worker_names) if not worker_names.is_empty() else "none", roundi(machine.progress() * 100.0), mastery_text, "\n".join(input_rows), "\n".join(output_rows)]
 	for child: Node in machine_action_list.get_children(): machine_action_list.remove_child(child); child.queue_free()
 	if not machine.recipe_catalog.is_empty():
 		var recipe_heading := Label.new(); recipe_heading.text = "CHOOSE WHAT TO MAKE"; recipe_heading.add_theme_font_override("font", GameThemeType.PIXEL); machine_action_list.add_child(recipe_heading)
 		for recipe_index in range(machine.recipe_catalog.size()):
 			var recipe: Dictionary = machine.recipe_catalog[recipe_index]
-			var recipe_button := Button.new(); recipe_button.text = ("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.id)).to_upper() + "\n" + _compact_machine_cost(recipe.inputs)
-			recipe_button.custom_minimum_size = Vector2(334, 54); recipe_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; recipe_button.add_theme_font_override("font", GameThemeType.PIXEL); recipe_button.disabled = machine.is_running(); recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
+			var unlocked: bool = machine.recipe_is_unlocked(recipe_index)
+			var recipe_button := Button.new(); recipe_button.text = (("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.id)).to_upper() + "\n" + _compact_machine_cost(recipe.inputs)) if unlocked else ("LOCKED - MASTERY %d\n???" % (recipe_index / 2 + 1))
+			recipe_button.custom_minimum_size = Vector2(334, 54); recipe_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; recipe_button.add_theme_font_override("font", GameThemeType.PIXEL); recipe_button.disabled = machine.is_running() or not unlocked; recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
 	if machine.broken:
 		var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
 		repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.disabled = inventory.count(scenario.repair_item_id) < 2; repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)

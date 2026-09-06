@@ -131,11 +131,11 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			game.storage_by_entity_id[str(row.id)] = storage
 		if row.has("machine"):
 			var machine := PhysicalMachine.new(str(row.id), definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, game.item_registry, 4, definition.machine_recipes)
-			machine.select_recipe(int(row.machine.get("active_recipe", 0)))
+			machine.batches_completed = int(row.machine.batches)
+			machine.select_recipe(mini(int(row.machine.get("active_recipe", 0)), machine.unlocked_recipe_count() - 1))
 			machine.input_inventory.slots = _slots(row.machine.input, machine.input_inventory.slot_count)
 			machine.output_inventory.slots = _slots(row.machine.output, machine.output_inventory.slot_count)
 			machine.remaining_seconds = float(row.machine.remaining)
-			machine.batches_completed = int(row.machine.batches)
 			machine.durability = int(row.machine.durability)
 			machine.max_durability = int(row.machine.get("max_durability", 3 + 2 * (game.meta_progression.building_level(str(row.id)) - 1)))
 			machine.broken = bool(row.machine.broken)

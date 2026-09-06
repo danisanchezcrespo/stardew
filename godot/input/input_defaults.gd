@@ -27,11 +27,9 @@ const ACTIONS := {
 	"toggle_fullscreen": [KEY_F11],
 	"next_villager": [KEY_TAB],
 	"open_logistics": [KEY_G],
-	"open_tech_tree": [KEY_T],
 	"open_collection": [KEY_M],
 	"open_living_journal": [KEY_J],
 	"open_calendar": [KEY_B],
-	"sleep_day": [KEY_N],
 	"building_details": [],
 }
 

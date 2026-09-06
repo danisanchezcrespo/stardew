@@ -38,6 +38,7 @@
     {"id":"meat","label":"Meat","color":"#b95f56","max_stack":30},
     {"id":"manure","label":"Manure","color":"#6e5432","max_stack":30},
     {"id":"chicken_coop_plan","label":"Chicken coop plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"CHICKEN_COOP"},
-    {"id":"cattle_barn_plan","label":"Cattle barn plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"CATTLE_BARN"}
+    {"id":"cattle_barn_plan","label":"Cattle barn plan","color":"#d8c781","max_stack":5,"placeable_entity_id":"CATTLE_BARN"},
+    {"id":"house_of_wisdom_plan","label":"House of Wisdom plan","color":"#d7bf75","max_stack":1,"placeable_entity_id":"HOUSE_OF_WISDOM"}
   ]
 }

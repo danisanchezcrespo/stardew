@@ -5,5 +5,6 @@
  {"id":"hide_shelter_plan","label":"Hide Shelter","inputs":{"branches":8,"hide":3},"outputs":{"hide_shelter_plan":1},"unlock_after":"first_hunt"},
  {"id":"flint_workshop_plan","label":"Flint Workshop","inputs":{"branches":6,"flint":8},"outputs":{"flint_workshop_plan":1},"unlock_after":"build_shelter"},
  {"id":"smoking_rack_plan","label":"Smoking Rack","inputs":{"branches":7,"flint":3},"outputs":{"smoking_rack_plan":1},"unlock_after":"build_workshop"},
- {"id":"ritual_stones_plan","label":"Ritual Stones","inputs":{"flint":20,"hide":6,"smoked_meat":8},"outputs":{"ritual_stones_plan":1},"unlock_after":"preserve_food"}
+ {"id":"ritual_stones_plan","label":"Ritual Stones","inputs":{"flint":20,"hide":6,"smoked_meat":8},"outputs":{"ritual_stones_plan":1},"unlock_after":"preserve_food"},
+ {"id":"story_circle_plan","label":"Story Circle","inputs":{"branches":6,"flint":4},"outputs":{"story_circle_plan":1}}
 ]}

@@ -28,6 +28,7 @@
  ,{"id":"astronomer_tower_plan","label":"Astronomer's Tower","color":"#7588ad","max_stack":2,"placeable_entity_id":"ASTRONOMER_TOWER"}
  ,{"id":"sculptor_workshop_plan","label":"Sculptor's Workshop","color":"#b9aa8e","max_stack":2,"placeable_entity_id":"SCULPTOR_WORKSHOP"}
  ,{"id":"garden_nursery_plan","label":"Garden Nursery","color":"#76a85d","max_stack":2,"placeable_entity_id":"GARDEN_NURSERY"}
+ ,{"id":"university_plan","label":"University","color":"#7186a8","max_stack":1,"placeable_entity_id":"UNIVERSITY"}
  ,{"id":"stone_lion","label":"Stone Lion","color":"#a89c83","max_stack":5,"placeable_entity_id":"DECOR_STONE_LION"}
  ,{"id":"scholar_statue","label":"Scholar Statue","color":"#a89c83","max_stack":5,"placeable_entity_id":"DECOR_SCHOLAR"}
  ,{"id":"knight_statue","label":"Knight Statue","color":"#a89c83","max_stack":5,"placeable_entity_id":"DECOR_KNIGHT"}

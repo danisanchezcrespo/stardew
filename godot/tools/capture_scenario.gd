@@ -58,6 +58,15 @@ func _capture() -> void:
 			game._update_villager_happiness()
 			if not game.villagers.is_empty(): game.select_villager(str(game.villagers.keys()[0]))
 			game.player.position = capture_cell * game.CELL_SIZE
+		elif str(args[5]) == "university" and game.scenario.scenario_id == "medieval":
+			if game.splash_open: game._close_splash()
+			while game.dialogue_open: game._advance_dialogue()
+			var cell := Vector2i(20, 12); game.player.position = Vector2(cell + Vector2i(0,-1)) * game.CELL_SIZE + Vector2.ONE * 16.0
+			game.inventory.add("university_plan", 1); game.select_quick_slot(0); game.begin_placement(); game.placement_cursor = cell; game.confirm_placement()
+			var instance_id: String = game.world_grid.occupant_at(cell); var site: Variant = game.construction_by_entity_id.get(instance_id)
+			if site != null:
+				for item_id: String in site.requirements: site.deliver(item_id, site.receivable(item_id))
+				game.apply_construction_work(instance_id, 60.0); game.open_building_details(instance_id)
 		elif str(args[5]) == "night":
 			if game.splash_open: game._close_splash()
 			if game.dialogue_open: game._advance_dialogue()

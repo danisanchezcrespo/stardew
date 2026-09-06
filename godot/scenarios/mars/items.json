@@ -15,6 +15,7 @@
     {"id":"oxygen_extractor_plan","label":"Oxygen extractor plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"OXYGEN_EXTRACTOR"},
     {"id":"greenhouse_plan","label":"Greenhouse plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"GREENHOUSE"},
     {"id":"fabricator_plan","label":"Fabricator plan","color":"#4dcce8","max_stack":5,"placeable_entity_id":"FABRICATOR"},
-    {"id":"comms_array_plan","label":"Communications array plan","color":"#4dcce8","max_stack":1,"placeable_entity_id":"COMMS_ARRAY"}
+    {"id":"comms_array_plan","label":"Communications array plan","color":"#4dcce8","max_stack":1,"placeable_entity_id":"COMMS_ARRAY"},
+    {"id":"research_lab_plan","label":"Research lab plan","color":"#73d8f0","max_stack":1,"placeable_entity_id":"RESEARCH_LAB"}
   ]
 }

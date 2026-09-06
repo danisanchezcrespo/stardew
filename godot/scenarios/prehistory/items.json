@@ -12,5 +12,6 @@
  {"id":"food_cache_plan","label":"Food cache","color":"#b98755","max_stack":5,"placeable_entity_id":"FOOD_CACHE"},
  {"id":"flint_workshop_plan","label":"Flint workshop","color":"#91a0a4","max_stack":5,"placeable_entity_id":"FLINT_WORKSHOP"},
  {"id":"smoking_rack_plan","label":"Smoking rack","color":"#a56d43","max_stack":5,"placeable_entity_id":"SMOKING_RACK"},
- {"id":"ritual_stones_plan","label":"Ritual stones","color":"#829092","max_stack":1,"placeable_entity_id":"RITUAL_STONES"}
+ {"id":"ritual_stones_plan","label":"Ritual stones","color":"#829092","max_stack":1,"placeable_entity_id":"RITUAL_STONES"},
+ {"id":"story_circle_plan","label":"Story Circle","color":"#b79a70","max_stack":1,"placeable_entity_id":"STORY_CIRCLE"}
 ]}

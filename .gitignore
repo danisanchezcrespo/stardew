@@ -18,6 +18,7 @@ desktop.ini
 *.bak
 godot/qa/
 artifacts/
+showcase/
 godot/assets/generated/**/*_v2.png
 godot/assets/generated/**/*_v2.png.import
 *_source.png

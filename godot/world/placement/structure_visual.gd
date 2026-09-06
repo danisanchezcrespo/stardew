@@ -18,7 +18,7 @@ var authored_sprite: Sprite2D
 
 
 func set_upgrade_level(level: int) -> void:
-	upgrade_level = clampi(level, 1, 3)
+	upgrade_level = clampi(level, 1, 4)
 	queue_redraw()
 
 

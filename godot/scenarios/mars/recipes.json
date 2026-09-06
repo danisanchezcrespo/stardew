@@ -9,6 +9,7 @@
     {"id":"greenhouse_plan","label":"Greenhouse Plan","inputs":{"metal_plate":8,"mars_water":3},"outputs":{"greenhouse_plan":1},"unlock_after":"make_oxygen"},
     {"id":"fabricator_plan","label":"Materials Fabricator Plan","inputs":{"metal_plate":10},"outputs":{"fabricator_plan":1},"unlock_after":"grow_algae"},
     {"id":"mars_ration","label":"Colony Ration","inputs":{"algae":3,"mars_water":1},"outputs":{"mars_ration":2},"unlock_after":"grow_algae"},
-    {"id":"comms_array_plan","label":"Communications Array Plan","inputs":{"metal_plate":20,"energy_cell":8,"oxygen":4},"outputs":{"comms_array_plan":1},"unlock_after":"fabricate_metal"}
+    {"id":"comms_array_plan","label":"Communications Array Plan","inputs":{"metal_plate":20,"energy_cell":8,"oxygen":4},"outputs":{"comms_array_plan":1},"unlock_after":"fabricate_metal"},
+    {"id":"research_lab_plan","label":"Research Lab Plan","inputs":{"metal_plate":6,"energy_cell":2},"outputs":{"research_lab_plan":1}}
   ]
 }

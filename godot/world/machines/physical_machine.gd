@@ -17,6 +17,8 @@ var durability := 3
 var max_durability := 3
 var broken := false
 
+const MASTERY_THRESHOLDS := [0, 5, 12, 24]
+
 func _init(stable_id: String, inputs: Dictionary, outputs: Dictionary, duration: float, item_registry: Variant, inventory_slots: int = 4, recipes: Array = []) -> void:
 	instance_id = stable_id
 	recipe_inputs = inputs.duplicate(true)
@@ -28,7 +30,7 @@ func _init(stable_id: String, inputs: Dictionary, outputs: Dictionary, duration:
 	if not recipe_catalog.is_empty(): select_recipe(0)
 
 func select_recipe(index: int) -> bool:
-	if is_running() or index < 0 or index >= recipe_catalog.size(): return false
+	if is_running() or index < 0 or index >= unlocked_recipe_count(): return false
 	active_recipe_index = index
 	var selected: Dictionary = recipe_catalog[index]
 	recipe_inputs = selected.get("inputs", {}).duplicate(true)
@@ -39,6 +41,22 @@ func select_recipe(index: int) -> bool:
 func active_recipe_label() -> String:
 	if recipe_catalog.is_empty(): return ""
 	return str(recipe_catalog[active_recipe_index].get("label", recipe_catalog[active_recipe_index].get("id", "")))
+
+func mastery_level() -> int:
+	var level := 1
+	for index in range(1, MASTERY_THRESHOLDS.size()):
+		if batches_completed >= int(MASTERY_THRESHOLDS[index]): level = index + 1
+	return level
+
+func unlocked_recipe_count() -> int:
+	return recipe_catalog.size() if recipe_catalog.is_empty() else mini(recipe_catalog.size(), mastery_level() * 2)
+
+func next_mastery_threshold() -> int:
+	var level := mastery_level()
+	return int(MASTERY_THRESHOLDS[level]) if level < MASTERY_THRESHOLDS.size() else -1
+
+func recipe_is_unlocked(index: int) -> bool:
+	return index >= 0 and index < unlocked_recipe_count()
 
 func accepts(item_id: String) -> bool:
 	return recipe_inputs.has(item_id)
