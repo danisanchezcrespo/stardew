@@ -78,6 +78,7 @@ var crafting: Variant
 var crafting_open := false
 var selected_recipe_index := 0
 var crafting_panel: Control
+var crafting_title_label: Label
 var crafting_list_label: Label
 var crafting_detail_label: RichTextLabel
 var crafting_recipe_buttons: Array[Button] = []
@@ -173,6 +174,7 @@ var construction_delivery_label: Label
 var construction_delivery_icons: Array[TextureRect] = []
 var building_upgrade_button: Button
 var building_context_button: Button
+var building_workshop_button: Button
 var building_resident_icons: Array[TextureRect] = []
 var storage_upgrade_button: Button
 var upgrade_requirement_dialog: AcceptDialog
@@ -501,8 +503,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if event.is_action_pressed("cancel"):
 			close_building_details()
-		elif event.is_action_pressed("use_selected"):
-			building_details_context_action()
 		return
 	if scenario_select_open:
 		if event.is_action_pressed("quick_slot_1"):
@@ -515,7 +515,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			select_scenario("res://scenarios/physical/mars_colony.json")
 		return
 	if machine_open:
-		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
+		if event.is_action_pressed("cancel"):
 			close_machine()
 		return
 	if event.is_action_pressed("save_game"):
@@ -531,7 +531,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_tree().reload_current_scene()
 		return
 	if storage_open:
-		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
+		if event.is_action_pressed("cancel"):
 			close_storage()
 		elif event.is_action_pressed("move_left"):
 			set_storage_focus(0)
@@ -552,9 +552,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_pressed("use_selected"):
 			confirm_placement()
 		return
-	if event.is_action_pressed("open_crafting"):
-		set_crafting_open(not crafting_open)
-	elif crafting_open and event.is_action_pressed("cancel"):
+	if crafting_open and event.is_action_pressed("cancel"):
 		set_crafting_open(false)
 	elif crafting_open and event.is_action_pressed("menu_up"):
 		select_recipe(-1)
@@ -839,7 +837,7 @@ func _build_hud() -> void:
 	help_label = Label.new()
 	help_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help_label.position = Vector2(22, -118)
-	help_label.text = "Move: WASD  Action: Space  Craft: C  Calendar: B  Journal: J  Menu: Esc"
+	help_label.text = "Move: WASD  Action: Space  Calendar: B  Journal: J  Menu: Esc"
 	help_label.add_theme_color_override("font_color", Color.WHITE)
 	help_label.add_theme_font_size_override("font_size", 16)
 	layer.add_child(help_label)
@@ -876,7 +874,6 @@ func _build_mobile_controls(layer: CanvasLayer) -> void:
 		layer.add_child(button)
 	var actions: Array[Dictionary] = [
 		{"label": "ACTION", "action": "use_selected", "position": Vector2(1085, 548)},
-		{"label": "CRAFT", "action": "open_crafting", "position": Vector2(950, 590)},
 		{"label": "MENU", "action": "cancel", "position": Vector2(1090, 485)}
 	]
 	for row: Dictionary in actions:
@@ -2038,6 +2035,9 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	# Fire on mouse/touch down. This shared contextual action can close its own
 	# panel (sleep/research), so waiting for release is fragile on scaled UI.
 	building_context_button.button_down.connect(building_details_context_action); building_details_panel.add_child(building_context_button)
+	building_workshop_button = Button.new()
+	building_workshop_button.position = Vector2(24, 340); building_workshop_button.size = Vector2(372, 34); building_workshop_button.text = "OPEN WORKSHOP"; building_workshop_button.visible = false
+	building_workshop_button.button_down.connect(_open_traveller_workshop); building_details_panel.add_child(building_workshop_button)
 
 
 func _hide_subject_panels() -> void:
@@ -2115,6 +2115,11 @@ func building_details_context_action() -> void:
 	_update_building_details()
 
 
+func _open_traveller_workshop() -> void:
+	close_building_details()
+	set_crafting_open(true)
+
+
 func _construction_deliverable(site: Variant) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for item_id: String in site.requirements:
@@ -2134,6 +2139,7 @@ func _update_building_details() -> void:
 	var site: Variant = construction_by_entity_id.get(building_details_id)
 	building_upgrade_button.visible = site == null or site.complete
 	building_context_button.visible = false
+	building_workshop_button.visible = false
 	building_upgrade_button.disabled = building_level >= 3
 	_set_upgrade_button_content(building_upgrade_button, building_details_id)
 	if site != null and not site.complete:
@@ -2179,8 +2185,9 @@ func _update_building_details() -> void:
 		return
 	if definition.entity_id == "TRAVELER_HOME":
 		building_upgrade_button.visible = false
+		building_workshop_button.visible = true
 		building_context_button.visible = true; building_context_button.text = "SLEEP UNTIL 07:00"
-		building_details_body.text = "YOUR COTTAGE\n\nRest here when you are ready to end the day. Everyone wakes together at 07:00.\n\nComfort level: %d\nStyle: %s" % [living_timeline.home_level, living_timeline.home_style]
+		building_details_body.text = "TRAVELLER'S HOUSE\n\nYour private workshop and safe place between journeys.\n\nComfort level: %d\nStyle: %s" % [living_timeline.home_level, living_timeline.home_style]
 		building_details_controls.text = ""
 		return
 	if _is_research_building(str(definition.entity_id)):
@@ -2567,12 +2574,12 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_panel.clip_contents = true
 	crafting_panel.visible = false
 	layer.add_child(crafting_panel)
-	var title := Label.new()
-	title.position = Vector2(24, 20)
-	title.text = "WORKBENCH - CHOOSE A RECIPE"
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color("#3b281b"))
-	crafting_panel.add_child(title)
+	crafting_title_label = Label.new()
+	crafting_title_label.position = Vector2(24, 20)
+	crafting_title_label.text = "TRAVELLER'S WORKSHOP"
+	crafting_title_label.add_theme_font_size_override("font_size", 24)
+	crafting_title_label.add_theme_color_override("font_color", Color("#3b281b"))
+	crafting_panel.add_child(crafting_title_label)
 	crafting_list_label = Label.new()
 	crafting_list_label.position = Vector2(24, 78)
 	crafting_list_label.size = Vector2(300, 300)

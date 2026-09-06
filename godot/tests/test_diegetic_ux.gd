@@ -28,6 +28,11 @@ func _run() -> void:
 	var home_id := _place_and_complete(game, "traveler_cottage_plan", Vector2i(10, 12))
 	game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.6
 	_expect(game.open_building_details(home_id) and game.building_context_button.text.contains("SLEEP"), "The Traveler's home must expose a Sleep button.", failures)
+	_expect(game.building_workshop_button.visible and game.building_workshop_button.text.contains("WORKSHOP"), "The Traveler's home must expose its Workshop as a second explicit action.", failures)
+	game.building_workshop_button.button_down.emit()
+	_expect(game.crafting_open and game.crafting_title_label.text.contains("TRAVELLER'S WORKSHOP"), "Crafting must open from the workshop inside the Traveler's home.", failures)
+	game.set_crafting_open(false)
+	game.open_building_details(home_id)
 	var active_button_style := game.building_context_button.get_theme_stylebox("normal") as StyleBoxFlat
 	_expect(active_button_style != null and active_button_style.bg_color.get_luminance() > 0.55, "Active panel buttons must use the clearly light visual style.", failures)
 	var wake_position: Vector2 = game.placed_targets[home_id].interaction_position()

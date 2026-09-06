@@ -5,7 +5,7 @@
  {"id":"coin","label":"Silver coin","color":"#d5d7ce","max_stack":99},{"id":"loaf","label":"Bread loaf","color":"#c9833c","max_stack":30},
  {"id":"granary_plan","label":"Granary","color":"#d7b276","max_stack":5,"placeable_entity_id":"GRANARY"},
  {"id":"cottage_plan","label":"Cottage","color":"#d7b276","max_stack":5,"placeable_entity_id":"COTTAGE"},
- {"id":"traveler_cottage_plan","label":"Traveler's Cottage","color":"#e6c47f","max_stack":1,"placeable_entity_id":"TRAVELER_HOME"},
+ {"id":"traveler_cottage_plan","label":"Traveller's House","color":"#e6c47f","max_stack":1,"placeable_entity_id":"TRAVELER_HOME"},
  {"id":"windmill_plan","label":"Windmill","color":"#d7b276","max_stack":5,"placeable_entity_id":"WINDMILL"},
  {"id":"forge_plan","label":"Forge","color":"#d7b276","max_stack":5,"placeable_entity_id":"FORGE"},
  {"id":"market_plan","label":"Market","color":"#d7b276","max_stack":5,"placeable_entity_id":"MARKET"},
