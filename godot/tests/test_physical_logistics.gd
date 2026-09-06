@@ -94,6 +94,10 @@ func _test_storage_machine_routes(failures: Array[String]) -> void:
 	water_villager.state = "to_source"
 	water_villager.process_life(game, 0.1)
 	_expect(water_villager.carrying_item == "water" and water_villager.carrying_amount == 3, "Water source should provide a physical carrying stack without depletion.", failures)
+	var grain_source: Variant = game._resource_source_by_id("source-grain-nile")
+	_expect(grain_source != null and game.create_logistics_route(grain_source.stable_id, output_crate, water_villager.stable_id, "grain"), "Renewable resource nodes should be valid route sources.", failures)
+	water_villager.position = grain_source.global_position; water_villager.state = "to_source"; water_villager.process_life(game, 0.1)
+	_expect(water_villager.carrying_item == "grain" and water_villager.carrying_amount > 0 and grain_source.current_amount < grain_source.max_amount, "A villager should physically collect and deplete a renewable source.", failures)
 	game_root.queue_free()
 	await process_frame
 

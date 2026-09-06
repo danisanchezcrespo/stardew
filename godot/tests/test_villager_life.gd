@@ -76,7 +76,9 @@ func _test_home_transport_needs_and_name(failures: Array[String]) -> void:
 	game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.85
 	villager.energy = 40.0
 	for _step in range(160): game._process(0.1)
-	_expect(villager.state == "sleeping" and villager.position.distance_to(villager.home_position) < 1.0, "At night a villager should return home and sleep.", failures)
+	_expect(villager.state == "sleeping" and not villager.visible and villager.position.distance_to(villager.home_position) < 1.0, "At night a villager should disappear inside the home and sleep.", failures)
+	game._sleep_to_next_day()
+	_expect(is_equal_approx(game.day_time_seconds, game.MORNING_TIME_SECONDS) and villager.visible and villager.state != "sleeping", "Player sleep should advance to 07:00 and wake the household.", failures)
 	game_root.queue_free()
 	await process_frame
 

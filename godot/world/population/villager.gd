@@ -116,9 +116,11 @@ func process_life(game: Node2D, delta: float) -> void:
 	hunger = maxf(0.0, hunger - delta * (0.16 if state == "available" or state == "sleeping" else 0.28))
 	energy = maxf(0.0, energy - delta * (0.03 if state == "available" else 0.12))
 	if state == "sleeping":
+		visible = false
 		energy = minf(100.0, energy + delta * 5.0)
 		if not game.is_sleep_time() and energy >= 75.0:
 			state = _resume_state()
+			visible = true
 		queue_redraw()
 		return
 	if (game.is_sleep_time() or energy <= 12.0) and carrying_amount == 0:
@@ -136,7 +138,7 @@ func process_life(game: Node2D, delta: float) -> void:
 		# Ordered villagers keep working slowly until the player establishes food.
 		state = _resume_state()
 	if state == "going_home":
-		if _move_to(home_position, delta): state = "sleeping"
+		if _move_to(home_position, delta): state = "sleeping"; visible = false
 	elif state == "seeking_food":
 		var food_target: Variant = game.find_food_storage_for(self)
 		if food_target == null:

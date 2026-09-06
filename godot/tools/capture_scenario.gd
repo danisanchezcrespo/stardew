@@ -51,6 +51,14 @@ func _capture() -> void:
 			if game.splash_open: game._close_splash()
 			if game.dialogue_open: game._advance_dialogue()
 			game.inventory.add("village_lantern", 1); game.select_quick_slot(0); game.begin_placement(); game.confirm_placement()
+		elif str(args[5]) == "machine" and game.scenario.scenario_id == "medieval":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			game.inventory.add("windmill_plan", 1); game.select_quick_slot(0); game.begin_placement(); game.placement_cursor = Vector2i(19, 10); game.confirm_placement()
+			var machine_id: String = game.world_grid.occupant_at(Vector2i(19, 10)); var site: Variant = game.construction_by_entity_id.get(machine_id)
+			if site != null:
+				for item_id: String in site.requirements: game.inventory.add(item_id, site.receivable(item_id)); site.deliver(item_id, site.receivable(item_id))
+				game.apply_construction_work(machine_id, 30.0); game.inventory.add("wheat", 7); game.open_machine(machine_id)
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()

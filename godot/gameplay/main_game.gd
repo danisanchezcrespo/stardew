@@ -141,6 +141,7 @@ var machine_title_label: Label
 var machine_worker_icon: TextureRect
 var machine_remove_worker_button: Button
 var machine_upgrade_button: Button
+var machine_action_list: VBoxContainer
 var villagers: Dictionary = {}
 var dependents: Dictionary = {}
 var next_dependent_id := 1
@@ -165,12 +166,14 @@ var construction_delivery_popup: ColorRect
 var construction_delivery_label: Label
 var construction_delivery_icons: Array[TextureRect] = []
 var building_upgrade_button: Button
+var building_resident_icons: Array[TextureRect] = []
 var storage_upgrade_button: Button
 var world_overlay: Node2D
 var terrain_renderer: Node2D
 var active_player_build_id := ""
 var day_time_seconds := 180.0
 const DAY_LENGTH_SECONDS := 720.0
+const MORNING_TIME_SECONDS := DAY_LENGTH_SECONDS * (7.0 / 24.0)
 var meta_progression: Variant
 var tech_panel: Control
 var tech_open := false
@@ -274,7 +277,7 @@ func _process(delta: float) -> void:
 	if pause_open or day_summary_open or tech_open or collection_open or dialogue_open or living_open: return
 	day_time_seconds += maxf(delta, 0.0)
 	if day_time_seconds >= DAY_LENGTH_SECONDS:
-		day_time_seconds = 0.0
+		day_time_seconds = MORNING_TIME_SECONDS
 		var next_day: Dictionary = meta_progression.advance_day()
 		if living_timeline.enabled: living_timeline.begin_day(meta_progression.day)
 		_open_day_summary(next_day)
@@ -288,6 +291,11 @@ func _process(delta: float) -> void:
 		_apply_living_schedule(villager)
 		villager.environment_speed_multiplier = environment_multiplier("worker_speed")
 		villager.process_life(self, delta)
+	if not villager_order_mode.is_empty():
+		var pan := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+		camera.position += pan * delta * 360.0 / maxf(camera.zoom.x, 0.1)
+		camera.position.x = clampf(camera.position.x, -player.position.x + 320.0, WORLD_PIXELS.x - player.position.x - 320.0)
+		camera.position.y = clampf(camera.position.y, -player.position.y + 180.0, WORLD_PIXELS.y - player.position.y - 180.0)
 	for dependent: Variant in dependents.values():
 		if is_instance_valid(dependent): dependent.process_life(self, delta)
 	for source: Variant in resource_sources:
@@ -427,7 +435,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not selected_villager_id.is_empty() and event.is_action_pressed("cancel"):
 		close_villager_panel()
 		return
-	if not selected_villager_id.is_empty() and (event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down")):
+	if not selected_villager_id.is_empty() and villager_order_mode.is_empty() and (event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down")):
 		close_villager_panel()
 	if event.is_action_pressed("zoom_in"):
 		adjust_camera_zoom(1)
@@ -476,8 +484,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if machine_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_crafting"):
 			close_machine()
-		elif event.is_action_pressed("use_selected"):
-			machine_context_action(active_machine_id)
 		return
 	if event.is_action_pressed("save_game"):
 		var result: Error = physical_save.save_to_path(self, _manual_save_path())
@@ -687,6 +693,9 @@ func _spawn_resource_source(data: Dictionary) -> Variant:
 	source.configure(str(data.id), definition, int(data.get("initial", data.max)), int(data.max), int(data.grant), int(data.regen_amount), float(data.regen_seconds))
 	add_child(source)
 	resource_sources.append(source)
+	# Renewable nodes are first-class logistics endpoints, while retaining their
+	# normal Space interaction in the world.
+	placed_targets[source.stable_id] = source
 	return source
 
 
@@ -1227,10 +1236,26 @@ func _buy_living_offer() -> void:
 
 func _sleep_to_next_day() -> void:
 	if day_summary_open: return
-	day_time_seconds = 0.0
+	var home: Variant = _player_home_target()
+	if home != null: player.position = home.global_position + Vector2(0, 38)
+	day_time_seconds = MORNING_TIME_SECONDS
 	var next_day: Dictionary = meta_progression.advance_day()
 	living_timeline.begin_day(meta_progression.day)
+	for villager: Variant in villagers.values():
+		if villager.state in ["sleeping", "going_home"]:
+			villager.energy = 100.0; villager.state = villager._resume_state(); villager.visible = true
 	_open_day_summary(next_day)
+
+
+func _player_home_target() -> Variant:
+	var fallback: Variant = null
+	for instance_id: String in placed_targets:
+		var definition: Variant = definition_for_instance(instance_id)
+		var site: Variant = construction_by_entity_id.get(instance_id)
+		if definition == null or (site != null and not site.complete): continue
+		if definition.entity_id == "TRAVELER_HOME": return placed_targets[instance_id]
+		if fallback == null and definition.population_capacity > 0: fallback = placed_targets[instance_id]
+	return fallback
 
 
 func _open_day_summary(summary: Dictionary) -> void:
@@ -1624,8 +1649,8 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_panel.add_child(machine_title_label)
 	machine_status_label = Label.new()
 	machine_status_label.position = Vector2(28, 72)
-	machine_status_label.size = Vector2(248, 390)
-	machine_status_label.add_theme_font_size_override("font_size", 18)
+	machine_status_label.size = Vector2(248, 205)
+	machine_status_label.add_theme_font_size_override("font_size", 16)
 	machine_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	machine_panel.add_child(machine_status_label)
 	machine_worker_icon = TextureRect.new()
@@ -1645,11 +1670,13 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_upgrade_button = Button.new()
 	machine_upgrade_button.position = Vector2(278, 232); machine_upgrade_button.size = Vector2(112, 42); machine_upgrade_button.text = "Upgrade"
 	machine_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_machine_id)); machine_panel.add_child(machine_upgrade_button)
+	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 286); action_scroll.size = Vector2(364, 202); machine_panel.add_child(action_scroll)
+	machine_action_list = VBoxContainer.new(); machine_action_list.custom_minimum_size = Vector2(340, 0); action_scroll.add_child(machine_action_list)
 	var controls := Label.new()
 	controls.position = Vector2(28, 504)
 	controls.size = Vector2(364, 40)
 	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	controls.text = "Space: add compatible selected item, otherwise collect    Esc: close"
+	controls.text = "Press an ingredient to load it, repair material to fix, or output to collect. Esc: close"
 	controls.add_theme_font_size_override("font_size", 14)
 	controls.add_theme_color_override("font_color", Color("#6b3e20"))
 	machine_panel.add_child(controls)
@@ -1754,6 +1781,10 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_body.add_theme_font_size_override("font_size", 17)
 	building_details_body.add_theme_color_override("font_color", Color("#3b281b"))
 	building_details_panel.add_child(building_details_body)
+	for index in range(4):
+		var portrait := TextureRect.new(); portrait.position = Vector2(270 + (index % 2) * 58, 78 + (index / 2) * 86); portrait.size = Vector2(52, 70)
+		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.visible = false
+		building_details_panel.add_child(portrait); building_resident_icons.append(portrait)
 	building_details_controls = Label.new()
 	building_details_controls.position = Vector2(24, 438)
 	building_details_controls.text = "Esc: close"
@@ -1854,6 +1885,8 @@ func _construction_deliverable(site: Variant) -> Array[Dictionary]:
 
 
 func _update_building_details() -> void:
+	for icon: TextureRect in building_resident_icons: icon.visible = false
+	building_details_body.size.x = 372
 	var placed: Variant = world_grid.entities_by_id.get(building_details_id)
 	if placed == null: close_building_details(); return
 	var definition: Variant = placement_registry.get_entity(placed.definition_id)
@@ -1898,6 +1931,10 @@ func _update_building_details() -> void:
 		for item_id: String in machine.recipe_outputs: outputs.append("%s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
 		building_details_body.text = "KILN\n\nState: %s\nHealth: %d / %d\nProgress: %d%%\n\nInput\n%s\n\nOutput\n%s" % ["broken" if machine.broken else ("working" if machine.is_running() else "ready"), machine.durability, machine.max_durability, roundi(machine.progress() * 100.0), "\n".join(inputs), "\n".join(outputs)]
 		return
+	if definition.entity_id == "TRAVELER_HOME":
+		building_details_body.text = "YOUR COTTAGE\n\nThis is the Traveler's private home.\n\nPress N to end the day. You return here and wake at 07:00 with restored energy.\n\nComfort level: %d\nStyle: %s" % [living_timeline.home_level, living_timeline.home_style]
+		building_details_controls.text = "N: sleep until 07:00    Esc: close"
+		return
 	if placed.definition_id == "CHICKEN_COOP":
 		var chicken_count := _dependent_count(building_details_id, "chicken")
 		building_details_body.text = "CHICKEN COOP\n\nChickens: %d / 3\n\nAssign an animal keeper. Feed each chicken Grain and Water. Adults lay eggs every 35 seconds; collect them with Space.\n\nNew chicken cost: Grain x5" % chicken_count
@@ -1905,10 +1942,20 @@ func _update_building_details() -> void:
 		return
 	if definition.population_capacity > 0:
 		var resident_rows: Array[String] = []
+		var resident_index := 0
 		for villager: Variant in villagers.values():
 			if villager.home_id == building_details_id:
 				resident_rows.append("- %s - %s | Hunger %d%% | Energy %d%%" % [villager.villager_name, villager.status_text(), roundi(villager.hunger), roundi(villager.energy)])
-		building_details_body.text = "HOME\n\nBeds: %d / %d occupied\n\nResidents\n%s\n\nHealth: good" % [resident_rows.size(), definition.population_capacity, "\n".join(resident_rows) if not resident_rows.is_empty() else "None"]
+				if resident_index < building_resident_icons.size():
+					var worker_texture: Texture2D = villager.scenario_character_sheet
+					if not villager.scenario_character_sheets.is_empty(): worker_texture = villager.scenario_character_sheets[villager.appearance_id % villager.scenario_character_sheets.size()]
+					if worker_texture != null:
+						var portrait := AtlasTexture.new(); portrait.atlas = worker_texture; portrait.region = Rect2(0, 160, 64, 80)
+						building_resident_icons[resident_index].texture = portrait; building_resident_icons[resident_index].visible = true
+				resident_index += 1
+		building_details_body.size.x = 240
+		var traveler_home := "\n\nTRAVELER'S HOME\nPress N to sleep here and wake at 07:00." if _player_home_target() == placed_targets.get(building_details_id) else ""
+		building_details_body.text = "HOME\n\nBeds: %d / %d occupied\n\nResidents\n%s\n\nSleeping residents rest inside.%s" % [resident_rows.size(), definition.population_capacity, "\n".join(resident_rows) if not resident_rows.is_empty() else "None", traveler_home]
 		return
 	building_details_body.text = "Status: complete\n\nHealth: good\n\nNo active production."
 
@@ -1939,6 +1986,8 @@ func close_villager_panel() -> void:
 	selected_villager_id = ""
 	villager_order_mode = ""
 	pending_order_source_id = ""
+	player.movement_enabled = true
+	if camera != null: camera.position = Vector2.ZERO
 	villager_panel.visible = false
 
 
@@ -2026,7 +2075,8 @@ func begin_villager_transport_order() -> void:
 	pending_order_source_id = ""
 	villager_resource_option.clear()
 	villager_resource_option.visible = false
-	villager_order_feedback.text = "Click water, a completed crate, or a machine as SOURCE."
+	player.movement_enabled = false; player.velocity = Vector2.ZERO; camera.position = Vector2.ZERO
+	villager_order_feedback.text = "WASD pans the map. Click water, a resource source, crate, or machine as SOURCE."
 
 
 func begin_villager_work_order() -> void:
@@ -2034,7 +2084,8 @@ func begin_villager_work_order() -> void:
 	villager_order_mode = "work"
 	pending_order_source_id = ""
 	villager_resource_option.visible = false
-	villager_order_feedback.text = "Click a kiln or construction site as WORKPLACE."
+	player.movement_enabled = false; player.velocity = Vector2.ZERO; camera.position = Vector2.ZERO
+	villager_order_feedback.text = "WASD pans the map. Click a machine or construction site as WORKPLACE."
 
 
 func stop_selected_villager_task() -> void:
@@ -2043,6 +2094,7 @@ func stop_selected_villager_task() -> void:
 	for index in range(logistics_routes.size() - 1, -1, -1):
 		if logistics_routes[index].villager_id == selected_villager_id: logistics_routes.remove_at(index)
 	villager.clear_task()
+	player.movement_enabled = true; camera.position = Vector2.ZERO
 	villager_order_feedback.text = "Task stopped."
 	queue_redraw()
 
@@ -2056,7 +2108,7 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 			var water_cell := _water_cell_at_world(world_position)
 			if water_cell != Vector2i(-1, -1): endpoint = _ensure_water_route_target(water_cell)
 		if endpoint == null:
-			villager_order_feedback.text = "Select water, a completed crate, or a machine."
+			villager_order_feedback.text = "Select water, a resource source, completed crate, or machine."
 			return true
 		return _handle_order_endpoint(endpoint.stable_id)
 	var clicked_object: Variant = _any_placed_target_at(world_position)
@@ -2083,7 +2135,8 @@ func _handle_villager_world_click(screen_position: Vector2) -> bool:
 
 func _any_placed_target_at(world_position: Vector2) -> Variant:
 	for target: Variant in placed_targets.values():
-		for point: Vector2 in target.interaction_points:
+		var points: Array = [target.global_position] if target.target_kind == "resource_source" else target.interaction_points
+		for point: Vector2 in points:
 			if point.distance_to(world_position) <= CELL_SIZE * 0.7: return target
 	return null
 
@@ -2109,9 +2162,10 @@ func _placed_target_at(world_position: Vector2) -> Variant:
 			var work_definition: Variant = definition_for_instance(target.stable_id)
 			if target.target_kind != "construction" and target.target_kind != "machine" and (work_definition == null or work_definition.workers_required <= 0): continue
 		elif villager_order_mode == "source":
-			if target.target_kind != "storage" and target.target_kind != "machine" and target.target_kind != "water": continue
+			if target.target_kind not in ["storage", "machine", "water", "resource_source"]: continue
 		elif target.target_kind != "storage" and target.target_kind != "machine": continue
-		for point: Vector2 in target.interaction_points:
+		var points: Array = [target.global_position] if target.target_kind == "resource_source" else target.interaction_points
+		for point: Vector2 in points:
 			if point.distance_to(world_position) <= CELL_SIZE * 0.7: return target
 	return null
 
@@ -2120,6 +2174,7 @@ func _handle_order_endpoint(instance_id: String) -> bool:
 	if villager_order_mode == "work":
 		villagers[selected_villager_id].assign_work(instance_id)
 		villager_order_mode = ""
+		player.movement_enabled = true; camera.position = Vector2.ZERO
 		villager_order_feedback.text = "Work order assigned."
 		return true
 	if villager_order_mode == "source":
@@ -2129,6 +2184,10 @@ func _handle_order_endpoint(instance_id: String) -> bool:
 		if _is_water_source_id(instance_id):
 			villager_resource_option.add_item(item_registry.get_item("water").label)
 			villager_resource_option.set_item_metadata(0, "water")
+		elif _resource_source_by_id(instance_id) != null:
+			var resource_source: Variant = _resource_source_by_id(instance_id)
+			villager_resource_option.add_item(resource_source.item_label)
+			villager_resource_option.set_item_metadata(0, resource_source.item_id)
 		elif machines_by_entity_id.has(instance_id):
 			for output_id: String in machines_by_entity_id[instance_id].recipe_outputs:
 				villager_resource_option.add_item(item_registry.get_item(output_id).label)
@@ -2170,9 +2229,11 @@ func _handle_order_endpoint(instance_id: String) -> bool:
 		return true
 	villager_order_mode = ""
 	pending_order_source_id = ""
+	player.movement_enabled = true; camera.position = Vector2.ZERO
 	villager_resource_option.visible = false
 	var source_inventory: Variant = _route_source_inventory(source_id)
-	var currently_available: bool = _is_water_source_id(source_id) or (source_inventory != null and source_inventory.count(item_id) > 0)
+	var resource_source: Variant = _resource_source_by_id(source_id)
+	var currently_available: bool = _is_water_source_id(source_id) or (resource_source != null and resource_source.current_amount > 0) or (source_inventory != null and source_inventory.count(item_id) > 0)
 	villager_order_feedback.text = "Transport order assigned." if currently_available else "Transport assigned; waiting for source output."
 	return true
 
@@ -3186,6 +3247,17 @@ func _update_machine_panel() -> void:
 			worker_names.append(villager.villager_name)
 			if assigned_worker == null: assigned_worker = villager
 	machine_status_label.text = "State: %s\nHealth: %d / %d\nWorker: %s\nProgress: %d%%\n\nINPUT\n%s\n\nACCUMULATED OUTPUT\n%s" % [state, machine.durability, machine.max_durability, ", ".join(worker_names) if not worker_names.is_empty() else "none", roundi(machine.progress() * 100.0), "\n".join(input_rows), "\n".join(output_rows)]
+	for child: Node in machine_action_list.get_children(): machine_action_list.remove_child(child); child.queue_free()
+	if machine.broken:
+		var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
+		repair_button.disabled = inventory.count(scenario.repair_item_id) < 2; repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
+	else:
+		for item_id: String in machine.recipe_inputs:
+			var input_button := Button.new(); input_button.text = "PUT  %s  (%d carried / %d loaded)" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
+			input_button.disabled = inventory.count(item_id) <= 0; input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
+	for item_id: String in machine.recipe_outputs:
+		var output_button := Button.new(); output_button.text = "TAKE  %s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
+		output_button.disabled = machine.output_inventory.count(item_id) <= 0; output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
 	machine_worker_icon.visible = assigned_worker != null
 	machine_remove_worker_button.visible = assigned_worker != null
 	if assigned_worker != null:
@@ -3195,6 +3267,27 @@ func _update_machine_panel() -> void:
 		portrait.atlas = worker_texture
 		portrait.region = Rect2(0, 160, 64, 80)
 		machine_worker_icon.texture = portrait
+
+
+func _machine_put_item(item_id: String) -> void:
+	var machine: Variant = machines_by_entity_id.get(active_machine_id)
+	if machine == null: return
+	if machine.broken and item_id == scenario.repair_item_id:
+		var used: int = machine.repair(item_id, inventory.count(item_id), scenario.repair_item_id)
+		if used > 0: inventory.remove(item_id, used)
+	else:
+		var accepted: int = machine.add_input(item_id, inventory.count(item_id))
+		if accepted > 0: inventory.remove(item_id, accepted); machine.manually_activated = true
+	_update_inventory_hud(); _update_machine_panel()
+
+
+func _machine_take_item(item_id: String) -> void:
+	var machine: Variant = machines_by_entity_id.get(active_machine_id)
+	if machine == null: return
+	var amount: int = machine.output_inventory.count(item_id)
+	var accepted: int = inventory.add(item_id, amount)
+	if accepted > 0: machine.output_inventory.remove(item_id, accepted)
+	_update_inventory_hud(); _update_machine_panel()
 
 
 func _remove_machine_worker() -> void:
@@ -3228,7 +3321,7 @@ func select_route_endpoint(instance_id: String) -> bool:
 func create_logistics_route(source_id: String, destination_id: String, villager_id: String = "", item_id: String = "") -> bool:
 	if not placed_targets.has(source_id) or not placed_targets.has(destination_id):
 		return false
-	var source_valid := storage_by_entity_id.has(source_id) or machines_by_entity_id.has(source_id) or _is_water_source_id(source_id)
+	var source_valid := storage_by_entity_id.has(source_id) or machines_by_entity_id.has(source_id) or _is_water_source_id(source_id) or _resource_source_by_id(source_id) != null
 	var destination_valid := storage_by_entity_id.has(destination_id) or machines_by_entity_id.has(destination_id)
 	if not source_valid or not destination_valid:
 		return false
@@ -3240,6 +3333,8 @@ func create_logistics_route(source_id: String, destination_id: String, villager_
 	if item_id.is_empty():
 		if _is_water_source_id(source_id):
 			item_id = "water"
+		elif _resource_source_by_id(source_id) != null:
+			item_id = str(_resource_source_by_id(source_id).item_id)
 		else:
 			var source_inventory: Variant = _route_source_inventory(source_id)
 			if source_inventory != null:
@@ -3254,6 +3349,7 @@ func create_logistics_route(source_id: String, destination_id: String, villager_
 	for route: Variant in logistics_routes:
 		if route.villager_id == villager_id:
 			logistics_routes.erase(route)
+			villagers[villager_id].clear_task()
 			break
 	var route := PhysicalRouteType.new("route-%04d" % next_route_id, source_id, destination_id, 2.0, villager_id, item_id)
 	logistics_routes.append(route)
@@ -3276,6 +3372,12 @@ func _route_source_inventory(source_id: String) -> Variant:
 	return null
 
 
+func _resource_source_by_id(source_id: String) -> Variant:
+	for source: Variant in resource_sources:
+		if is_instance_valid(source) and source.stable_id == source_id: return source
+	return null
+
+
 func _destination_accepts(destination_id: String, item_id: String) -> bool:
 	if storage_by_entity_id.has(destination_id): return storage_by_entity_id[destination_id].capacity_for(item_id) > 0
 	if machines_by_entity_id.has(destination_id): return machines_by_entity_id[destination_id].accepts(item_id)
@@ -3287,6 +3389,12 @@ func villager_collect(villager: Variant) -> int:
 		villager.carrying_item = "water"
 		villager.carrying_amount = 3
 		return 3
+	var renewable: Variant = _resource_source_by_id(str(villager.task.source))
+	if renewable != null and str(villager.task.item) == renewable.item_id:
+		var gathered: int = renewable.take(mini(3, renewable.current_amount))
+		if gathered <= 0: return 0
+		villager.carrying_item = renewable.item_id; villager.carrying_amount = gathered
+		return gathered
 	var source: Variant = _route_source_inventory(str(villager.task.source))
 	if source == null: return 0
 	var amount := mini(3, source.count(str(villager.task.item)))
