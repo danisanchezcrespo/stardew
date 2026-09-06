@@ -8,7 +8,6 @@ const INDUSTRY_TEXTURE = preload("res://assets/generated/items/egypt_industry_it
 const MARS_TEXTURE = preload("res://assets/generated/mars/mars_items.png")
 const PREHISTORY_TEXTURE = preload("res://assets/generated/prehistory/prehistory_content.png")
 const MEDIEVAL_TEXTURE = preload("res://assets/generated/medieval/medieval_content.png")
-const TRAVELLER_HOME_TEXTURE = preload("res://assets/generated/medieval/traveler_home.png")
 const MEDIEVAL_RESOURCE_TEXTURE = preload("res://assets/generated/medieval/medieval_resources.png")
 const LANTERN_TEXTURE = preload("res://assets/generated/medieval/village_lantern.svg")
 const BENCH_TEXTURE = preload("res://assets/generated/medieval/village_bench.svg")
@@ -56,7 +55,6 @@ const CUSTOM_BUILDING_CELLS := {"chicken_coop_plan":Vector2i(0,0),"herb_garden_p
 const DECORATION_CELLS := {"stone_lion":Vector2i(0,0),"scholar_statue":Vector2i(1,0),"knight_statue":Vector2i(2,0),"angel_fountain":Vector2i(3,0),"stone_sundial":Vector2i(0,1),"carved_stag":Vector2i(1,1),"rune_obelisk":Vector2i(2,1),"stone_birdbath":Vector2i(3,1),"rose_bed":Vector2i(0,2),"bluebell_bed":Vector2i(1,2),"sunflower_planter":Vector2i(2,2),"lavender_planter":Vector2i(3,2),"trimmed_topiary":Vector2i(0,3),"flower_trellis":Vector2i(1,3),"terracotta_herbs":Vector2i(2,3),"cherry_tree":Vector2i(3,3)}
 
 static func texture(item_id: String) -> Texture2D:
-	if item_id == "traveler_cottage_plan": return TRAVELLER_HOME_TEXTURE
 	if item_id == "village_lantern": return LANTERN_TEXTURE
 	if item_id == "village_bench": return BENCH_TEXTURE
 	if item_id == "flower_bed": return FLOWERS_TEXTURE
@@ -74,7 +72,6 @@ static func texture(item_id: String) -> Texture2D:
 
 static func region(item_id: String) -> Rect2:
 	var atlas := texture(item_id)
-	if item_id == "traveler_cottage_plan": return Rect2(Vector2.ZERO, atlas.get_size())
 	if item_id in ["village_lantern", "village_bench", "flower_bed", "wild_herbs", "ruin_fragment"]: return Rect2(Vector2.ZERO, atlas.get_size())
 	if item_id == "oak_wood" or item_id == "field_stone":
 		return Rect2(0 if item_id == "oak_wood" else 128, 0, 128, 128)

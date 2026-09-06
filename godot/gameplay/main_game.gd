@@ -1602,7 +1602,45 @@ func _build_time_travel_world() -> void:
 		_refresh_portals(); _build_museum_exhibits()
 	else:
 		var return_portal := TimePortalType.new(); return_portal.global_position = Vector2(5.5, 5.5) * CELL_SIZE; return_portal.configure(0, "Return to the museum", true, "time_museum"); time_targets.append(return_portal); add_child(return_portal)
+		# A pending save restore must rebuild an empty grid first; legacy saves get
+		# their guaranteed home immediately after restoration instead.
+		if not PhysicalSaveCodecType.pending_reload: _ensure_traveller_home()
 		_sync_artifact_nodes()
+
+
+func _ensure_traveller_home() -> String:
+	if scenario.scenario_id == "time_museum": return ""
+	for instance_id: String in world_grid.entities_by_id:
+		var existing: Variant = world_grid.entities_by_id[instance_id]
+		if existing != null and str(existing.definition_id) == "TRAVELER_HOME": return instance_id
+	var definition: Variant = placement_registry.get_entity("TRAVELER_HOME")
+	if definition == null: return ""
+	var candidates: Array[Vector2i] = [Vector2i(8, 3), Vector2i(8, 7), Vector2i(11, 4), Vector2i(6, 8), Vector2i(12, 8)]
+	for origin: Vector2i in candidates:
+		var query: Variant = world_grid.query_placement(definition.spatial_footprint, origin, 0, definition.allowed_terrain)
+		if not query.valid: continue
+		var instance_id := "traveller-home"
+		var result: Variant = world_grid.place(instance_id, definition.entity_id, definition.spatial_footprint, origin, 0, definition.allowed_terrain)
+		if not result.valid: continue
+		_add_placed_collision(instance_id, result.cells)
+		_add_placed_target(instance_id, definition, origin, 0)
+		_add_structure_visual(instance_id, definition.entity_id, result.cells)
+		return instance_id
+	push_warning("No valid arrival site was available for the Traveller's home in %s." % scenario.scenario_id)
+	return ""
+
+
+func _remove_bootstrap_home_for_restore() -> void:
+	if world_grid.entities_by_id.size() != 1 or not world_grid.entities_by_id.has("traveller-home"): return
+	world_grid.remove("traveller-home")
+	if placed_targets.has("traveller-home"):
+		placed_targets["traveller-home"].queue_free()
+		placed_targets.erase("traveller-home")
+	if structure_visuals.has("traveller-home"):
+		structure_visuals["traveller-home"].queue_free()
+		structure_visuals.erase("traveller-home")
+	for child: Node in get_children():
+		if child.name.begins_with("traveller-home-"): child.queue_free()
 
 
 func _refresh_portals() -> void:

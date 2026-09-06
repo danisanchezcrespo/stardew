@@ -25,7 +25,7 @@ func _run() -> void:
 	game.building_context_button.button_down.emit()
 	_expect(game.tech_open, "Entering the University must open University Studies.", failures)
 	game.set_tech_open(false)
-	var home_id := _place_and_complete(game, "traveler_cottage_plan", Vector2i(10, 12))
+	var home_id: String = game._ensure_traveller_home()
 	game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.6
 	_expect(game.open_building_details(home_id) and game.building_context_button.text.contains("SLEEP"), "The Traveler's home must expose a Sleep button.", failures)
 	_expect(game.building_workshop_button.visible and game.building_workshop_button.text.contains("WORKSHOP"), "The Traveler's home must expose its Workshop as a second explicit action.", failures)

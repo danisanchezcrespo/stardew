@@ -80,6 +80,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			game.world_grid.remove(crop.stable_id)
 			crop.queue_free()
 	game.crops.clear()
+	game._remove_bootstrap_home_for_restore()
 	if not game.world_grid.entities_by_id.is_empty(): return ERR_ALREADY_IN_USE
 	game.inventory.slots = _slots(data.get("inventory", []), game.inventory.slot_count)
 	var player_position: Array = data.get("player_position", [208, 208])
@@ -185,6 +186,7 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 	if data.has("living"): game.living_timeline.restore(data.living)
 	elif game.living_timeline.enabled: game.living_timeline.begin_day(game.meta_progression.day)
 	if data.has("timeline"): game.timeline_director.restore(data.timeline)
+	game._ensure_traveller_home()
 	game._begin_timeline_day(false)
 	game._update_inventory_hud()
 	game.queue_redraw()

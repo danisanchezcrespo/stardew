@@ -26,6 +26,11 @@ func _run() -> void:
 			push_error("Runtime failed to initialize %s" % path)
 			quit(1)
 			return
+		var homes: Array = game.world_grid.entities_by_id.values().filter(func(entity: Variant) -> bool: return str(entity.definition_id) == "TRAVELER_HOME")
+		if homes.size() != 1 or game.time_targets.filter(func(target: Variant) -> bool: return target.target_kind == "time_portal").is_empty():
+			push_error("Every era must begin with exactly one Traveller home and a return portal: %s" % path)
+			quit(1)
+			return
 		if game.scenario.scenario_id == "prehistory":
 			var mammoth: Variant = game.dependents.values()[0]
 			game.inventory.add("spear", 1)
