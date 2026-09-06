@@ -84,6 +84,7 @@ var crafting_detail_label: RichTextLabel
 var crafting_recipe_buttons: Array[Button] = []
 var crafting_resource_icons: Array[TextureRect] = []
 var crafting_recipe_scroll: ScrollContainer
+var crafting_craft_button: Button
 var placement_registry: Variant
 var world_grid: Variant
 var selected_slot := 0
@@ -171,7 +172,7 @@ var building_details_body: Label
 var building_details_controls: Label
 var construction_delivery_popup: ColorRect
 var construction_delivery_label: Label
-var construction_delivery_icons: Array[TextureRect] = []
+var construction_delivery_list: VBoxContainer
 var building_upgrade_button: Button
 var building_context_button: Button
 var building_workshop_button: Button
@@ -476,9 +477,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not selected_villager_id.is_empty() and villager_order_mode.is_empty() and (event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down")):
 		close_villager_panel()
 	if event.is_action_pressed("zoom_in"):
+		if crafting_open: return
 		adjust_camera_zoom(1)
 		return
 	if event.is_action_pressed("zoom_out"):
+		if crafting_open: return
 		adjust_camera_zoom(-1)
 		return
 	if event.is_action_pressed("next_villager") and not villagers.is_empty():
@@ -503,6 +506,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if event.is_action_pressed("cancel"):
 			close_building_details()
+			return
+		if event.is_action_pressed("use_selected"):
+			var open_site: Variant = construction_by_entity_id.get(building_details_id)
+			if open_site != null and not open_site.complete and open_site.materials_complete():
+				building_details_context_action()
 		return
 	if scenario_select_open:
 		if event.is_action_pressed("quick_slot_1"):
@@ -558,8 +566,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		select_recipe(-1)
 	elif crafting_open and event.is_action_pressed("menu_down"):
 		select_recipe(1)
-	elif crafting_open and (event.is_action_pressed("craft_confirm") or event.is_action_pressed("use_selected")):
-		craft_selected_recipe()
 	elif not crafting_open and event.is_action_pressed("use_selected"):
 		if interaction_target != null and interaction_target.target_kind == "pickup":
 			collect_target()
@@ -2051,15 +2057,17 @@ func _build_building_details_panel(layer: CanvasLayer) -> void:
 	building_details_panel.add_child(construction_delivery_popup)
 	construction_delivery_label = Label.new()
 	construction_delivery_label.position = Vector2(18, 12)
-	construction_delivery_label.size = Vector2(348, 150)
+	construction_delivery_label.size = Vector2(348, 24)
 	construction_delivery_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	construction_delivery_label.add_theme_font_size_override("font_size", 16)
 	construction_delivery_label.add_theme_color_override("font_color", Color("#3b281b"))
 	construction_delivery_popup.add_child(construction_delivery_label)
-	for index in range(4):
-		var icon := _make_item_icon(Vector2(20, 48 + index * 27), Vector2(22, 22))
-		construction_delivery_popup.add_child(icon)
-		construction_delivery_icons.append(icon)
+	construction_delivery_label.text = "DELIVER MATERIALS"
+	construction_delivery_list = VBoxContainer.new()
+	construction_delivery_list.position = Vector2(18, 42)
+	construction_delivery_list.size = Vector2(348, 120)
+	construction_delivery_list.add_theme_constant_override("separation", 4)
+	construction_delivery_popup.add_child(construction_delivery_list)
 	building_upgrade_button = Button.new()
 	building_upgrade_button.position = Vector2(24, 438); building_upgrade_button.size = Vector2(372, 34); building_upgrade_button.text = "Upgrade"
 	building_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(building_details_id)); building_details_panel.add_child(building_upgrade_button)
@@ -2138,18 +2146,26 @@ func building_details_context_action() -> void:
 			return
 		close_building_details()
 		return
-	if construction_delivery_popup.visible:
-		for row: Dictionary in _construction_deliverable(site):
-			var item_id := str(row.get("item", ""))
-			var amount := int(row.get("amount", 0))
-			if item_id.is_empty() or amount <= 0: continue
-			var accepted: int = site.deliver(item_id, amount)
-			if accepted > 0: inventory.remove(item_id, accepted)
-		_update_inventory_hud()
-	elif site.materials_complete():
+	if site.materials_complete():
 		active_player_build_id = building_details_id
+		interaction_label.text = "Construction started"
+		close_building_details()
+		return
 	else:
-		deliver_selected_to_construction(building_details_id)
+		interaction_label.text = "Deliver every required material first"
+	_update_building_details()
+
+
+func _deliver_construction_ingredient(item_id: String) -> void:
+	var site: Variant = construction_by_entity_id.get(building_details_id)
+	if site == null or site.complete: return
+	var amount := mini(inventory.count(item_id), site.receivable(item_id))
+	if amount <= 0: return
+	var accepted: int = site.deliver(item_id, amount)
+	if accepted > 0:
+		inventory.remove(item_id, accepted)
+		_update_inventory_hud()
+		interaction_label.text = "Delivered %s x%d" % [item_registry.get_item(item_id).label, accepted]
 	_update_building_details()
 
 
@@ -2185,23 +2201,23 @@ func _update_building_details() -> void:
 		for item_id: String in site.requirements:
 			materials.append("%s: %d / %d" % [item_registry.get_item(item_id).label, int(site.delivered.get(item_id, 0)), int(site.requirements[item_id])])
 		building_details_body.text = "UNDER CONSTRUCTION\n\nMaterials\n%s\n\nWork: %d%%\nHealth: stable" % ["\n".join(materials), roundi(site.work_progress() * 100.0)]
-		var deliverable := _construction_deliverable(site)
-		construction_delivery_popup.visible = not deliverable.is_empty()
-		building_context_button.visible = not deliverable.is_empty()
-		building_context_button.text = "DELIVER ALL AVAILABLE MATERIALS"
-		if not deliverable.is_empty():
-			var delivery_rows: Array[String] = []
-			for index in range(deliverable.size()):
-				var row: Dictionary = deliverable[index]
-				var item_id := str(row.get("item", ""))
-				var amount := int(row.get("amount", 0))
-				if item_id.is_empty() or amount <= 0: continue
-				delivery_rows.append("      %s  x%d" % [item_registry.get_item(item_id).label, amount])
-				if index < construction_delivery_icons.size():
-					construction_delivery_icons[index].texture = ItemIconAtlasType.icon(item_id)
-					construction_delivery_icons[index].visible = true
-			for index in range(deliverable.size(), construction_delivery_icons.size()): construction_delivery_icons[index].visible = false
-			construction_delivery_label.text = "AVAILABLE TO DELIVER\n\n%s" % "\n".join(delivery_rows)
+		construction_delivery_popup.visible = true
+		for child in construction_delivery_list.get_children(): child.queue_free()
+		for item_id: String in site.requirements:
+			var delivered := int(site.delivered.get(item_id, 0))
+			var required := int(site.requirements[item_id])
+			var carried: int = inventory.count(item_id)
+			var ingredient_button := Button.new()
+			ingredient_button.custom_minimum_size = Vector2(348, 27)
+			ingredient_button.icon = ItemIconAtlasType.icon(item_id)
+			ingredient_button.add_theme_constant_override("icon_max_width", 22)
+			ingredient_button.text = "x%d / %d   (carried %d)" % [delivered, required, carried]
+			ingredient_button.tooltip_text = "Deliver %s" % item_registry.get_item(item_id).label
+			ingredient_button.disabled = carried <= 0 or delivered >= required
+			ingredient_button.pressed.connect(_deliver_construction_ingredient.bind(item_id))
+			construction_delivery_list.add_child(ingredient_button)
+		building_context_button.visible = site.materials_complete()
+		building_context_button.text = "START CONSTRUCTION"
 		building_details_controls.text = ""
 		return
 	construction_delivery_popup.visible = false
@@ -2667,12 +2683,12 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 		var resource_icon := _make_item_icon(Vector2(345, 142 + index * 25), Vector2(23, 23))
 		crafting_panel.add_child(resource_icon)
 		crafting_resource_icons.append(resource_icon)
-	var controls := Label.new()
-	controls.position = Vector2(24, 405)
-	controls.text = "SPACE to craft"
-	controls.add_theme_font_size_override("font_size", 14)
-	controls.add_theme_color_override("font_color", Color("#3b281b"))
-	crafting_panel.add_child(controls)
+	crafting_craft_button = Button.new()
+	crafting_craft_button.position = Vector2(374, 390)
+	crafting_craft_button.size = Vector2(296, 38)
+	crafting_craft_button.text = "CRAFT"
+	crafting_craft_button.pressed.connect(craft_selected_recipe)
+	crafting_panel.add_child(crafting_craft_button)
 	_update_crafting_ui()
 
 
@@ -2971,7 +2987,7 @@ func _scroll_selected_recipe_into_view() -> void:
 func _on_recipe_button_pressed(index: int) -> void:
 	selected_recipe_index = index
 	_scroll_selected_recipe_into_view()
-	craft_selected_recipe()
+	_update_crafting_ui()
 
 
 func _on_recipe_button_hovered(index: int) -> void:
@@ -3038,11 +3054,10 @@ func _update_crafting_ui(feedback: String = "") -> void:
 	var icon_index := 0
 	for icon: TextureRect in crafting_resource_icons: icon.visible = false
 	for item_id: String in selected.inputs:
-		var definition: Variant = item_registry.get_item(item_id)
 		var owned: int = inventory.count(item_id)
 		var required: int = int(selected.inputs[item_id])
 		var ingredient_color := "#fffaf0" if owned >= required else "#d83232"
-		ingredients.append("[color=%s]%s: %d / %d[/color]" % [ingredient_color, definition.label, owned, required])
+		ingredients.append("[color=%s]      %d / %d[/color]" % [ingredient_color, owned, required])
 		if icon_index < crafting_resource_icons.size():
 			crafting_resource_icons[icon_index].position.y = 139 + icon_index * 22
 			crafting_resource_icons[icon_index].texture = ItemIconAtlasType.icon(item_id)
@@ -3051,18 +3066,19 @@ func _update_crafting_ui(feedback: String = "") -> void:
 			icon_index += 1
 	var outputs: Array[String] = []
 	for item_id: String in selected.outputs:
-		var definition: Variant = item_registry.get_item(item_id)
-		outputs.append("%s x%d" % [definition.label, int(selected.outputs[item_id])])
+		outputs.append("      x%d" % int(selected.outputs[item_id]))
 		if icon_index < crafting_resource_icons.size():
 			crafting_resource_icons[icon_index].position.y = 183 + selected.inputs.size() * 22 + (icon_index - selected.inputs.size()) * 22
 			crafting_resource_icons[icon_index].texture = ItemIconAtlasType.icon(item_id)
 			crafting_resource_icons[icon_index].visible = true
 			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)
-	var status := ("Ready to craft" if query.valid else _crafting_failure_text(query)) if selected_unlocked else "LOCKED - advance the story or study at the University"
+	var status := "" if selected_unlocked else "LOCKED - advance the story or study at the University"
 	if not feedback.is_empty():
 		status = feedback
 	crafting_detail_label.text = "[color=#3b281b]%s\n\nNeeds:\n[/color]%s[color=#3b281b]\n\nProduces:\n%s\n\n%s[/color]" % [selected.label, "\n".join(ingredients), "\n".join(outputs), status]
+	if crafting_craft_button != null:
+		crafting_craft_button.disabled = not selected_unlocked or not query.valid
 
 
 func _crafting_failure_text(result: Dictionary) -> String:

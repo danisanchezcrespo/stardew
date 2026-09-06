@@ -65,11 +65,17 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	_expect(game.crafting_recipe_buttons[0].get_theme_color("font_color") == Color("#30241d"), "Craftable recipes should use high-contrast ink on the light button.", failures)
 	_expect(game.crafting_recipe_buttons[1].get_theme_color("font_color") == Color("#777777"), "Unavailable recipes should appear grey.", failures)
 	_expect(game.crafting_recipe_scroll.position.x + game.crafting_recipe_scroll.size.x <= game.crafting_detail_label.position.x, "Crafting recipe list must not invade the detail column.", failures)
+	var zoom_before: Vector2 = game.camera.zoom
+	var wheel_event := InputEventAction.new()
+	wheel_event.action = "zoom_in"
+	wheel_event.pressed = true
+	game._unhandled_input(wheel_event)
+	_expect(game.camera.zoom == zoom_before, "Workshop wheel input must never leak through to world camera zoom.", failures)
 	for button: Button in game.crafting_recipe_buttons:
 		_expect(button.size.x <= game.crafting_recipe_scroll.size.x, "Crafting recipe buttons must remain clipped inside the left column.", failures)
 	game.crafting_recipe_buttons[1].mouse_entered.emit()
 	_expect(game.selected_recipe_index == 1, "Hovering a recipe should preview it without crafting.", failures)
-	_expect(game.crafting_detail_label.text.contains("#d83232") and game.crafting_detail_label.text.contains("Clay: 0 / 2"), "Missing hovered ingredients should appear red in the detail panel.", failures)
+	_expect(game.crafting_detail_label.text.contains("#d83232") and not game.crafting_detail_label.text.contains("Clay:"), "Missing hovered ingredients should appear red beside icons, without repeated resource names.", failures)
 	game.crafting_recipe_buttons[0].mouse_entered.emit()
 	_expect(game.crafting_panel.color == Color("#d8bd83"), "Crafting should use a readable parchment panel instead of an opaque black screen.", failures)
 	var interact_key := InputEventKey.new()
@@ -77,11 +83,9 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	interact_key.pressed = true
 	game._unhandled_input(interact_key)
 	_expect(game.inventory.count("wood") == 10, "E should not craft while the crafting panel is open.", failures)
-	var space_key := InputEventKey.new()
-	space_key.physical_keycode = KEY_SPACE
-	space_key.pressed = true
-	game._unhandled_input(space_key)
-	_expect(game.inventory.count("storage_crate") == 1, "Space should craft the selected recipe.", failures)
+	_expect(game.crafting_craft_button != null and not game.crafting_craft_button.disabled, "The detail column should expose an enabled Craft button for an affordable recipe.", failures)
+	game.crafting_craft_button.pressed.emit()
+	_expect(game.inventory.count("storage_crate") == 1, "The Craft button should craft the selected recipe.", failures)
 	_expect(game.inventory.count("wood") == 0 and game.inventory.count("storage_crate") == 1, "Scene crafting should update the shared player inventory.", failures)
 	game.select_recipe(1)
 	var before: Array[Dictionary] = game.inventory.snapshot()
