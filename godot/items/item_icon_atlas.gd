@@ -14,6 +14,8 @@ const BENCH_TEXTURE = preload("res://assets/generated/medieval/village_bench.svg
 const FLOWERS_TEXTURE = preload("res://assets/generated/medieval/flower_bed.svg")
 const HERBS_TEXTURE = preload("res://assets/generated/medieval/wild_herbs.svg")
 const RUIN_TEXTURE = preload("res://assets/generated/medieval/ruin_fragment.svg")
+const MEDIEVAL_CUSTOM_BUILDINGS = preload("res://assets/generated/medieval/customization_buildings_atlas.png")
+const MEDIEVAL_DECORATIONS = preload("res://assets/generated/medieval/decorations_atlas.png")
 const CELLS := {
 	"wood": Vector2i(0, 0), "clay": Vector2i(1, 0), "grain": Vector2i(2, 0),
 	"mud_bricks": Vector2i(0, 1), "storage_crate": Vector2i(1, 1), "brick_kiln_plan": Vector2i(2, 1),
@@ -49,6 +51,8 @@ const MEDIEVAL_CELLS := {
 	"granary_plan": Vector2i(0, 0), "cottage_plan": Vector2i(1, 0), "windmill_plan": Vector2i(2, 0),
 	"forge_plan": Vector2i(3, 0), "market_plan": Vector2i(0, 1), "keep_plan": Vector2i(1, 1),
 }
+const CUSTOM_BUILDING_CELLS := {"chicken_coop_plan":Vector2i(0,0),"herb_garden_plan":Vector2i(1,0),"apiary_plan":Vector2i(2,0),"astronomer_tower_plan":Vector2i(0,1),"sculptor_workshop_plan":Vector2i(1,1),"garden_nursery_plan":Vector2i(2,1)}
+const DECORATION_CELLS := {"stone_lion":Vector2i(0,0),"scholar_statue":Vector2i(1,0),"knight_statue":Vector2i(2,0),"angel_fountain":Vector2i(3,0),"stone_sundial":Vector2i(0,1),"carved_stag":Vector2i(1,1),"rune_obelisk":Vector2i(2,1),"stone_birdbath":Vector2i(3,1),"rose_bed":Vector2i(0,2),"bluebell_bed":Vector2i(1,2),"sunflower_planter":Vector2i(2,2),"lavender_planter":Vector2i(3,2),"trimmed_topiary":Vector2i(0,3),"flower_trellis":Vector2i(1,3),"terracotta_herbs":Vector2i(2,3),"cherry_tree":Vector2i(3,3)}
 
 static func texture(item_id: String) -> Texture2D:
 	if item_id == "village_lantern": return LANTERN_TEXTURE
@@ -57,6 +61,8 @@ static func texture(item_id: String) -> Texture2D:
 	if item_id == "wild_herbs": return HERBS_TEXTURE
 	if item_id == "ruin_fragment": return RUIN_TEXTURE
 	if item_id == "tree_seed": return CROP_TEXTURE
+	if CUSTOM_BUILDING_CELLS.has(item_id): return MEDIEVAL_CUSTOM_BUILDINGS
+	if DECORATION_CELLS.has(item_id): return MEDIEVAL_DECORATIONS
 	if item_id == "oak_wood" or item_id == "field_stone": return MEDIEVAL_RESOURCE_TEXTURE
 	if PREHISTORY_CELLS.has(item_id): return PREHISTORY_TEXTURE
 	if MEDIEVAL_CELLS.has(item_id): return MEDIEVAL_TEXTURE
@@ -71,6 +77,12 @@ static func region(item_id: String) -> Rect2:
 		return Rect2(0 if item_id == "oak_wood" else 128, 0, 128, 128)
 	if item_id == "tree_seed":
 		return Rect2(0, 0, atlas.get_width() / 4.0, atlas.get_height())
+	if CUSTOM_BUILDING_CELLS.has(item_id):
+		var custom_size := Vector2(atlas.get_width() / 3.0, atlas.get_height() / 2.0)
+		return Rect2(Vector2(CUSTOM_BUILDING_CELLS[item_id]) * custom_size, custom_size)
+	if DECORATION_CELLS.has(item_id):
+		var decor_size := Vector2(atlas.get_width() / 4.0, atlas.get_height() / 4.0)
+		return Rect2(Vector2(DECORATION_CELLS[item_id]) * decor_size, decor_size)
 	var cell: Vector2i = MEDIEVAL_CELLS.get(item_id, PREHISTORY_CELLS.get(item_id, MARS_CELLS.get(item_id, INDUSTRY_CELLS.get(item_id, ECONOMY_CELLS.get(item_id, CELLS.get(item_id, Vector2i.ZERO))))))
 	var columns := 4.0 if MEDIEVAL_CELLS.has(item_id) or PREHISTORY_CELLS.has(item_id) or INDUSTRY_CELLS.has(item_id) or MARS_CELLS.has(item_id) else 3.0
 	var size := Vector2(atlas.get_width() / columns, atlas.get_height() / columns)

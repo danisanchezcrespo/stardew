@@ -54,3 +54,9 @@ projects, rain and snow, timed arrivals, new production chains, persistent
 choices, a year review, and Year Two continuation. Press `B` for the Living
 Year calendar, `J` for the Valley Journal, and `N` to sleep. See
 `MILESTONE_LIVING_TIMELINES.md` and `MILESTONE_FIRST_LIVING_YEAR.md`.
+
+Medieval customization expands after the first market economy milestone. A
+Sculptor's Workshop and Garden Nursery each provide eight selectable production
+recipes, creating sixteen placeable statues, fountains, flower beds, topiary,
+trellises, pots, and ornamental trees. See
+`MILESTONE_CUSTOMIZATION_WORKSHOPS.md`.

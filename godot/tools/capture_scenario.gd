@@ -74,7 +74,7 @@ func _capture() -> void:
 		elif str(args[5]) == "novelty" and game.scenario.scenario_id == "medieval":
 			if game.splash_open: game._close_splash()
 			if game.dialogue_open: game._advance_dialogue()
-			var previews := [{"item":"chicken_coop_plan","cell":Vector2i(15,8)},{"item":"herb_garden_plan","cell":Vector2i(21,8)},{"item":"apiary_plan","cell":Vector2i(27,8)},{"item":"astronomer_tower_plan","cell":Vector2i(34,7)}]
+			var previews := [{"item":"chicken_coop_plan","cell":Vector2i(12,7)},{"item":"herb_garden_plan","cell":Vector2i(19,7)},{"item":"apiary_plan","cell":Vector2i(26,7)},{"item":"astronomer_tower_plan","cell":Vector2i(33,6)},{"item":"sculptor_workshop_plan","cell":Vector2i(16,14)},{"item":"garden_nursery_plan","cell":Vector2i(25,14)}]
 			for row: Dictionary in previews:
 				game.player.position = Vector2(row.cell + Vector2i(0,-1)) * game.CELL_SIZE + Vector2.ONE * 16.0; game.player.facing = "south"
 				game.inventory.add(str(row.item), 1); game.select_quick_slot(0); game.begin_placement(); game.placement_cursor = row.cell; game.confirm_placement()
@@ -83,6 +83,24 @@ func _capture() -> void:
 					for item_id: String in site.requirements: site.deliver(item_id, site.receivable(item_id))
 					game.apply_construction_work(instance_id, 40.0)
 			game.player.position = capture_cell * game.CELL_SIZE
+		elif str(args[5]) == "decorations" and game.scenario.scenario_id == "medieval":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			var decor := ["stone_lion","scholar_statue","knight_statue","angel_fountain","stone_sundial","carved_stag","rune_obelisk","stone_birdbath","rose_bed","bluebell_bed","sunflower_planter","lavender_planter","trimmed_topiary","flower_trellis","terracotta_herbs","cherry_tree"]
+			for index in range(decor.size()):
+				var cell := Vector2i(12 + (index % 4) * 6, 5 + (index / 4) * 5)
+				game.player.position = Vector2(cell + Vector2i(0,-1)) * game.CELL_SIZE + Vector2.ONE * 16.0; game.player.facing = "south"
+				game.inventory.add(str(decor[index]), 1); game.select_quick_slot(0); game.begin_placement(); game.placement_cursor = cell; game.confirm_placement()
+			game.player.position = capture_cell * game.CELL_SIZE
+		elif str(args[5]) == "catalog" and game.scenario.scenario_id == "medieval":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			var cell := Vector2i(23, 11); game.player.position = Vector2(cell + Vector2i(0,-1)) * game.CELL_SIZE + Vector2.ONE * 16.0; game.player.facing = "south"
+			game.inventory.add("sculptor_workshop_plan", 1); game.select_quick_slot(0); game.begin_placement(); game.placement_cursor = cell; game.confirm_placement()
+			var instance_id: String = game.world_grid.occupant_at(cell); var site: Variant = game.construction_by_entity_id.get(instance_id)
+			if site != null:
+				for item_id: String in site.requirements: site.deliver(item_id, site.receivable(item_id))
+				game.apply_construction_work(instance_id, 40.0); game.inventory.add("field_stone", 20); game.open_machine(instance_id)
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()

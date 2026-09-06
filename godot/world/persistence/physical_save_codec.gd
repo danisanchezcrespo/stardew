@@ -21,7 +21,7 @@ func capture(game: Node2D) -> Dictionary:
 		if storage != null: row.storage = storage.snapshot()
 		var machine: Variant = game.machines_by_entity_id.get(placed.instance_id)
 		if machine != null:
-			row.machine = {"input": machine.input_inventory.snapshot(), "output": machine.output_inventory.snapshot(), "remaining": machine.remaining_seconds, "batches": machine.batches_completed, "durability": machine.durability, "max_durability":machine.max_durability, "broken": machine.broken, "manually_activated": machine.manually_activated}
+			row.machine = {"input": machine.input_inventory.snapshot(), "output": machine.output_inventory.snapshot(), "remaining": machine.remaining_seconds, "batches": machine.batches_completed, "durability": machine.durability, "max_durability":machine.max_durability, "broken": machine.broken, "manually_activated": machine.manually_activated, "active_recipe":machine.active_recipe_index}
 		entities.append(row)
 	var routes: Array[Dictionary] = []
 	for route: Variant in game.logistics_routes:
@@ -130,7 +130,8 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 			storage.slots = _slots(row.storage, storage.slot_count)
 			game.storage_by_entity_id[str(row.id)] = storage
 		if row.has("machine"):
-			var machine := PhysicalMachine.new(str(row.id), definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, game.item_registry)
+			var machine := PhysicalMachine.new(str(row.id), definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, game.item_registry, 4, definition.machine_recipes)
+			machine.select_recipe(int(row.machine.get("active_recipe", 0)))
 			machine.input_inventory.slots = _slots(row.machine.input, machine.input_inventory.slot_count)
 			machine.output_inventory.slots = _slots(row.machine.output, machine.output_inventory.slot_count)
 			machine.remaining_seconds = float(row.machine.remaining)

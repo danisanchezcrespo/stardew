@@ -110,6 +110,13 @@ func _parse_entity(item: Dictionary, index: int) -> Variant:
 	definition.max_amounts = _numeric_map(item.get("max_amounts", {}), definition.entity_id, "max_amounts")
 	definition.recipe_inputs = _numeric_map(item.get("recipe_inputs", {}), definition.entity_id, "recipe_inputs")
 	definition.recipe_outputs = _numeric_map(item.get("recipe_outputs", {}), definition.entity_id, "recipe_outputs")
+	definition.machine_recipes = item.get("machine_recipes", []).duplicate(true)
+	for recipe: Variant in definition.machine_recipes:
+		if typeof(recipe) != TYPE_DICTIONARY or not recipe.has("id") or not recipe.has("inputs") or not recipe.has("outputs"):
+			errors.append("machine_recipes on '%s' must contain id, inputs, and outputs." % definition.entity_id)
+			return null
+		recipe.inputs = _numeric_map(recipe.inputs, definition.entity_id, "machine_recipes.inputs")
+		recipe.outputs = _numeric_map(recipe.outputs, definition.entity_id, "machine_recipes.outputs")
 	definition.shared_resource_modifiers = _numeric_map(
 		item.get("shared_resource_modifiers", {}),
 		definition.entity_id,

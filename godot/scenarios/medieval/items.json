@@ -26,4 +26,22 @@
  ,{"id":"herb_garden_plan","label":"Herb Garden","color":"#8eb36b","max_stack":3,"placeable_entity_id":"HERB_GARDEN"}
  ,{"id":"apiary_plan","label":"Village Apiary","color":"#d9ae54","max_stack":3,"placeable_entity_id":"APIARY"}
  ,{"id":"astronomer_tower_plan","label":"Astronomer's Tower","color":"#7588ad","max_stack":2,"placeable_entity_id":"ASTRONOMER_TOWER"}
+ ,{"id":"sculptor_workshop_plan","label":"Sculptor's Workshop","color":"#b9aa8e","max_stack":2,"placeable_entity_id":"SCULPTOR_WORKSHOP"}
+ ,{"id":"garden_nursery_plan","label":"Garden Nursery","color":"#76a85d","max_stack":2,"placeable_entity_id":"GARDEN_NURSERY"}
+ ,{"id":"stone_lion","label":"Stone Lion","color":"#a89c83","max_stack":5,"placeable_entity_id":"DECOR_STONE_LION"}
+ ,{"id":"scholar_statue","label":"Scholar Statue","color":"#a89c83","max_stack":5,"placeable_entity_id":"DECOR_SCHOLAR"}
+ ,{"id":"knight_statue","label":"Knight Statue","color":"#a89c83","max_stack":5,"placeable_entity_id":"DECOR_KNIGHT"}
+ ,{"id":"angel_fountain","label":"Angel Fountain","color":"#7fa8b9","max_stack":5,"placeable_entity_id":"DECOR_ANGEL_FOUNTAIN"}
+ ,{"id":"stone_sundial","label":"Stone Sundial","color":"#b9a77c","max_stack":5,"placeable_entity_id":"DECOR_SUNDIAL"}
+ ,{"id":"carved_stag","label":"Carved Stag","color":"#9d8666","max_stack":5,"placeable_entity_id":"DECOR_STAG"}
+ ,{"id":"rune_obelisk","label":"Rune Obelisk","color":"#638f9c","max_stack":5,"placeable_entity_id":"DECOR_OBELISK"}
+ ,{"id":"stone_birdbath","label":"Stone Birdbath","color":"#789eaf","max_stack":5,"placeable_entity_id":"DECOR_BIRDBATH"}
+ ,{"id":"rose_bed","label":"Rose Bed","color":"#c74452","max_stack":10,"placeable_entity_id":"DECOR_ROSES"}
+ ,{"id":"bluebell_bed","label":"Bluebell Bed","color":"#687bc4","max_stack":10,"placeable_entity_id":"DECOR_BLUEBELLS"}
+ ,{"id":"sunflower_planter","label":"Sunflower Planter","color":"#e0ad38","max_stack":10,"placeable_entity_id":"DECOR_SUNFLOWERS"}
+ ,{"id":"lavender_planter","label":"Lavender Planter","color":"#8b6eb1","max_stack":10,"placeable_entity_id":"DECOR_LAVENDER"}
+ ,{"id":"trimmed_topiary","label":"Trimmed Topiary","color":"#4f8b45","max_stack":10,"placeable_entity_id":"DECOR_TOPIARY"}
+ ,{"id":"flower_trellis","label":"Flowering Trellis","color":"#c77789","max_stack":10,"placeable_entity_id":"DECOR_TRELLIS"}
+ ,{"id":"terracotta_herbs","label":"Terracotta Herbs","color":"#a8673f","max_stack":10,"placeable_entity_id":"DECOR_HERB_POTS"}
+ ,{"id":"cherry_tree","label":"Ornamental Cherry Tree","color":"#dd91aa","max_stack":5,"placeable_entity_id":"DECOR_CHERRY_TREE"}
 ]}

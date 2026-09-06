@@ -1859,7 +1859,7 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_upgrade_button = Button.new()
 	machine_upgrade_button.position = Vector2(278, 232); machine_upgrade_button.size = Vector2(112, 42); machine_upgrade_button.text = "Upgrade"
 	machine_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_machine_id)); machine_panel.add_child(machine_upgrade_button)
-	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 286); action_scroll.size = Vector2(364, 202); machine_panel.add_child(action_scroll)
+	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 286); action_scroll.size = Vector2(364, 202); action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; machine_panel.add_child(action_scroll)
 	machine_action_list = VBoxContainer.new(); machine_action_list.custom_minimum_size = Vector2(340, 0); action_scroll.add_child(machine_action_list)
 	var controls := Label.new()
 	controls.position = Vector2(28, 504)
@@ -2685,7 +2685,7 @@ func confirm_placement() -> bool:
 	if definition.storage_slots > 0:
 		storage_by_entity_id[instance_id] = PlayerInventoryType.new(item_registry, definition.storage_slots)
 	if living_timeline.enabled and definition.entity_id.begins_with("DECOR_"):
-		living_timeline.beauty += 2
+		living_timeline.beauty += 4 if definition.entity_id in ["DECOR_ANGEL_FOUNTAIN", "DECOR_CHERRY_TREE", "DECOR_OBELISK"] else (3 if definition.entity_id in ["DECOR_STONE_LION", "DECOR_SCHOLAR", "DECOR_KNIGHT", "DECOR_STAG"] else 2)
 	if living_timeline.enabled: living_timeline.add_skill_xp("crafting", 2)
 	cancel_placement()
 	_update_inventory_hud()
@@ -3159,7 +3159,7 @@ func apply_construction_work(instance_id: String, seconds: float) -> float:
 		if target != null:
 			target.target_kind = "machine" if definition != null and not definition.recipe_outputs.is_empty() else "building"
 		if definition != null and not definition.recipe_outputs.is_empty():
-			machines_by_entity_id[instance_id] = PhysicalMachineType.new(instance_id, definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, item_registry)
+			machines_by_entity_id[instance_id] = PhysicalMachineType.new(instance_id, definition.recipe_inputs, definition.recipe_outputs, definition.process_time_sec, item_registry, 4, definition.machine_recipes)
 			workforce.register_job(instance_id, ceili(definition.workers_required), definition.worker_priority)
 		if definition != null:
 			_add_structure_visual(instance_id, definition.entity_id, placed.cells)
@@ -3384,8 +3384,7 @@ func _machine_prompt(instance_id: String) -> String:
 	if machine.broken:
 		return "%s broken | Space to open" % machine_name
 	var output_count := 0
-	for item_id: String in machine.recipe_outputs:
-		output_count += machine.output_inventory.count(item_id)
+	for slot: Variant in machine.output_inventory.slots: output_count += int(slot.amount)
 	if machine.is_running():
 		return "%s working %d%% | Output %d | Space to open" % [machine_name, roundi(machine.progress() * 100.0), output_count]
 	return "%s ready | Output %d | Space to open" % [machine_name, output_count]
@@ -3430,8 +3429,12 @@ func _update_machine_panel() -> void:
 	var input_rows: Array[String] = []
 	for item_id: String in machine.recipe_inputs:
 		input_rows.append("%s: %d / %d" % [item_registry.get_item(item_id).label, machine.input_inventory.count(item_id), int(machine.recipe_inputs[item_id])])
+	var output_ids: Array[String] = []
+	for item_id: String in machine.recipe_outputs: output_ids.append(item_id)
+	for slot: Variant in machine.output_inventory.slots:
+		if not slot.is_empty() and str(slot.item_id) not in output_ids: output_ids.append(str(slot.item_id))
 	var output_rows: Array[String] = []
-	for item_id: String in machine.recipe_outputs:
+	for item_id: String in output_ids:
 		output_rows.append("%s: %d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)])
 	var repair_item: Variant = item_registry.get_item(scenario.repair_item_id)
 	var repair_label: String = repair_item.label if repair_item != null else scenario.repair_item_id.capitalize()
@@ -3444,6 +3447,12 @@ func _update_machine_panel() -> void:
 			if assigned_worker == null: assigned_worker = villager
 	machine_status_label.text = "State: %s\nHealth: %d / %d\nWorker: %s\nProgress: %d%%\n\nINPUT\n%s\n\nACCUMULATED OUTPUT\n%s" % [state, machine.durability, machine.max_durability, ", ".join(worker_names) if not worker_names.is_empty() else "none", roundi(machine.progress() * 100.0), "\n".join(input_rows), "\n".join(output_rows)]
 	for child: Node in machine_action_list.get_children(): machine_action_list.remove_child(child); child.queue_free()
+	if not machine.recipe_catalog.is_empty():
+		var recipe_heading := Label.new(); recipe_heading.text = "CHOOSE WHAT TO MAKE"; recipe_heading.add_theme_font_override("font", GameThemeType.PIXEL); machine_action_list.add_child(recipe_heading)
+		for recipe_index in range(machine.recipe_catalog.size()):
+			var recipe: Dictionary = machine.recipe_catalog[recipe_index]
+			var recipe_button := Button.new(); recipe_button.text = ("> " if recipe_index == machine.active_recipe_index else "") + str(recipe.get("label", recipe.id)).to_upper() + "\n" + _compact_machine_cost(recipe.inputs)
+			recipe_button.custom_minimum_size = Vector2(334, 54); recipe_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; recipe_button.add_theme_font_override("font", GameThemeType.PIXEL); recipe_button.disabled = machine.is_running(); recipe_button.pressed.connect(_select_machine_recipe.bind(recipe_index)); machine_action_list.add_child(recipe_button)
 	if machine.broken:
 		var repair_button := Button.new(); repair_button.text = "REPAIR  %s x2  (you have %d)" % [repair_label, inventory.count(scenario.repair_item_id)]
 		repair_button.text = repair_button.text.to_upper(); repair_button.add_theme_font_override("font", GameThemeType.PIXEL); repair_button.disabled = inventory.count(scenario.repair_item_id) < 2; repair_button.pressed.connect(_machine_put_item.bind(scenario.repair_item_id)); machine_action_list.add_child(repair_button)
@@ -3451,7 +3460,7 @@ func _update_machine_panel() -> void:
 		for item_id: String in machine.recipe_inputs:
 			var input_button := Button.new(); input_button.text = "PUT  %s  (%d carried / %d loaded)" % [item_registry.get_item(item_id).label, inventory.count(item_id), machine.input_inventory.count(item_id)]
 			input_button.text = input_button.text.to_upper(); input_button.add_theme_font_override("font", GameThemeType.PIXEL); input_button.disabled = inventory.count(item_id) <= 0; input_button.pressed.connect(_machine_put_item.bind(item_id)); machine_action_list.add_child(input_button)
-	for item_id: String in machine.recipe_outputs:
+	for item_id: String in output_ids:
 		var output_button := Button.new(); output_button.text = "TAKE  %s x%d" % [item_registry.get_item(item_id).label, machine.output_inventory.count(item_id)]
 		output_button.text = output_button.text.to_upper(); output_button.add_theme_font_override("font", GameThemeType.PIXEL); output_button.disabled = machine.output_inventory.count(item_id) <= 0; output_button.pressed.connect(_machine_take_item.bind(item_id)); machine_action_list.add_child(output_button)
 	machine_worker_icon.visible = assigned_worker != null
@@ -3463,6 +3472,18 @@ func _update_machine_panel() -> void:
 		portrait.atlas = worker_texture
 		portrait.region = Rect2(0, 160, 64, 80)
 		machine_worker_icon.texture = portrait
+
+
+func _select_machine_recipe(index: int) -> void:
+	var machine: Variant = machines_by_entity_id.get(active_machine_id)
+	if machine != null and machine.select_recipe(index): _update_machine_panel()
+
+
+func _compact_machine_cost(cost: Dictionary) -> String:
+	var names := {"field_stone":"STONE", "iron_tools":"TOOLS", "wild_herbs":"HERBS", "oak_wood":"WOOD", "ruin_fragment":"FRAGMENT", "water":"WATER"}
+	var parts: Array[String] = []
+	for item_id: String in cost: parts.append("%s x%d" % [str(names.get(item_id, item_id.replace("_", " ").to_upper())), int(cost[item_id])])
+	return "  ·  ".join(parts)
 
 
 func _machine_put_item(item_id: String) -> void:

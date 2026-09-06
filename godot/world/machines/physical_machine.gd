@@ -11,17 +11,34 @@ var remaining_seconds := 0.0
 var batches_completed := 0
 var staffed := true
 var manually_activated := false
+var recipe_catalog: Array = []
+var active_recipe_index := 0
 var durability := 3
 var max_durability := 3
 var broken := false
 
-func _init(stable_id: String, inputs: Dictionary, outputs: Dictionary, duration: float, item_registry: Variant, inventory_slots: int = 4) -> void:
+func _init(stable_id: String, inputs: Dictionary, outputs: Dictionary, duration: float, item_registry: Variant, inventory_slots: int = 4, recipes: Array = []) -> void:
 	instance_id = stable_id
 	recipe_inputs = inputs.duplicate(true)
 	recipe_outputs = outputs.duplicate(true)
 	process_time_seconds = maxf(duration, 0.0)
 	input_inventory = PlayerInventory.new(item_registry, inventory_slots)
 	output_inventory = PlayerInventory.new(item_registry, inventory_slots)
+	recipe_catalog = recipes.duplicate(true)
+	if not recipe_catalog.is_empty(): select_recipe(0)
+
+func select_recipe(index: int) -> bool:
+	if is_running() or index < 0 or index >= recipe_catalog.size(): return false
+	active_recipe_index = index
+	var selected: Dictionary = recipe_catalog[index]
+	recipe_inputs = selected.get("inputs", {}).duplicate(true)
+	recipe_outputs = selected.get("outputs", {}).duplicate(true)
+	process_time_seconds = float(selected.get("time", process_time_seconds))
+	return true
+
+func active_recipe_label() -> String:
+	if recipe_catalog.is_empty(): return ""
+	return str(recipe_catalog[active_recipe_index].get("label", recipe_catalog[active_recipe_index].get("id", "")))
 
 func accepts(item_id: String) -> bool:
 	return recipe_inputs.has(item_id)

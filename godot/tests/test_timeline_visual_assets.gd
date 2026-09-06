@@ -5,6 +5,8 @@ const ASSETS := [
 	"res://assets/generated/medieval/herb_garden.png",
 	"res://assets/generated/medieval/apiary.png",
 	"res://assets/generated/medieval/astronomer_tower.png",
+	"res://assets/generated/medieval/customization_buildings_atlas.png",
+	"res://assets/generated/medieval/decorations_atlas.png",
 ]
 
 func _initialize() -> void:

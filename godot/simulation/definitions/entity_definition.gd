@@ -12,6 +12,7 @@ var initial_amounts: Dictionary = {}
 var max_amounts: Dictionary = {}
 var recipe_inputs: Dictionary = {}
 var recipe_outputs: Dictionary = {}
+var machine_recipes: Array = []
 
 var source_rate_per_sec: float = 0.0
 var process_time_sec: float = 0.0
