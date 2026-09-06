@@ -9,6 +9,11 @@ const MARS_TEXTURE = preload("res://assets/generated/mars/mars_items.png")
 const PREHISTORY_TEXTURE = preload("res://assets/generated/prehistory/prehistory_content.png")
 const MEDIEVAL_TEXTURE = preload("res://assets/generated/medieval/medieval_content.png")
 const MEDIEVAL_RESOURCE_TEXTURE = preload("res://assets/generated/medieval/medieval_resources.png")
+const LANTERN_TEXTURE = preload("res://assets/generated/medieval/village_lantern.svg")
+const BENCH_TEXTURE = preload("res://assets/generated/medieval/village_bench.svg")
+const FLOWERS_TEXTURE = preload("res://assets/generated/medieval/flower_bed.svg")
+const HERBS_TEXTURE = preload("res://assets/generated/medieval/wild_herbs.svg")
+const RUIN_TEXTURE = preload("res://assets/generated/medieval/ruin_fragment.svg")
 const CELLS := {
 	"wood": Vector2i(0, 0), "clay": Vector2i(1, 0), "grain": Vector2i(2, 0),
 	"mud_bricks": Vector2i(0, 1), "storage_crate": Vector2i(1, 1), "brick_kiln_plan": Vector2i(2, 1),
@@ -46,6 +51,11 @@ const MEDIEVAL_CELLS := {
 }
 
 static func texture(item_id: String) -> Texture2D:
+	if item_id == "village_lantern": return LANTERN_TEXTURE
+	if item_id == "village_bench": return BENCH_TEXTURE
+	if item_id == "flower_bed": return FLOWERS_TEXTURE
+	if item_id == "wild_herbs": return HERBS_TEXTURE
+	if item_id == "ruin_fragment": return RUIN_TEXTURE
 	if item_id == "tree_seed": return CROP_TEXTURE
 	if item_id == "oak_wood" or item_id == "field_stone": return MEDIEVAL_RESOURCE_TEXTURE
 	if PREHISTORY_CELLS.has(item_id): return PREHISTORY_TEXTURE
@@ -56,6 +66,7 @@ static func texture(item_id: String) -> Texture2D:
 
 static func region(item_id: String) -> Rect2:
 	var atlas := texture(item_id)
+	if item_id in ["village_lantern", "village_bench", "flower_bed", "wild_herbs", "ruin_fragment"]: return Rect2(Vector2.ZERO, atlas.get_size())
 	if item_id == "oak_wood" or item_id == "field_stone":
 		return Rect2(0 if item_id == "oak_wood" else 128, 0, 128, 128)
 	if item_id == "tree_seed":

@@ -38,7 +38,7 @@ func capture(game: Node2D) -> Dictionary:
 	var dependents: Array[Dictionary] = []
 	for actor: Variant in game.dependents.values():
 		dependents.append({"id":actor.stable_id,"species":actor.species_id,"home":actor.home_id,"position":[actor.position.x,actor.position.y],"hunger":actor.hunger,"thirst":actor.thirst,"health":actor.health,"age":actor.age_seconds,"product_elapsed":actor.product_elapsed,"stored_product":actor.stored_product})
-	return {"version": VERSION, "scenario_id":game.scenario.scenario_id, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "dependents":dependents, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "progression":game.meta_progression.snapshot(), "workforce": {"food": game.workforce.food_reserve}}
+	return {"version": VERSION, "scenario_id":game.scenario.scenario_id, "player_position": [game.player.position.x, game.player.position.y], "inventory": game.inventory.snapshot(), "entities": entities, "routes": routes, "villagers": villagers, "dependents":dependents, "day_time": game.day_time_seconds, "pickups": pickup_amounts, "resource_sources": source_states, "campaign": {"completed": game.campaign.completed.duplicate(true), "gathered": game.campaign.gathered_items.duplicate(true), "crafted": game.campaign.crafted_recipes.duplicate(true), "placed": game.campaign.placed_entities.duplicate(true), "buildings": game.campaign.completed_entities.duplicate(true), "wood": game.campaign.gathered_wood, "clay": game.campaign.gathered_clay}, "progression":game.meta_progression.snapshot(), "living":game.living_timeline.snapshot(), "workforce": {"food": game.workforce.food_reserve}}
 
 func save_to_path(game: Node2D, path: String) -> Error:
 	var absolute_path := ProjectSettings.globalize_path(path)
@@ -174,6 +174,8 @@ func restore(game: Node2D, data: Dictionary) -> Error:
 	if game.campaign.gathered_wood: game.campaign.gathered_items["wood"] = true
 	if game.campaign.gathered_clay: game.campaign.gathered_items["clay"] = true
 	game.workforce.food_reserve = float(data.get("workforce", {}).get("food", 0.0))
+	if data.has("living"): game.living_timeline.restore(data.living)
+	elif game.living_timeline.enabled: game.living_timeline.begin_day(game.meta_progression.day)
 	game._update_inventory_hud()
 	game.queue_redraw()
 	return OK

@@ -43,3 +43,10 @@ Each eight-day season advances through a scenario-specific calendar. Donating
 one of each collection item awards knowledge used to unlock connected
 technology nodes. Completed buildings can be upgraded twice; workshops gain
 production speed and durability, stores gain slots, and homes gain a resident.
+
+The Medieval era also contains the first **Living Timelines** vertical slice:
+visible day/night lighting, weather forecasts, player energy and sleep, an
+optional daily request board, persistent relationships, a Day 8 Harvest Feast,
+northern-ruin discoveries, a travelling merchant, and placeable cosmetic
+decorations. Press `J` for the Valley Journal and `N` to sleep. See
+`MILESTONE_LIVING_TIMELINES.md` for the playable loop.

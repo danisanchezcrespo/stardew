@@ -29,6 +29,8 @@ const ACTIONS := {
 	"open_logistics": [KEY_G],
 	"open_tech_tree": [KEY_T],
 	"open_collection": [KEY_M],
+	"open_living_journal": [KEY_J],
+	"sleep_day": [KEY_N],
 	"building_details": [],
 }
 

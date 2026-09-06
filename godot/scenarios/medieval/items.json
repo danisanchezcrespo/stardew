@@ -8,5 +8,10 @@
  {"id":"windmill_plan","label":"Windmill","color":"#d7b276","max_stack":5,"placeable_entity_id":"WINDMILL"},
  {"id":"forge_plan","label":"Forge","color":"#d7b276","max_stack":5,"placeable_entity_id":"FORGE"},
  {"id":"market_plan","label":"Market","color":"#d7b276","max_stack":5,"placeable_entity_id":"MARKET"},
- {"id":"keep_plan","label":"Stone keep","color":"#d7b276","max_stack":1,"placeable_entity_id":"KEEP"}
+ {"id":"keep_plan","label":"Stone keep","color":"#d7b276","max_stack":1,"placeable_entity_id":"KEEP"},
+ {"id":"village_lantern","label":"Village lantern","color":"#ffd76a","max_stack":10,"placeable_entity_id":"DECOR_LANTERN"},
+ {"id":"village_bench","label":"Village bench","color":"#8c552e","max_stack":10,"placeable_entity_id":"DECOR_BENCH"},
+ {"id":"flower_bed","label":"Flower bed","color":"#d45a73","max_stack":10,"placeable_entity_id":"DECOR_FLOWERS"}
+ ,{"id":"wild_herbs","label":"Wild herbs","color":"#75a64e","max_stack":30}
+ ,{"id":"ruin_fragment","label":"Carved ruin fragment","color":"#85847d","max_stack":10}
 ]}

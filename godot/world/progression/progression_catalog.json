@@ -38,7 +38,7 @@
   "medieval": {
     "seasons":["Spring","Summer","Autumn","Winter"],
     "collection_name":"Royal Cabinet",
-    "collection":[{"item":"oak_wood","research":1},{"item":"field_stone","research":1},{"item":"wheat","research":1},{"item":"flour","research":2},{"item":"loaf","research":2},{"item":"iron_ore_medieval","research":2},{"item":"iron_tools","research":3},{"item":"coin","research":3}],
+    "collection":[{"item":"oak_wood","research":1},{"item":"field_stone","research":1},{"item":"wheat","research":1},{"item":"flour","research":2},{"item":"loaf","research":2},{"item":"iron_ore_medieval","research":2},{"item":"iron_tools","research":3},{"item":"coin","research":3},{"item":"wild_herbs","research":1},{"item":"ruin_fragment","research":3}],
     "tech":[
       {"id":"village","label":"Village Foundations","cost":0,"requires":[],"recipes":["granary_plan","cottage_plan","coarse_flatbread"]},
       {"id":"milling","label":"Milling","cost":2,"requires":["village"],"recipes":["windmill_plan","hand_loaf"]},

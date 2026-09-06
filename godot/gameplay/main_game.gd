@@ -33,6 +33,7 @@ const StructureVisualType = preload("res://world/placement/structure_visual.gd")
 const GameThemeType = preload("res://ui/game_theme.gd")
 const SettlementProgressionType = preload("res://world/progression/settlement_progression.gd")
 const TimeTravelStateType = preload("res://world/time_travel/time_travel_state.gd")
+const LivingTimelineType = preload("res://world/progression/living_timeline.gd")
 const TimePortalType = preload("res://world/time_travel/time_portal.gd")
 const TimeArtifactType = preload("res://world/time_travel/time_artifact.gd")
 const MuseumArchiveType = preload("res://world/time_travel/museum_archive.gd")
@@ -201,6 +202,12 @@ var dialogue_speaker: Label
 var dialogue_text: Label
 var dialogue_queue: Array[Dictionary] = []
 var dialogue_cooldown_seconds := 0.0
+var living_timeline: Variant
+var living_light: CanvasModulate
+var living_panel: Control
+var living_open := false
+var living_status: Label
+var living_energy_label: Label
 const VILLAGER_NAMES: Array[String] = ["Nefru", "Merit", "Hori", "Tia", "Bek", "Kiya", "Sabu", "Ipu", "Nebet", "Dagi"]
 var feedback_audio: AudioStreamPlayer
 
@@ -227,6 +234,8 @@ func _ready() -> void:
 	assert(meta_progression.load_catalog("res://world/progression/progression_catalog.json", scenario.scenario_id) == OK, "Progression catalog must load")
 	for tech: Dictionary in meta_progression.tech_nodes():
 		if int(tech.get("cost", 1)) == 0: meta_progression.unlock(str(tech.id))
+	living_timeline = LivingTimelineType.new()
+	living_timeline.configure(scenario.scenario_id, meta_progression.day)
 	physical_save = PhysicalSaveCodecType.new()
 	feedback_audio = AudioStreamPlayer.new()
 	add_child(feedback_audio)
@@ -239,6 +248,8 @@ func _ready() -> void:
 	_build_items()
 	_build_hud()
 	_build_time_travel_world()
+	_build_living_world()
+	_update_living_hud()
 	if DisplayServer.get_name() != "headless":
 		if not TimeTravelStateType.splash_seen_session: _open_splash()
 		_queue_context_dialogues()
@@ -259,11 +270,14 @@ func _process(delta: float) -> void:
 	if splash_open:
 		if splash_prompt != null: splash_prompt.modulate.a = 0.82 + sin(Time.get_ticks_msec() * 0.004) * 0.18
 		return
-	if pause_open or day_summary_open or tech_open or collection_open or dialogue_open: return
+	_update_living_light()
+	if pause_open or day_summary_open or tech_open or collection_open or dialogue_open or living_open: return
 	day_time_seconds += maxf(delta, 0.0)
 	if day_time_seconds >= DAY_LENGTH_SECONDS:
 		day_time_seconds = 0.0
-		_open_day_summary(meta_progression.advance_day())
+		var next_day: Dictionary = meta_progression.advance_day()
+		if living_timeline.enabled: living_timeline.begin_day(meta_progression.day)
+		_open_day_summary(next_day)
 		return
 	autosave_elapsed += maxf(delta, 0.0)
 	if autosave_elapsed >= AUTOSAVE_INTERVAL_SECONDS and not scenario_select_open:
@@ -306,6 +320,7 @@ func _process(delta: float) -> void:
 		if structure_visuals.has(machine.instance_id):
 			structure_visuals[machine.instance_id].set_machine_state(machine.is_running(), machine.broken, delta)
 	campaign.refresh(machines_by_entity_id, logistics_routes, world_grid, villagers)
+	_update_living_hud()
 	dialogue_cooldown_seconds = maxf(0.0, dialogue_cooldown_seconds - delta)
 	_queue_context_dialogues()
 	if scenario.scenario_id != "time_museum":
@@ -369,6 +384,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if dialogue_open:
 		if event.is_action_pressed("use_selected"): _advance_dialogue()
 		return
+	if living_open:
+		if event.is_action_pressed("cancel") or event.is_action_pressed("open_living_journal"): set_living_open(false)
+		elif event.is_action_pressed("use_selected") or event.is_action_pressed("quick_slot_1"): _complete_living_request()
+		elif event.is_action_pressed("quick_slot_2"): _contribute_living_feast()
+		elif event.is_action_pressed("quick_slot_3"): _buy_living_offer()
+		return
 	if pause_open:
 		if event.is_action_pressed("cancel"):
 			set_pause_open(false)
@@ -419,6 +440,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("open_collection"):
 		set_collection_open(true)
+		return
+	var world_input_free := not crafting_open and not storage_open and not machine_open and not building_details_open and not placement_mode and not scenario_select_open
+	if event.is_action_pressed("open_living_journal") and living_timeline.enabled and world_input_free:
+		set_living_open(true)
+		return
+	if event.is_action_pressed("sleep_day") and living_timeline.enabled and world_input_free:
+		_sleep_to_next_day()
 		return
 	if building_details_open:
 		if event.is_action_pressed("move_left") or event.is_action_pressed("move_right") or event.is_action_pressed("move_up") or event.is_action_pressed("move_down"):
@@ -516,6 +544,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			open_building_details(interaction_target.stable_id)
 		elif interaction_target != null and interaction_target.target_kind == "villager":
 			select_villager(interaction_target.stable_id)
+		elif living_timeline.enabled and _selected_item_is_food():
+			_eat_selected_food()
 		else:
 			begin_placement()
 	elif not crafting_open and event.is_action_pressed("quick_previous"):
@@ -745,6 +775,7 @@ func _build_hud() -> void:
 	_build_day_summary_panel(layer)
 	_build_portal_choice_panel(layer)
 	_build_museum_story_panel(layer)
+	_build_living_panel(layer)
 	_build_dialogue_panel(layer)
 	_build_splash_panel(layer)
 	_build_mobile_controls(layer)
@@ -1040,9 +1071,94 @@ func _build_day_summary_panel(layer: CanvasLayer) -> void:
 	var button := Button.new(); button.position = Vector2(125, 270); button.size = Vector2(250, 48); button.text = "Begin the day"; button.pressed.connect(close_day_summary); day_summary_panel.add_child(button)
 
 
+func _build_living_panel(layer: CanvasLayer) -> void:
+	living_energy_label = Label.new(); living_energy_label.position = Vector2(18, 18); living_energy_label.size = Vector2(600, 30); living_energy_label.visible = living_timeline.enabled; layer.add_child(living_energy_label)
+	living_panel = ColorRect.new(); living_panel.position = Vector2(215, 65); living_panel.size = Vector2(850, 565); living_panel.color = Color(str(scenario.theme.get("dark", "#211b18"))); living_panel.visible = false; layer.add_child(living_panel)
+	var title := Label.new(); title.position = Vector2(35, 20); title.size = Vector2(780, 42); title.text = "VALLEY JOURNAL"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 26); living_panel.add_child(title)
+	living_status = Label.new(); living_status.position = Vector2(48, 72); living_status.size = Vector2(754, 430); living_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; living_status.add_theme_font_size_override("font_size", 15); living_panel.add_child(living_status)
+	var hint := Label.new(); hint.position = Vector2(30, 522); hint.size = Vector2(790, 28); hint.text = "1 / SPACE Request    2 Feast    3 Merchant    ESC Close"; hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; living_panel.add_child(hint)
+	GameThemeType.decorate_panel(living_panel, true)
+
+
+func _build_living_world() -> void:
+	living_light = CanvasModulate.new(); living_light.color = Color.WHITE; add_child(living_light); move_child(living_light, 0)
+
+
+func _update_living_light() -> void:
+	if living_light == null: return
+	if not living_timeline.enabled: living_light.color = Color.WHITE; return
+	var fraction := fmod(day_time_seconds / DAY_LENGTH_SECONDS, 1.0)
+	var tint := Color.WHITE
+	if fraction < 0.16: tint = Color("#526382")
+	elif fraction < 0.24: tint = Color("#526382").lerp(Color("#ffd6a0"), (fraction - 0.16) / 0.08)
+	elif fraction < 0.62: tint = Color("#fff8e8") if living_timeline.weather != "Rain" else Color("#b7c5ca")
+	elif fraction < 0.78: tint = Color("#fff0d0").lerp(Color("#8b6680"), (fraction - 0.62) / 0.16)
+	else: tint = Color("#526382")
+	living_light.color = tint
+
+
+func _update_living_hud() -> void:
+	if not living_timeline.enabled or living_energy_label == null: return
+	living_energy_label.text = "ENERGY %d / 100  |  %s  |  J JOURNAL  N SLEEP" % [roundi(living_timeline.player_energy), living_timeline.weather.to_upper()]
+
+
+func set_living_open(value: bool) -> void:
+	if not living_timeline.enabled: return
+	living_open = value; living_panel.visible = value; player.movement_enabled = not value
+	if value:
+		living_panel.move_to_front(); _refresh_living_panel()
+
+
+func _refresh_living_panel(message: String = "") -> void:
+	if not living_timeline.enabled: return
+	var request_text := "No request today. Choose your own priorities."
+	if not living_timeline.current_request.is_empty():
+		var row: Dictionary = living_timeline.current_request
+		var item: Variant = item_registry.get_item(str(row.item))
+		request_text = "%s\n%s wants %s x%d\nReward: +%d friendship and Community" % [str(row.label), str(row.from), item.label if item != null else str(row.item), int(row.amount), int(row.reward)]
+	var bonds: Array[String] = []
+	for person: String in living_timeline.friendship: bonds.append("%s %d" % [person, int(living_timeline.friendship[person])])
+	var offer: Dictionary = living_timeline.merchant_offer(meta_progression.day)
+	var merchant_text := "Away - returns on Day 6" if offer.is_empty() else "%s for %d Silver coin%s" % [str(offer.label), int(offer.price), " - SOLD" if living_timeline.merchant_purchases.has(str(meta_progression.day)) else ""]
+	var discovery_text := ", ".join(living_timeline.discoveries.keys()) if not living_timeline.discoveries.is_empty() else "Rumors point toward the northern ruins"
+	living_status.text = "DAY %d  %s\nTomorrow: %s\nEnergy: %d / 100\n\nTODAY'S STORY\n%s\n\nOPTIONAL REQUEST\n%s\n\nTRAVELLING MERCHANT\n%s\nDISCOVERY: %s\n\nSETTLEMENT\nCommunity %d  Beauty %d  Prosperity %d\nFeast food %d / 8\nRelationships: %s%s" % [meta_progression.day, living_timeline.weather, living_timeline.tomorrow_weather, roundi(living_timeline.player_energy), living_timeline.day_story(meta_progression.day), request_text, merchant_text, discovery_text, living_timeline.community, living_timeline.beauty, living_timeline.prosperity, living_timeline.feast_food, ", ".join(bonds) if not bonds.is_empty() else "New acquaintances", "\n\n" + message if not message.is_empty() else ""]
+
+
+func _complete_living_request() -> void:
+	var result: Dictionary = living_timeline.try_complete_request(inventory)
+	var message := ""
+	if not result.is_empty(): message = "%s is grateful. The village will remember this." % str(result.from)
+	elif meta_progression.day >= 4:
+		var food: int = living_timeline.contribute_feast(inventory)
+		message = "Added %d bread to the Harvest Feast." % food if food > 0 else "Bring bread for the Day 8 Harvest Feast."
+	else: message = "You do not yet have the requested items. This request is optional."
+	_update_inventory_hud(); _refresh_living_panel(message)
+
+
+func _contribute_living_feast() -> void:
+	var food: int = living_timeline.contribute_feast(inventory)
+	_update_inventory_hud(); _refresh_living_panel("Added %d bread to the Harvest Feast." % food if food > 0 else "Bring bread for the Day 8 Harvest Feast.")
+
+
+func _buy_living_offer() -> void:
+	var offer: Dictionary = living_timeline.buy_merchant_offer(meta_progression.day, inventory)
+	_update_inventory_hud(); _refresh_living_panel("Purchased %s. Select it in the hotbar and place it anywhere in the valley." % str(offer.label) if not offer.is_empty() else "The merchant is away, sold out, or you need more Silver coin.")
+
+
+func _sleep_to_next_day() -> void:
+	if day_summary_open: return
+	day_time_seconds = 0.0
+	var next_day: Dictionary = meta_progression.advance_day()
+	living_timeline.begin_day(meta_progression.day)
+	_open_day_summary(next_day)
+
+
 func _open_day_summary(summary: Dictionary) -> void:
 	day_summary_open = true; day_summary_panel.visible = true; player.movement_enabled = false
-	day_summary_label.text = "%s, Day %d - Year %d\n\nThe settlement gained 1 knowledge.\nMachines, crops and animals keep their progress." % [str(summary.season), int(summary.day), int(summary.year)]
+	if living_timeline.enabled:
+		day_summary_label.text = "%s, Day %d - Year %d\n%s\n\n%s\nTomorrow: %s" % [str(summary.season), int(summary.day), int(summary.year), living_timeline.weather, living_timeline.day_story(meta_progression.day), living_timeline.tomorrow_weather]
+	else:
+		day_summary_label.text = "%s, Day %d - Year %d\n\nThe settlement gained 1 knowledge.\nMachines, crops and animals keep their progress." % [str(summary.season), int(summary.day), int(summary.year)]
 	physical_save.save_to_path(self, _autosave_path())
 
 
@@ -1774,6 +1890,8 @@ func _update_villager_panel() -> void:
 	var skill_seconds := float(villager.experience.get(villager.profession, 0.0))
 	var level := 1 + floori(skill_seconds / 120.0)
 	villager_status_label.text = "Home: %s\nStatus: %s\nRole: %s - level %d\nHunger %d%%  Energy %d%%\nTask: %s\nCarrying: %s" % [villager.home_id, villager.status_text(), villager.profession.capitalize(), level, roundi(villager.hunger), roundi(villager.energy), task_text, "nothing" if villager.carrying_amount == 0 else "%s x%d" % [villager.carrying_item, villager.carrying_amount]]
+	if living_timeline.enabled:
+		villager_status_label.text += "\n\nBOND %d\n%s" % [int(living_timeline.friendship.get(villager.villager_name, 0)), living_timeline.villager_story(villager.villager_name, meta_progression.day)]
 
 
 func _change_selected_villager_appearance(index: int) -> void:
@@ -2181,6 +2299,7 @@ func confirm_placement() -> bool:
 		_update_placement_feedback()
 		queue_redraw()
 		return false
+	if not _spend_player_energy(5.0, "Too exhausted to build. Eat or sleep until tomorrow."): return false
 	var instance_id := "placed-%04d" % next_placed_id
 	var result: Variant = world_grid.place(instance_id, definition.entity_id, definition.spatial_footprint, placement_cursor, placement_rotation, definition.allowed_terrain)
 	if not result.valid:
@@ -2210,6 +2329,8 @@ func confirm_placement() -> bool:
 	campaign.record_placement(definition.entity_id)
 	if definition.storage_slots > 0:
 		storage_by_entity_id[instance_id] = PlayerInventoryType.new(item_registry, definition.storage_slots)
+	if living_timeline.enabled and definition.entity_id.begins_with("DECOR_"):
+		living_timeline.beauty += 2
 	cancel_placement()
 	_update_inventory_hud()
 	interaction_label.text = "Placed %s" % definition.label
@@ -2361,6 +2482,9 @@ func craft_selected_recipe() -> bool:
 	if not meta_progression.recipe_unlocked(recipe_id):
 		_update_crafting_ui("Locked - discover it in the Technology Tree (T).")
 		return false
+	if not _spend_player_energy(3.0, "Too exhausted to craft. Sleep to begin a new day."):
+		_update_crafting_ui("Too exhausted to craft. Sleep to begin a new day.")
+		return false
 	var result: Dictionary = crafting.craft(inventory, recipe_id)
 	if result.valid:
 		_play_feedback(CRAFT_SOUND)
@@ -2475,7 +2599,7 @@ func _update_interaction_target() -> void:
 		queue_redraw()
 	if interaction_label != null:
 		if interaction_target == null:
-			interaction_label.text = "ROUTE: approach destination and press R" if not route_source_id.is_empty() else "Approach a resource stack or placed object"
+			interaction_label.text = "ROUTE: approach destination and press R" if not route_source_id.is_empty() else ("Space to eat and restore 25 energy" if living_timeline.enabled and _selected_item_is_food() else "Approach a resource stack or placed object")
 		elif interaction_target.target_kind == "pickup":
 			interaction_label.text = "%s x%d   Space = Pick up" % [interaction_target.item_label, interaction_target.amount]
 		elif interaction_target.target_kind == "resource_source":
@@ -2519,6 +2643,7 @@ func _update_water_interaction_target() -> void:
 
 
 func collect_water() -> int:
+	if not _spend_player_energy(2.0, "Too exhausted to gather water."): return 0
 	var accepted: int = inventory.add("water", 12)
 	if accepted > 0:
 		campaign.record_pickup("water")
@@ -2575,6 +2700,7 @@ func collect_target() -> int:
 		var delivered := deliver_selected_to_machine(machine_id)
 		if delivered == 0: open_machine(machine_id)
 		return delivered
+	if not _spend_player_energy(2.0, "Too exhausted to gather. Sleep to begin a new day."): return 0
 	var accepted: int = inventory.add(interaction_target.item_id, interaction_target.amount)
 	if accepted <= 0:
 		interaction_label.text = "Inventory full"
@@ -2582,6 +2708,8 @@ func collect_target() -> int:
 	interaction_target.take(accepted)
 	_play_feedback(PICKUP_SOUND)
 	campaign.record_pickup(interaction_target.item_id)
+	var discovery_message: String = living_timeline.discover(str(interaction_target.item_id))
+	if not discovery_message.is_empty(): interaction_label.text = discovery_message
 	if interaction_target.amount == 0:
 		interaction_target.set_targeted(false)
 		interaction_target.queue_free()
@@ -2593,6 +2721,7 @@ func collect_target() -> int:
 
 func collect_resource_source(source: Variant) -> int:
 	if source == null: return 0
+	if not _spend_player_energy(3.0, "Too exhausted to gather. Sleep to begin a new day."): return 0
 	var requested: int = source.available_grant()
 	if requested <= 0: return 0
 	var accepted: int = inventory.add(source.item_id, requested)
@@ -2603,6 +2732,24 @@ func collect_resource_source(source: Variant) -> int:
 	_update_inventory_hud()
 	if world_overlay != null: world_overlay.queue_redraw()
 	return accepted
+
+
+func _spend_player_energy(amount: float, failure_message: String) -> bool:
+	if living_timeline == null or living_timeline.spend_energy(amount): return true
+	interaction_label.text = failure_message
+	return false
+
+
+func _selected_item_is_food() -> bool:
+	if inventory == null or inventory.slots[selected_slot].is_empty(): return false
+	return str(inventory.slots[selected_slot].item_id) == scenario.food_item_id
+
+
+func _eat_selected_food() -> bool:
+	if not _selected_item_is_food(): return false
+	inventory.remove(scenario.food_item_id, 1); living_timeline.restore_energy(25.0)
+	_update_inventory_hud(); _update_living_hud(); interaction_label.text = "Meal eaten - energy restored"
+	return true
 
 
 func feed_settlement() -> int:

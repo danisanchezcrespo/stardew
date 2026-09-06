@@ -38,6 +38,19 @@ func _capture() -> void:
 			if not game.dialogue_open:
 				game.dialogue_queue.append({"id":"qa_preview", "speaker":"THE TIME TRAVELER", "text":"I am a traveler through time. These portals lead to civilizations that need my help - and to fragments of a past I can no longer remember."})
 				game._show_next_dialogue()
+		elif str(args[5]) == "living":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			game.set_living_open(true)
+		elif str(args[5]) == "night":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			game.day_time_seconds = game.DAY_LENGTH_SECONDS * 0.86
+			game._update_living_light()
+		elif str(args[5]) == "decor":
+			if game.splash_open: game._close_splash()
+			if game.dialogue_open: game._advance_dialogue()
+			game.inventory.add("village_lantern", 1); game.select_quick_slot(0); game.begin_placement(); game.confirm_placement()
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()
