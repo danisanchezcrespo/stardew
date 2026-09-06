@@ -842,6 +842,10 @@ func _build_hud() -> void:
 	for panel: Control in [crafting_panel, storage_panel, machine_panel, villager_panel, building_details_panel, scenario_panel, pause_panel, logistics_panel, tech_panel, collection_panel, day_summary_panel, portal_choice_panel, museum_story_panel, calendar_panel]:
 		GameThemeType.decorate_panel(panel, panel == scenario_panel)
 		_apply_scenario_panel_palette(panel)
+	# These two structural headings sit on the dark workshop column and must
+	# retain the shared pale caption colour after the era palette pass.
+	crafting_needs_title.add_theme_color_override("font_color", Color("#f1dda9"))
+	crafting_outputs_title.add_theme_color_override("font_color", Color("#f1dda9"))
 	GameThemeType.decorate_panel(inventory_background, true)
 	GameThemeType.emphasize_headings(layer)
 	help_label = Label.new()
@@ -2164,7 +2168,9 @@ func _deliver_construction_ingredient(item_id: String) -> void:
 	var site: Variant = construction_by_entity_id.get(building_details_id)
 	if site == null or site.complete: return
 	var amount := mini(inventory.count(item_id), site.receivable(item_id))
-	if amount <= 0: return
+	if amount <= 0:
+		interaction_label.text = "You are not carrying %s" % item_registry.get_item(item_id).label
+		return
 	var accepted: int = site.deliver(item_id, amount)
 	if accepted > 0:
 		inventory.remove(item_id, accepted)
@@ -2217,8 +2223,8 @@ func _update_building_details() -> void:
 			ingredient_button.add_theme_constant_override("icon_max_width", 22)
 			ingredient_button.text = "x%d / %d   (carried %d)" % [delivered, required, carried]
 			ingredient_button.tooltip_text = "Deliver %s" % item_registry.get_item(item_id).label
-			ingredient_button.disabled = carried <= 0 or delivered >= required
-			ingredient_button.pressed.connect(_deliver_construction_ingredient.bind(item_id))
+			ingredient_button.disabled = delivered >= required
+			ingredient_button.button_down.connect(_deliver_construction_ingredient.bind(item_id))
 			construction_delivery_list.add_child(ingredient_button)
 		building_context_button.visible = site.materials_complete()
 		building_context_button.text = "START CONSTRUCTION"
@@ -2684,14 +2690,14 @@ func _build_crafting_panel(layer: CanvasLayer) -> void:
 	crafting_needs_title.size = Vector2(296, 24)
 	crafting_needs_title.text = "NEEDS"
 	crafting_needs_title.add_theme_font_size_override("font_size", 14)
-	crafting_needs_title.add_theme_color_override("font_color", Color("#6b3e20"))
+	crafting_needs_title.add_theme_color_override("font_color", Color("#f1dda9"))
 	crafting_panel.add_child(crafting_needs_title)
 	crafting_outputs_title = Label.new()
 	crafting_outputs_title.position = Vector2(374, 258)
 	crafting_outputs_title.size = Vector2(296, 24)
 	crafting_outputs_title.text = "PRODUCES"
 	crafting_outputs_title.add_theme_font_size_override("font_size", 14)
-	crafting_outputs_title.add_theme_color_override("font_color", Color("#6b3e20"))
+	crafting_outputs_title.add_theme_color_override("font_color", Color("#f1dda9"))
 	crafting_panel.add_child(crafting_outputs_title)
 	crafting_detail_label = RichTextLabel.new()
 	crafting_detail_label.position = Vector2(374, 338)

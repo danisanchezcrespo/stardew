@@ -82,7 +82,7 @@ func _draw_hint(anchor: Vector2, lines: Array[String]) -> void:
 	for index in range(lines.size()): draw_string(font, rect.position + Vector2(9, 17 + index * 16), lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 
 func _draw_requirement_hint(anchor: Vector2, title: String, needs: Array[Dictionary]) -> void:
-	var width := 190.0
+	var width := 128.0
 	var height := 58.0 + needs.size() * 28.0
 	var rect := Rect2(anchor - Vector2(width * 0.5, height), Vector2(width, height))
 	_panel(rect)
@@ -96,9 +96,7 @@ func _draw_requirement_hint(anchor: Vector2, title: String, needs: Array[Diction
 			continue
 		var pos := rect.position + Vector2(12, 38 + index * 28)
 		draw_texture_rect_region(ItemIconAtlasType.texture(item_id), Rect2(pos, Vector2(22, 22)), ItemIconAtlasType.region(item_id))
-		var definition: Variant = game.item_registry.get_item(item_id)
-		var label: String = str(definition.label) if definition != null else item_id.replace("_", " ").capitalize()
-		draw_string(ThemeDB.fallback_font, pos + Vector2(29, 16), "%s  x%d" % [label, amount], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+		draw_string(ThemeDB.fallback_font, pos + Vector2(29, 16), "x%d" % amount, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 	draw_string(ThemeDB.fallback_font, rect.position + Vector2(9, height - 8), "Space to open", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 
 func _draw_progress_hint(anchor: Vector2, progress: float) -> void:

@@ -76,6 +76,7 @@ func _test_crafting_scene(failures: Array[String]) -> void:
 	game.crafting_recipe_buttons[1].mouse_entered.emit()
 	_expect(game.selected_recipe_index == 1, "Hovering a recipe should preview it without crafting.", failures)
 	_expect(game.crafting_resource_labels[0].get_theme_color("font_color") == Color("#d83232") and not game.crafting_resource_labels[0].text.contains("Clay"), "Missing hovered ingredients should appear red beside icons, without repeated resource names.", failures)
+	_expect(game.crafting_needs_title.get_theme_color("font_color") == Color("#f1dda9") and game.crafting_outputs_title.get_theme_color("font_color") == Color("#f1dda9"), "Needs and Produces headings should use the panel's pale text colour.", failures)
 	game.crafting_recipe_buttons[0].mouse_entered.emit()
 	_expect(game.crafting_panel.color == Color("#d8bd83"), "Crafting should use a readable parchment panel instead of an opaque black screen.", failures)
 	var interact_key := InputEventKey.new()

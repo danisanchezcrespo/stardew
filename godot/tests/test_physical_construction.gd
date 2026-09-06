@@ -44,7 +44,7 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	_expect(game.construction_delivery_popup.visible and game.construction_delivery_list.get_child_count() == 2 and not game.building_context_button.visible, "Every required construction ingredient should have its own delivery button.", failures)
 	var wood_delivery: Button = game.construction_delivery_list.get_child(0)
 	_expect(not wood_delivery.disabled and wood_delivery.icon != null and wood_delivery.text.contains("carried 10"), "The carried ingredient button should show its icon and exact available amount.", failures)
-	wood_delivery.pressed.emit()
+	wood_delivery.button_down.emit()
 	game.close_building_details()
 	_expect(game.inventory.count("wood") == 2, "Excess delivered wood should remain with the player.", failures)
 	game.inventory.add("mud_bricks", 10)
