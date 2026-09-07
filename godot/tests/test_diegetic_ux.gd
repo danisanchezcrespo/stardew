@@ -25,8 +25,11 @@ func _run() -> void:
 	game.building_context_button.button_down.emit()
 	_expect(game.tech_open, "Entering the University must open University Studies.", failures)
 	_expect(game.tech_scroll != null and game.tech_canvas.custom_minimum_size.x > game.tech_scroll.size.x, "University knowledge layers should extend through a horizontal scroll.", failures)
-	var milling_button := game.tech_canvas.get_node_or_null("Tech_milling") as Button
-	_expect(milling_button != null and milling_button.text.contains("Wheat") and milling_button.text.contains("[ ]"), "Each University layer should list its required discoveries and current state.", failures)
+	var milling_card := game.tech_canvas.get_node_or_null("Card_milling") as Control
+	_expect(milling_card != null and game.tech_requirement_icons.get("milling", []).size() == 1, "Each University stage should show its required discoveries as icons below the heading.", failures)
+	_expect(not game.tech_unlock_buttons["milling"].visible, "The Unlock button should remain hidden until every stage requirement is fulfilled.", failures)
+	game.inventory.add("wheat", 1); game.meta_progression.research_points = 20; game._update_inventory_hud(); game._refresh_tech_panel()
+	_expect(game.tech_unlock_buttons["milling"].visible and game.tech_unlock_buttons["milling"].text == "UNLOCK", "A ready University stage should expose its bottom Unlock button.", failures)
 	game.set_tech_open(false)
 	var home_id: String = game._ensure_traveller_home()
 	_expect(game.placed_targets[home_id].target_kind == "building", "Space on the Traveller's home must open a building panel, never report an unavailable machine.", failures)

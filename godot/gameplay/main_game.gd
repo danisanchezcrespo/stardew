@@ -196,6 +196,9 @@ var tech_points_label: Label
 var tech_feedback_label: Label
 var tech_scroll: ScrollContainer
 var tech_canvas: Control
+var tech_stage_buttons: Dictionary = {}
+var tech_unlock_buttons: Dictionary = {}
+var tech_requirement_icons: Dictionary = {}
 var collection_panel: Control
 var collection_open := false
 var collection_list: VBoxContainer
@@ -1010,44 +1013,60 @@ func _build_tech_panel(layer: CanvasLayer) -> void:
 	tech_scroll.position = Vector2(28, 76)
 	tech_scroll.size = Vector2(1084, 410)
 	tech_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	tech_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	tech_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	tech_panel.add_child(tech_scroll)
 	tech_canvas = Control.new()
 	tech_scroll.add_child(tech_canvas)
-	var depths: Dictionary = {}
-	for node: Dictionary in meta_progression.tech_nodes(): _tech_depth(str(node.id), depths)
-	var node_positions: Dictionary = {}
-	var maximum_depth := 0
-	var maximum_rows := 1
-	for node: Dictionary in meta_progression.tech_nodes():
-		var depth := int(depths.get(str(node.id), 0))
-		maximum_depth = maxi(maximum_depth, depth)
-		var siblings: Array = meta_progression.tech_nodes().filter(func(candidate: Dictionary) -> bool: return int(depths.get(str(candidate.id), 0)) == depth)
-		var row := siblings.find(node)
-		maximum_rows = maxi(maximum_rows, siblings.size())
-		node_positions[str(node.id)] = Vector2(18 + depth * 250, 18 + row * 132)
-	tech_canvas.custom_minimum_size = Vector2(maxf(1050, 40 + (maximum_depth + 1) * 250), maxf(390, 30 + maximum_rows * 132))
-	for node: Dictionary in meta_progression.tech_nodes():
-		for requirement: Variant in node.get("requires", []):
-			var connector := Line2D.new()
-			connector.width = 4.0; connector.default_color = Color(str(scenario.theme.get("accent", "#d9ae54")))
-			connector.points = PackedVector2Array([Vector2(node_positions[str(requirement)]) + Vector2(214, 54), Vector2(node_positions[str(node.id)]) + Vector2(0, 54)])
-			tech_canvas.add_child(connector)
-	for node: Dictionary in meta_progression.tech_nodes():
-		var button := Button.new()
-		button.name = "Tech_%s" % str(node.id)
-		button.position = Vector2(node_positions[str(node.id)])
-		button.size = Vector2(214, 108)
-		button.text = str(node.label)
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.add_theme_font_size_override("font_size", 12)
+	var nodes: Array = meta_progression.tech_nodes()
+	tech_canvas.custom_minimum_size = Vector2(maxf(1050, 26 + nodes.size() * 252), 390)
+	for index in range(nodes.size()):
+		var node: Dictionary = nodes[index]
+		var node_id := str(node.id)
+		var card := Control.new()
+		card.name = "Card_%s" % node_id
+		card.position = Vector2(16 + index * 252, 8)
+		card.size = Vector2(220, 370)
+		tech_canvas.add_child(card)
+		var stage_button := Button.new()
+		stage_button.name = "Tech_%s" % node_id
+		stage_button.position = Vector2(0, 0)
+		stage_button.size = Vector2(220, 58)
+		stage_button.text = str(node.label).to_upper()
+		stage_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stage_button.add_theme_font_size_override("font_size", 14)
+		card.add_child(stage_button)
+		tech_stage_buttons[node_id] = stage_button
+		if index < nodes.size() - 1:
+			var arrow := Label.new()
+			arrow.position = Vector2(222, 12); arrow.size = Vector2(30, 36); arrow.text = ">"; arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			arrow.add_theme_font_size_override("font_size", 24); arrow.add_theme_color_override("font_color", Color(str(scenario.theme.get("accent", "#d9ae54"))))
+			card.add_child(arrow)
+		var requirements_title := Label.new()
+		requirements_title.position = Vector2(0, 76); requirements_title.size = Vector2(220, 24); requirements_title.text = "REQUIREMENTS"
+		requirements_title.add_theme_font_size_override("font_size", 13); card.add_child(requirements_title)
+		var requirement_strip := HBoxContainer.new()
+		requirement_strip.position = Vector2(0, 106); requirement_strip.size = Vector2(220, 42); requirement_strip.add_theme_constant_override("separation", 8)
+		card.add_child(requirement_strip)
+		var requirement_icons: Array[TextureRect] = []
+		for item_id: Variant in node.get("discover", []):
+			var icon := TextureRect.new(); icon.custom_minimum_size = Vector2(38, 38); icon.texture = ItemIconAtlasType.icon(str(item_id)); icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var item: Variant = item_registry.get_item(str(item_id)); icon.tooltip_text = item.label if item != null else str(item_id)
+			requirement_strip.add_child(icon); requirement_icons.append(icon)
+		tech_requirement_icons[node_id] = requirement_icons
+		var unlocks_title := Label.new()
+		unlocks_title.position = Vector2(0, 164); unlocks_title.size = Vector2(220, 24); unlocks_title.text = "UNLOCKS"
+		unlocks_title.add_theme_font_size_override("font_size", 13); card.add_child(unlocks_title)
 		var unlock_names: Array[String] = []
 		for recipe_id: Variant in node.get("recipes", []):
 			var recipe: Variant = recipe_registry.get_recipe(str(recipe_id))
 			unlock_names.append(recipe.label if recipe != null else str(recipe_id))
-		button.tooltip_text = "Unlocks: %s" % ", ".join(unlock_names)
-		button.pressed.connect(func() -> void: _unlock_tech(str(node.id)))
-		tech_canvas.add_child(button)
+		var unlocks := Label.new()
+		unlocks.position = Vector2(0, 194); unlocks.size = Vector2(220, 102); unlocks.text = "\n".join(unlock_names); unlocks.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; unlocks.add_theme_font_size_override("font_size", 12)
+		card.add_child(unlocks)
+		var unlock_button := Button.new()
+		unlock_button.position = Vector2(0, 320); unlock_button.size = Vector2(220, 38); unlock_button.text = "UNLOCK"; unlock_button.visible = false
+		unlock_button.pressed.connect(_unlock_tech.bind(node_id)); card.add_child(unlock_button)
+		tech_unlock_buttons[node_id] = unlock_button
 	_refresh_tech_panel()
 
 
@@ -1071,18 +1090,20 @@ func _refresh_tech_panel() -> void:
 	if tech_panel == null: return
 	tech_points_label.text = "Knowledge: %d" % meta_progression.research_points
 	for node: Dictionary in meta_progression.tech_nodes():
-		var button := tech_canvas.get_node_or_null("Tech_%s" % str(node.id)) as Button
-		if button == null: continue
-		var unlocked: bool = meta_progression.unlocked_tech.has(str(node.id))
-		button.disabled = unlocked
-		var requirement_rows: Array[String] = []
-		for item_id: Variant in node.get("discover", []):
-			var item: Variant = item_registry.get_item(str(item_id))
-			var found: bool = meta_progression.donated_items.has(str(item_id))
-			requirement_rows.append("%s %s" % ["[x]" if found else "[ ]", item.label if item != null else str(item_id)])
-		var requirement_text := "\n".join(requirement_rows) if not requirement_rows.is_empty() else "No object required"
-		var state := "DISCOVERED" if unlocked else ("READY TO STUDY" if meta_progression.can_unlock(str(node.id)) else "%d KNOWLEDGE" % int(node.cost))
-		button.text = "%s\n%s\n%s" % [str(node.label).to_upper(), state, requirement_text]
+		var node_id := str(node.id)
+		var stage_button: Button = tech_stage_buttons.get(node_id)
+		var unlock_button: Button = tech_unlock_buttons.get(node_id)
+		if stage_button == null or unlock_button == null: continue
+		var unlocked: bool = meta_progression.unlocked_tech.has(node_id)
+		var ready: bool = meta_progression.can_unlock(node_id)
+		stage_button.modulate = Color.WHITE if unlocked or ready else Color(0.58, 0.58, 0.58)
+		stage_button.tooltip_text = "UNLOCKED" if unlocked else ("READY TO UNLOCK" if ready else "%d knowledge required" % int(node.cost))
+		unlock_button.visible = ready
+		var icons: Array = tech_requirement_icons.get(node_id, [])
+		var discoveries: Array = node.get("discover", [])
+		for index in range(icons.size()):
+			var found: bool = index < discoveries.size() and meta_progression.donated_items.has(str(discoveries[index]))
+			(icons[index] as TextureRect).modulate = Color.WHITE if found else Color(0.22, 0.22, 0.22, 0.75)
 
 
 func _unlock_tech(node_id: String) -> void:
