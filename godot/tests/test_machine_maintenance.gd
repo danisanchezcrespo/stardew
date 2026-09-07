@@ -8,11 +8,13 @@ func _initialize() -> void:
 	var registry := ItemRegistryType.new()
 	registry.load_from_path("res://items/items.json")
 	var machine := MachineType.new("kiln", {"clay": 1}, {"mud_bricks": 1}, 0.1, registry)
+	machine.break_roll = func() -> int: return 10
 	for _batch in range(3):
-		machine.add_input("clay", 1)
-		machine.process(0.01)
-		machine.process(0.1)
-	_expect(machine.broken, "Machine should break after its durability is exhausted.", failures)
+		machine.add_input("clay", 1); machine.process(0.01); machine.process(0.1)
+	_expect(not machine.broken, "Safe 1d10 rolls should allow repeated production without forced wear.", failures)
+	machine.break_roll = func() -> int: return 1
+	machine.add_input("clay", 1); machine.process(0.01); machine.process(0.1)
+	_expect(machine.broken, "A natural 1 on the maintenance roll should break the machine.", failures)
 	var output_before: int = machine.output_inventory.count("mud_bricks")
 	machine.add_input("clay", 1)
 	machine.process(1.0)

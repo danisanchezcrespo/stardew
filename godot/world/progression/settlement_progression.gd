@@ -71,6 +71,8 @@ func can_unlock(node_id: String) -> bool:
 	if node.is_empty() or unlocked_tech.has(node_id): return false
 	for requirement: Variant in node.get("requires", []):
 		if not unlocked_tech.has(str(requirement)): return false
+	for item_id: Variant in node.get("discover", []):
+		if not donated_items.has(str(item_id)): return false
 	return research_points >= int(node.get("cost", 1))
 
 
@@ -89,6 +91,10 @@ func recipe_unlocked(recipe_id: String) -> bool:
 
 
 func donate(item_id: String) -> bool:
+	return discover(item_id)
+
+
+func discover(item_id: String) -> bool:
 	if donated_items.has(item_id): return false
 	for entry: Dictionary in collection_items():
 		if str(entry.get("item", "")) == item_id:

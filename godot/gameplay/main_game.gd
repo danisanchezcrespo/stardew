@@ -194,6 +194,8 @@ var tech_panel: Control
 var tech_open := false
 var tech_points_label: Label
 var tech_feedback_label: Label
+var tech_scroll: ScrollContainer
+var tech_canvas: Control
 var collection_panel: Control
 var collection_open := false
 var collection_list: VBoxContainer
@@ -466,7 +468,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if collection_open:
 		if event.is_action_pressed("cancel") or event.is_action_pressed("open_collection"): set_collection_open(false)
-		elif event.is_action_pressed("use_selected"): donate_selected_item()
 		return
 	if day_summary_open:
 		if event.is_action_pressed("use_selected") or event.is_action_pressed("cancel"): close_day_summary()
@@ -1005,33 +1006,48 @@ func _build_tech_panel(layer: CanvasLayer) -> void:
 	tech_feedback_label = Label.new()
 	tech_feedback_label.position = Vector2(34, 505); tech_feedback_label.size = Vector2(1060, 30)
 	tech_panel.add_child(tech_feedback_label)
+	tech_scroll = ScrollContainer.new()
+	tech_scroll.position = Vector2(28, 76)
+	tech_scroll.size = Vector2(1084, 410)
+	tech_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	tech_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	tech_panel.add_child(tech_scroll)
+	tech_canvas = Control.new()
+	tech_scroll.add_child(tech_canvas)
 	var depths: Dictionary = {}
 	for node: Dictionary in meta_progression.tech_nodes(): _tech_depth(str(node.id), depths)
 	var node_positions: Dictionary = {}
+	var maximum_depth := 0
+	var maximum_rows := 1
 	for node: Dictionary in meta_progression.tech_nodes():
 		var depth := int(depths.get(str(node.id), 0))
+		maximum_depth = maxi(maximum_depth, depth)
 		var siblings: Array = meta_progression.tech_nodes().filter(func(candidate: Dictionary) -> bool: return int(depths.get(str(candidate.id), 0)) == depth)
 		var row := siblings.find(node)
-		node_positions[str(node.id)] = Vector2(34 + depth * 205, 90 + row * 82)
+		maximum_rows = maxi(maximum_rows, siblings.size())
+		node_positions[str(node.id)] = Vector2(18 + depth * 250, 18 + row * 132)
+	tech_canvas.custom_minimum_size = Vector2(maxf(1050, 40 + (maximum_depth + 1) * 250), maxf(390, 30 + maximum_rows * 132))
 	for node: Dictionary in meta_progression.tech_nodes():
 		for requirement: Variant in node.get("requires", []):
 			var connector := Line2D.new()
 			connector.width = 4.0; connector.default_color = Color(str(scenario.theme.get("accent", "#d9ae54")))
-			connector.points = PackedVector2Array([Vector2(node_positions[str(requirement)]) + Vector2(174, 29), Vector2(node_positions[str(node.id)]) + Vector2(0, 29)])
-			tech_panel.add_child(connector)
+			connector.points = PackedVector2Array([Vector2(node_positions[str(requirement)]) + Vector2(214, 54), Vector2(node_positions[str(node.id)]) + Vector2(0, 54)])
+			tech_canvas.add_child(connector)
 	for node: Dictionary in meta_progression.tech_nodes():
 		var button := Button.new()
 		button.name = "Tech_%s" % str(node.id)
 		button.position = Vector2(node_positions[str(node.id)])
-		button.size = Vector2(174, 58)
+		button.size = Vector2(214, 108)
 		button.text = str(node.label)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.add_theme_font_size_override("font_size", 12)
 		var unlock_names: Array[String] = []
 		for recipe_id: Variant in node.get("recipes", []):
 			var recipe: Variant = recipe_registry.get_recipe(str(recipe_id))
 			unlock_names.append(recipe.label if recipe != null else str(recipe_id))
 		button.tooltip_text = "Unlocks: %s" % ", ".join(unlock_names)
 		button.pressed.connect(func() -> void: _unlock_tech(str(node.id)))
-		tech_panel.add_child(button)
+		tech_canvas.add_child(button)
 	_refresh_tech_panel()
 
 
@@ -1055,18 +1071,25 @@ func _refresh_tech_panel() -> void:
 	if tech_panel == null: return
 	tech_points_label.text = "Knowledge: %d" % meta_progression.research_points
 	for node: Dictionary in meta_progression.tech_nodes():
-		var button := tech_panel.get_node_or_null("Tech_%s" % str(node.id)) as Button
+		var button := tech_canvas.get_node_or_null("Tech_%s" % str(node.id)) as Button
 		if button == null: continue
 		var unlocked: bool = meta_progression.unlocked_tech.has(str(node.id))
-		button.disabled = unlocked or not meta_progression.can_unlock(str(node.id))
-		button.text = "%s\n%s" % [str(node.label), "DISCOVERED" if unlocked else "%d knowledge" % int(node.cost)]
+		button.disabled = unlocked
+		var requirement_rows: Array[String] = []
+		for item_id: Variant in node.get("discover", []):
+			var item: Variant = item_registry.get_item(str(item_id))
+			var found: bool = meta_progression.donated_items.has(str(item_id))
+			requirement_rows.append("%s %s" % ["[x]" if found else "[ ]", item.label if item != null else str(item_id)])
+		var requirement_text := "\n".join(requirement_rows) if not requirement_rows.is_empty() else "No object required"
+		var state := "DISCOVERED" if unlocked else ("READY TO STUDY" if meta_progression.can_unlock(str(node.id)) else "%d KNOWLEDGE" % int(node.cost))
+		button.text = "%s\n%s\n%s" % [str(node.label).to_upper(), state, requirement_text]
 
 
 func _unlock_tech(node_id: String) -> void:
 	if meta_progression.unlock(node_id):
 		tech_feedback_label.text = "Discovered: %s. New recipes are now available." % str(meta_progression.tech_node(node_id).label)
 		_update_crafting_ui()
-	else: tech_feedback_label.text = "Complete its prerequisite and gather enough knowledge."
+	else: tech_feedback_label.text = "Complete the previous layer and discover every listed object."
 	_refresh_tech_panel()
 
 
@@ -1110,11 +1133,11 @@ func _refresh_collection_panel() -> void:
 		var row := HBoxContainer.new(); row.custom_minimum_size = Vector2(520, 38); collection_list.add_child(row)
 		var icon := TextureRect.new(); icon.custom_minimum_size = Vector2(34, 34); icon.texture = ItemIconAtlasType.icon(item_id); icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; row.add_child(icon)
 		var label := Label.new(); label.custom_minimum_size = Vector2(440, 34)
-		label.text = "%s    %s" % [item.label if item != null else item_id, "DONATED" if meta_progression.donated_items.has(item_id) else "Not discovered"]
+		label.text = "%s    %s" % [item.label if item != null else item_id, "DISCOVERED" if meta_progression.donated_items.has(item_id) else "Not discovered"]
 		label.modulate = Color.WHITE if meta_progression.donated_items.has(item_id) else Color(0.35, 0.35, 0.35)
 		row.add_child(label)
 	var progress: Vector2i = meta_progression.collection_progress()
-	collection_feedback_label.text = "%d / %d preserved - Select an inventory item and press Space to donate one." % [progress.x, progress.y]
+	collection_feedback_label.text = "%d / %d discovered - New objects are recorded automatically." % [progress.x, progress.y]
 
 
 func donate_selected_item() -> bool:
@@ -1315,10 +1338,10 @@ func _update_living_light() -> void:
 	if not living_timeline.enabled: living_light.color = Color.WHITE; return
 	var fraction := fmod(day_time_seconds / DAY_LENGTH_SECONDS, 1.0)
 	var tint := Color.WHITE
-	if fraction < 0.16: tint = Color("#526382")
-	elif fraction < 0.24: tint = Color("#526382").lerp(Color("#ffd6a0"), (fraction - 0.16) / 0.08)
-	elif fraction < 0.62: tint = Color("#fff8e8") if living_timeline.weather != "Rain" else Color("#b7c5ca")
-	elif fraction < 0.78: tint = Color("#fff0d0").lerp(Color("#8b6680"), (fraction - 0.62) / 0.16)
+	if fraction < 0.20: tint = Color("#526382")
+	elif fraction < (7.0 / 24.0): tint = Color("#526382").lerp(Color("#ffd6a0"), (fraction - 0.20) / ((7.0 / 24.0) - 0.20))
+	elif fraction < 0.75: tint = Color("#fff8e8") if living_timeline.weather != "Rain" else Color("#b7c5ca")
+	elif fraction < 0.875: tint = Color("#fff0d0").lerp(Color("#8b6680"), (fraction - 0.75) / 0.125)
 	else: tint = Color("#526382")
 	living_light.color = tint
 
@@ -1920,8 +1943,9 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_status_label = Label.new()
 	machine_status_label.position = Vector2(28, 72)
 	machine_status_label.size = Vector2(248, 205)
+	machine_status_label.clip_contents = true
 	machine_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	machine_status_label.add_theme_font_size_override("font_size", 16)
+	machine_status_label.add_theme_font_size_override("font_size", 13)
 	machine_status_label.add_theme_color_override("font_color", Color("#3b281b"))
 	machine_panel.add_child(machine_status_label)
 	machine_worker_icon = TextureRect.new()
@@ -1941,7 +1965,7 @@ func _build_machine_panel(layer: CanvasLayer) -> void:
 	machine_upgrade_button = Button.new()
 	machine_upgrade_button.position = Vector2(28, 510); machine_upgrade_button.size = Vector2(364, 36); machine_upgrade_button.text = "Upgrade"
 	machine_upgrade_button.pressed.connect(func() -> void: _try_upgrade_building(active_machine_id)); machine_panel.add_child(machine_upgrade_button)
-	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 286); action_scroll.size = Vector2(364, 212); action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; machine_panel.add_child(action_scroll)
+	var action_scroll := ScrollContainer.new(); action_scroll.position = Vector2(28, 292); action_scroll.size = Vector2(364, 206); action_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; machine_panel.add_child(action_scroll)
 	machine_action_list = VBoxContainer.new(); machine_action_list.custom_minimum_size = Vector2(340, 0); action_scroll.add_child(machine_action_list)
 
 
@@ -2259,7 +2283,7 @@ func _update_building_details() -> void:
 	if _is_research_building(str(definition.entity_id)):
 		building_upgrade_button.visible = false
 		building_context_button.visible = true; building_context_button.text = "ENTER UNIVERSITY"
-		building_details_body.text = "%s\n\nKnowledge: %d\nFields discovered: %d / %d\n\nDonate discoveries to earn Knowledge, then study connected fields here. Each discovery opens recipes and the next layer of research." % [str(definition.label).to_upper(), meta_progression.research_points, meta_progression.unlocked_tech.size(), meta_progression.tech_nodes().size()]
+		building_details_body.text = "%s\n\nKnowledge: %d\nFields discovered: %d / %d\n\nObjects are recorded automatically when you first obtain them. Enter to inspect each field, its required discoveries and the knowledge it unlocks." % [str(definition.label).to_upper(), meta_progression.research_points, meta_progression.unlocked_tech.size(), meta_progression.tech_nodes().size()]
 		building_details_controls.text = ""
 		return
 	if placed.definition_id == "CHICKEN_COOP":
@@ -3737,7 +3761,7 @@ func _select_machine_recipe(index: int) -> void:
 
 func _configure_machine_action_button(button: Button) -> void:
 	button.text = button.text.to_upper()
-	button.custom_minimum_size = Vector2(330, 44)
+	button.custom_minimum_size = Vector2(330, 36)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -4313,6 +4337,11 @@ func _slot_text(slot: Dictionary) -> String:
 func _update_inventory_hud() -> void:
 	if inventory_label == null:
 		return
+	var learned_something := false
+	for discovery_slot: Dictionary in inventory.slots:
+		if not discovery_slot.is_empty() and meta_progression.discover(str(discovery_slot.item_id)):
+			learned_something = true
+	if learned_something and tech_panel != null: _refresh_tech_panel()
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
 		if index < inventory_icons.size(): _sync_item_icon(inventory_icons[index], slot)

@@ -16,6 +16,7 @@ var active_recipe_index := 0
 var durability := 3
 var max_durability := 3
 var broken := false
+var break_roll: Callable = func() -> int: return randi_range(1, 10)
 
 const MASTERY_THRESHOLDS := [0, 5, 12, 24]
 
@@ -106,6 +107,9 @@ func _finish_batch() -> void:
 	for item_id: String in recipe_outputs:
 		output_inventory.add(item_id, int(recipe_outputs[item_id]))
 	batches_completed += 1
-	durability = maxi(0, durability - 1)
-	broken = durability == 0
+	# One roll per completed batch: a natural 1 means the machine breaks.
+	# This replaces the old guaranteed failure every three batches.
+	if int(break_roll.call()) == 1:
+		durability = 0
+		broken = true
 	remaining_seconds = 0.0

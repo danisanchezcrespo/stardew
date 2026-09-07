@@ -13,11 +13,20 @@ func _initialize() -> void:
 		var root: Dictionary = progression.tech_nodes()[0]
 		_expect(progression.unlock(str(root.id)), "%s root technology should unlock for free." % scenario_id, failures)
 		for recipe_id: Variant in root.get("recipes", []): _expect(progression.recipe_unlocked(str(recipe_id)), "Root recipe should become available.", failures)
-		var collection_entry: Dictionary = progression.collection_items()[0]
+		if progression.tech_nodes().size() > 1:
+			var next_layer: Dictionary = progression.tech_nodes()[1]
+			progression.research_points = 100
+			_expect(not progression.can_unlock(str(next_layer.id)), "%s next knowledge layer should wait for its object discoveries." % scenario_id, failures)
+			for required_item: Variant in next_layer.get("discover", []): progression.discover(str(required_item))
+			_expect(progression.can_unlock(str(next_layer.id)), "%s next knowledge layer should become available after automatic discoveries." % scenario_id, failures)
+		var collection_entry: Dictionary = {}
+		for candidate: Dictionary in progression.collection_items():
+			if not progression.donated_items.has(str(candidate.item)): collection_entry = candidate; break
+		_expect(not collection_entry.is_empty(), "%s should retain another discoverable catalog object." % scenario_id, failures)
 		var points_before: int = progression.research_points
-		_expect(progression.donate(str(collection_entry.item)), "A catalog item should be donatable once.", failures)
-		_expect(not progression.donate(str(collection_entry.item)), "A catalog item must not be donated twice.", failures)
-		_expect(progression.research_points > points_before, "Donation should award knowledge.", failures)
+		_expect(progression.discover(str(collection_entry.item)), "A newly obtained catalog item should be recorded automatically.", failures)
+		_expect(not progression.discover(str(collection_entry.item)), "A catalog discovery must not be recorded twice.", failures)
+		_expect(progression.research_points > points_before, "A first discovery should award knowledge.", failures)
 		for unused in range(ProgressionType.DAYS_PER_SEASON): progression.advance_day()
 		_expect(progression.season_index == 1 and progression.day == 1, "Calendar should advance season after four seven-day weeks.", failures)
 		progression.upgrade_building("test-building")

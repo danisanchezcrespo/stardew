@@ -24,6 +24,9 @@ func _run() -> void:
 	_expect(game.open_building_details(university_id) and game.building_context_button.visible, "The University must expose its study action in-world.", failures)
 	game.building_context_button.button_down.emit()
 	_expect(game.tech_open, "Entering the University must open University Studies.", failures)
+	_expect(game.tech_scroll != null and game.tech_canvas.custom_minimum_size.x > game.tech_scroll.size.x, "University knowledge layers should extend through a horizontal scroll.", failures)
+	var milling_button := game.tech_canvas.get_node_or_null("Tech_milling") as Button
+	_expect(milling_button != null and milling_button.text.contains("Wheat") and milling_button.text.contains("[ ]"), "Each University layer should list its required discoveries and current state.", failures)
 	game.set_tech_open(false)
 	var home_id: String = game._ensure_traveller_home()
 	_expect(game.placed_targets[home_id].target_kind == "building", "Space on the Traveller's home must open a building panel, never report an unavailable machine.", failures)
