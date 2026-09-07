@@ -2116,6 +2116,7 @@ func _hide_subject_panels() -> void:
 
 func open_building_details(instance_id: String) -> bool:
 	if not placed_targets.has(instance_id): return false
+	if storage_by_entity_id.has(instance_id): return open_storage(instance_id)
 	_hide_subject_panels()
 	building_details_id = instance_id
 	building_details_open = true
@@ -3101,7 +3102,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 			crafting_resource_icons[icon_index].visible = true
 			crafting_resource_labels[icon_index].position = Vector2(412, 150 + icon_index * 34)
 			crafting_resource_labels[icon_index].text = "%d / %d" % [owned, required]
-			crafting_resource_labels[icon_index].add_theme_color_override("font_color", Color("#3b281b") if owned >= required else Color("#d83232"))
+			crafting_resource_labels[icon_index].add_theme_color_override("font_color", Color("#f1dda9") if owned >= required else Color("#ff6b5e"))
 			crafting_resource_labels[icon_index].visible = true
 			icon_index += 1
 	for item_id: String in selected.outputs:
@@ -3113,7 +3114,7 @@ func _update_crafting_ui(feedback: String = "") -> void:
 			crafting_resource_icons[icon_index].visible = true
 			crafting_resource_labels[icon_index].position = Vector2(412, 286 + output_row * 34)
 			crafting_resource_labels[icon_index].text = "x%d" % int(selected.outputs[item_id])
-			crafting_resource_labels[icon_index].add_theme_color_override("font_color", Color("#3b281b"))
+			crafting_resource_labels[icon_index].add_theme_color_override("font_color", Color("#f1dda9"))
 			crafting_resource_labels[icon_index].visible = true
 			icon_index += 1
 	var query: Dictionary = crafting.query(inventory, selected.recipe_id)

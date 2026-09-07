@@ -75,6 +75,10 @@ func _test_supply_work_and_complete(failures: Array[String]) -> void:
 	_expect(game.structure_visuals.has(instance_id), "Completed buildings should use an independently Y-sorted sprite instead of a painted floor rectangle.", failures)
 	var visual: Variant = game.structure_visuals.get(instance_id)
 	_expect(visual != null and not visual.z_as_relative and visual.z_index == roundi(visual.global_position.y), "Building depth should be anchored to its footprint base.", failures)
+	target.set_targeted(true)
+	var outline_material: ShaderMaterial = visual.authored_sprite.material as ShaderMaterial
+	_expect(outline_material != null and bool(outline_material.get_shader_parameter("highlighted")), "Targeted buildings should highlight their sprite silhouette instead of drawing a white square.", failures)
+	target.set_targeted(false)
 	game.player.position = visual.global_position + Vector2(0, 20)
 	game.player._physics_process(0.0)
 	_expect(game.player.z_index > visual.z_index, "Player below a building base should render in front.", failures)

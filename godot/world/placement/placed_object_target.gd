@@ -44,9 +44,21 @@ func set_targeted(value: bool) -> void:
 	if targeted == value:
 		return
 	targeted = value
+	var game: Node = get_parent()
+	var visual: Variant = null
+	if game != null:
+		var visuals: Variant = game.get("structure_visuals")
+		if visuals is Dictionary: visual = visuals.get(stable_id)
+	if visual != null and visual.has_method("set_targeted"):
+		visual.set_targeted(value)
 	queue_redraw()
 
 
 func _draw() -> void:
-	if targeted:
+	var game: Node = get_parent()
+	var has_sprite_outline := false
+	if game != null:
+		var visuals: Variant = game.get("structure_visuals")
+		has_sprite_outline = visuals is Dictionary and visuals.has(stable_id)
+	if targeted and not has_sprite_outline:
 		draw_rect(Rect2(-15, -15, 30, 30), Color.WHITE, false, 3.0)

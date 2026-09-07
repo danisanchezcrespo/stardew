@@ -15,6 +15,22 @@ var effect_time := 0.0
 var visual: Dictionary = {}
 var upgrade_level := 1
 var authored_sprite: Sprite2D
+var targeted := false
+
+const OUTLINE_SHADER := """
+shader_type canvas_item;
+uniform bool highlighted = false;
+uniform vec4 outline_color : source_color = vec4(1.0);
+void fragment() {
+	vec4 base = texture(TEXTURE, UV);
+	if (highlighted && base.a < 0.05) {
+		vec2 px = TEXTURE_PIXEL_SIZE * 2.0;
+		float near_alpha = max(max(texture(TEXTURE, UV + vec2(px.x, 0.0)).a, texture(TEXTURE, UV - vec2(px.x, 0.0)).a), max(texture(TEXTURE, UV + vec2(0.0, px.y)).a, texture(TEXTURE, UV - vec2(0.0, px.y)).a));
+		if (near_alpha > 0.05) base = outline_color;
+	}
+	COLOR = base;
+}
+"""
 
 
 func set_upgrade_level(level: int) -> void:
@@ -25,6 +41,13 @@ func set_upgrade_level(level: int) -> void:
 func set_machine_state(running: bool, broken: bool, delta: float) -> void:
 	machine_running = running
 	machine_broken = broken
+	queue_redraw()
+
+
+func set_targeted(value: bool) -> void:
+	targeted = value
+	if authored_sprite != null and authored_sprite.material is ShaderMaterial:
+		(authored_sprite.material as ShaderMaterial).set_shader_parameter("highlighted", value)
 	queue_redraw()
 
 
@@ -54,19 +77,40 @@ func configure(type_id: String, cells: Array[Vector2i], visual_data: Dictionary 
 
 
 func _build_authored_sprite() -> void:
-	if visual.is_empty() or str(visual.get("texture", "")).is_empty(): return
-	var texture := load(str(visual.texture)) as Texture2D
+	var texture: Texture2D
+	var columns_count := 1
+	var rows_count := 1
+	var column := 0
+	var row := 0
+	if not visual.is_empty() and not str(visual.get("texture", "")).is_empty():
+		texture = load(str(visual.texture)) as Texture2D
+		columns_count = maxi(1, int(visual.get("columns", 1)))
+		rows_count = maxi(1, int(visual.get("rows", 1)))
+		column = int(visual.get("column", 0))
+		row = int(visual.get("row", 0))
+	else:
+		var base_columns := {"STORAGE_CRATE": 0, "BRICK_KILN": 1, "DWELLING": 2}
+		var economy_columns := {"GRAIN_FARM": 0, "BAKERY": 1, "BREWERY": 2, "KITCHEN": 3, "SAWMILL": 4}
+		var industry_columns := {"QUARRY": 0, "COPPER_MINE": 1, "COPPER_SMELTER": 2, "WEAVER": 3, "PAPYRUS_WORKSHOP": 4}
+		if base_columns.has(definition_id): texture = BUILDING_TEXTURE; columns_count = 4; column = int(base_columns[definition_id])
+		elif economy_columns.has(definition_id): texture = ECONOMY_BUILDING_TEXTURE; columns_count = 5; column = int(economy_columns[definition_id])
+		elif industry_columns.has(definition_id): texture = INDUSTRY_TEXTURE; columns_count = 5; column = int(industry_columns[definition_id])
+		elif definition_id == "SHRINE": texture = SHRINE_TEXTURE
 	if texture == null: return
 	authored_sprite = Sprite2D.new()
 	authored_sprite.texture = texture
-	var columns_count := maxi(1, int(visual.get("columns", 1)))
-	var rows_count := maxi(1, int(visual.get("rows", 1)))
 	var region_size := Vector2(texture.get_width() / float(columns_count), texture.get_height() / float(rows_count))
 	if columns_count > 1 or rows_count > 1:
 		authored_sprite.region_enabled = true
-		authored_sprite.region_rect = Rect2(Vector2(int(visual.get("column", 0)), int(visual.get("row", 0))) * region_size, region_size)
+		authored_sprite.region_rect = Rect2(Vector2(column, row) * region_size, region_size)
 	authored_sprite.position = Vector2(0.0, -sprite_size.y * 0.5)
 	authored_sprite.scale = sprite_size / region_size
+	var outline_material := ShaderMaterial.new()
+	var outline_shader := Shader.new()
+	outline_shader.code = OUTLINE_SHADER
+	outline_material.shader = outline_shader
+	outline_material.set_shader_parameter("highlighted", targeted)
+	authored_sprite.material = outline_material
 	add_child(authored_sprite)
 
 
