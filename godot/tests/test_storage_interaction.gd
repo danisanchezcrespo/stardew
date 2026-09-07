@@ -32,6 +32,9 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 	var instance_id: String = game.world_grid.occupant_at(crate_origin)
 	_expect(game.storage_by_entity_id.has(instance_id), "Placed storage definition should create an independent container.", failures)
 	_expect(game.storage_by_entity_id[instance_id].slot_count == 8, "A new storage crate should start with eight slots.", failures)
+	game.construction_by_entity_id[instance_id] = game.ConstructionSiteType.new(instance_id, {"wood": 1}, 1.0)
+	_expect(not game.open_storage(instance_id) and not game.storage_open, "An unfinished storage building must not expose its inventory panel.", failures)
+	game.construction_by_entity_id.erase(instance_id)
 
 	game._update_interaction_target()
 	_expect(game.interaction_target != null and game.interaction_target.target_kind == "storage", "Crate use point should become the nearby contextual target.", failures)

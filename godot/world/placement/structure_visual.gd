@@ -24,8 +24,18 @@ uniform vec4 outline_color : source_color = vec4(1.0);
 void fragment() {
 	vec4 base = texture(TEXTURE, UV);
 	if (highlighted && base.a < 0.05) {
-		vec2 px = TEXTURE_PIXEL_SIZE * 2.0;
-		float near_alpha = max(max(texture(TEXTURE, UV + vec2(px.x, 0.0)).a, texture(TEXTURE, UV - vec2(px.x, 0.0)).a), max(texture(TEXTURE, UV + vec2(0.0, px.y)).a, texture(TEXTURE, UV - vec2(0.0, px.y)).a));
+		vec2 px = TEXTURE_PIXEL_SIZE;
+		float near_alpha = 0.0;
+		for (float distance = 1.0; distance <= 4.0; distance += 1.0) {
+			near_alpha = max(near_alpha, texture(TEXTURE, UV + vec2(px.x * distance, 0.0)).a);
+			near_alpha = max(near_alpha, texture(TEXTURE, UV - vec2(px.x * distance, 0.0)).a);
+			near_alpha = max(near_alpha, texture(TEXTURE, UV + vec2(0.0, px.y * distance)).a);
+			near_alpha = max(near_alpha, texture(TEXTURE, UV - vec2(0.0, px.y * distance)).a);
+			near_alpha = max(near_alpha, texture(TEXTURE, UV + px * distance).a);
+			near_alpha = max(near_alpha, texture(TEXTURE, UV - px * distance).a);
+			near_alpha = max(near_alpha, texture(TEXTURE, UV + vec2(px.x, -px.y) * distance).a);
+			near_alpha = max(near_alpha, texture(TEXTURE, UV + vec2(-px.x, px.y) * distance).a);
+		}
 		if (near_alpha > 0.05) base = outline_color;
 	}
 	COLOR = base;

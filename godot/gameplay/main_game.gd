@@ -2116,7 +2116,8 @@ func _hide_subject_panels() -> void:
 
 func open_building_details(instance_id: String) -> bool:
 	if not placed_targets.has(instance_id): return false
-	if storage_by_entity_id.has(instance_id): return open_storage(instance_id)
+	var opening_site: Variant = construction_by_entity_id.get(instance_id)
+	if storage_by_entity_id.has(instance_id) and (opening_site == null or opening_site.complete): return open_storage(instance_id)
 	_hide_subject_panels()
 	building_details_id = instance_id
 	building_details_open = true
@@ -4090,6 +4091,10 @@ func _process_logistics_route(route: Variant, delta: float) -> int:
 
 func open_storage(instance_id: String) -> bool:
 	if not storage_by_entity_id.has(instance_id):
+		return false
+	var site: Variant = construction_by_entity_id.get(instance_id)
+	if site != null and not site.complete:
+		interaction_label.text = "Finish constructing this storage building first"
 		return false
 	_hide_subject_panels()
 	storage_open = true
