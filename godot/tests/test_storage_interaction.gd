@@ -84,6 +84,9 @@ func _test_place_open_transfer_and_reopen(failures: Array[String]) -> void:
 			second_id = candidate_id
 	game.storage_by_entity_id[instance_id].add("grain", 5)
 	_expect(game.storage_by_entity_id[second_id].count("grain") == 0, "Contents of one crate must not leak into another.", failures)
+	game.storage_by_entity_id[second_id].add("bread", 1)
+	game._sync_owned_discoveries()
+	_expect(game.meta_progression.donated_items.has("bread"), "Items already held in storage should be registered as University discoveries, including after loading an older save.", failures)
 	game_root.queue_free()
 	await process_frame
 

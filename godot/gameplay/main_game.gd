@@ -4358,11 +4358,7 @@ func _slot_text(slot: Dictionary) -> String:
 func _update_inventory_hud() -> void:
 	if inventory_label == null:
 		return
-	var learned_something := false
-	for discovery_slot: Dictionary in inventory.slots:
-		if not discovery_slot.is_empty() and meta_progression.discover(str(discovery_slot.item_id)):
-			learned_something = true
-	if learned_something and tech_panel != null: _refresh_tech_panel()
+	_sync_owned_discoveries()
 	for index in range(inventory.slots.size()):
 		var slot: Dictionary = inventory.slots[index]
 		if index < inventory_icons.size(): _sync_item_icon(inventory_icons[index], slot)
@@ -4376,6 +4372,23 @@ func _update_inventory_hud() -> void:
 			inventory_slot_labels[index].add_theme_color_override("font_color", Color("#ffe27a") if index == selected_slot else Color.WHITE)
 		if index < inventory_icons.size(): inventory_icons[index].modulate = Color("#ffe27a") if index == selected_slot else Color.WHITE
 	_update_population_hud()
+
+
+func _sync_owned_discoveries() -> void:
+	var inventories: Array = [inventory]
+	for storage: Variant in storage_by_entity_id.values(): inventories.append(storage)
+	for machine: Variant in machines_by_entity_id.values():
+		inventories.append(machine.input_inventory)
+		inventories.append(machine.output_inventory)
+	var learned_something := false
+	for owned_inventory: Variant in inventories:
+		if owned_inventory == null: continue
+		for discovery_slot: Dictionary in owned_inventory.slots:
+			if not discovery_slot.is_empty() and meta_progression.discover(str(discovery_slot.item_id)):
+				learned_something = true
+	if learned_something and tech_panel != null:
+		_refresh_tech_panel()
+		_refresh_collection_panel()
 
 
 func _update_population_hud() -> void:
